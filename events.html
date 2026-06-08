@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Écosystème et événements BUG|PWN : conférences BUG|PWN CON, compétitions battleCTF et réseau de partenaires mondiaux en cybersécurité. | BUG|PWN ecosystem and events: BUG|PWN CON conferences, battleCTF competitions, and global cybersecurity partner network.">
+    <meta name="keywords" content="cybersecurity events, CTF, battleCTF, hacking competition, BUGPWN CON, conférences sécurité, hacking streaming, cybersecurity network">
+    <meta property="og:title" content="Events | BUG|PWN - Vulnerability Researcher Team">
+    <meta property="og:description" content="Écosystème et événements BUG|PWN : conférences BUG|PWN CON, compétitions battleCTF et réseau de partenaires mondiaux en cybersécurité. | BUG|PWN ecosystem and events: BUG|PWN CON conferences, battleCTF competitions, and global cybersecurity partner network.">
+    <meta property="og:image" content="bugpwn@1x.png">
+    <meta property="og:type" content="website">
+    <title>Events | BUG|PWN - Vulnerability Researcher Team</title>
+    <link rel="icon" type="image/png" href="bugpwn.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .border-fine { border: 1px solid #000000; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="index.html#blog" class="hover:text-black transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="#" class="text-black font-bold transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+
+            <div class="flex items-center gap-4 hidden md:flex">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
+                    EN
+                </button>
+                <a href="contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">
+                    Nous contacter
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="flex flex-col md:flex-row justify-between items-end gap-12">
+            <div class="max-w-3xl">
+                <div class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6">> ./SYNERGY_AND_EVENTS</div>
+                <h1 class="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none" data-i18n="hero_title">
+                    Écosystème <br> & Impact.
+                </h1>
+            </div>
+            <p class="text-lg text-gray-500 font-light max-w-sm leading-relaxed border-l border-gray-200 pl-8" data-i18n="hero_desc">
+                De la BUG|PWN CON au battleCTF. Nous redéfinissons les standards de la compétition offensive en streaming.
+            </p>
+        </div>
+    </header>
+
+    <section class="max-w-7xl mx-auto px-6 mb-32">
+        <h2 class="text-[10px] font-black uppercase tracking-[0.5em] text-gray-400 mb-12" data-i18n="ev_lbl_main">Main_Infrastructures</h2>
+        <div class="grid md:grid-cols-2 border-t border-l border-black">
+            
+            <div class="p-12 md:p-16 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 group">
+                <div class="mono text-[9px] font-bold text-gray-300 mb-4 tracking-widest" data-i18n="ev_lbl_ann">// ANNUAL_SUMMIT</div>
+                <h3 class="text-4xl font-black uppercase tracking-tighter mb-8">BUG|PWN CON</h3>
+                <p class="text-sm text-gray-600 leading-relaxed mb-10" data-i18n="con_desc">
+                    Conférence 100% virtuelle dédiée à l'élite de la recherche en sécurité. Talks techniques, démos de 0-days et workshops interactifs diffusés en haute fidélité.
+                </p>
+                <div class="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-black">
+                    <span class="w-2 h-2 bg-black rounded-full"></span> <span data-i18n="con_date">PROCHAINE ÉDITION : DÉCEMBRE 2026</span>
+                </div>
+            </div>
+
+            <div class="p-12 md:p-16 border-r border-b border-black bg-black text-white transition-all duration-500">
+                <div class="mono text-[9px] font-bold text-gray-500 mb-4 tracking-widest" data-i18n="ev_lbl_glob">// GLOBAL_COMPETITION</div>
+                <h3 class="text-4xl font-black uppercase tracking-tighter mb-8">BattleCTF</h3>
+                <div class="space-y-8">
+                    <div class="flex gap-6 items-start">
+                        <div class="text-2xl font-black opacity-30">01</div>
+                        <div>
+                            <h4 class="font-bold uppercase tracking-widest text-sm" data-i18n="ctf_q_title">Qualifiers Online</h4>
+                            <p class="text-[11px] text-gray-400 leading-relaxed uppercase tracking-wider" data-i18n="ctf_q_desc">Web // Pwn // Reverse Engineering // Forensics.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-6 items-start">
+                        <div class="text-2xl font-black opacity-30">02</div>
+                        <div>
+                            <h4 class="font-bold uppercase tracking-widest text-sm" data-i18n="ctf_f_title">Finals: The Arena</h4>
+                            <p class="text-[11px] text-gray-400 leading-relaxed mb-6 uppercase tracking-wider" data-i18n="ctf_f_desc">Top 8 Players // Format 1v1 Sudden Death // LIVE_STREAMING.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class=" py-32 border-t border-black">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid md:grid-cols-2 gap-24">
+                
+                <div>
+                    <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-12" data-i18n="ev_lbl_spons">Sponsored_Nodes</h5>
+                    <div class="space-y-12">
+                        <div class="border-l-2 border-black pl-8 group transition-all duration-300">
+                            <h4 class="text-xl font-black uppercase group-hover:pl-4 transition-all duration-300  text-black">NICSC 2026</h4>
+                            <p class="text-[10px] text-gray-500 mt-2 font-medium uppercase tracking-widest" data-i18n="sp_1">Technical Sponsor</p>
+                        </div>
+    
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-12" data-i18n="ev_lbl_bug">BUG|PWN_Events_Nodes</h5>
+                    <div class="space-y-12">
+                        
+                        <div class="border-l-2 border-gray-200 pl-8 group hover:border-black transition-all duration-300">
+                            <h4 class="text-xl font-black uppercase group-hover:pl-4 transition-all duration-300 text-black ">BUG|PWN CON 0x3</h4>
+                            <p class="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-widest" data-i18n="ev_lbl_upc">upcoming</p>
+                            <div class="flex gap-6 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <a href="#" target="_blank" class="mono text-[9px] font-black uppercase tracking-widest underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors">CON_0x3</a>
+                                <a href="#" target="_blank" class="mono text-[9px] font-black uppercase tracking-widest underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors">CTF_2025</a>
+                            </div>
+                        </div>
+
+                        <div class="border-l-2 border-gray-200 pl-8 group hover:border-black transition-all duration-300">
+                            <h4 class="text-xl font-black uppercase group-hover:pl-4 transition-all duration-300 text-black ">BUG|PWN CON 0x2</h4>
+                            <p class="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-widest ">battleCTF 2024</p>
+                            <div class="flex gap-6 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <a href="#" target="_blank" class="mono text-[9px] font-black uppercase tracking-widest underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors">CON_0x2</a>
+                                <a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="mono text-[9px] font-black uppercase tracking-widest underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors">CTF_2024</a>
+                            </div>
+                        </div>
+
+                        <div class="border-l-2 border-gray-200 pl-8 group hover:border-black transition-all duration-300">
+                            <h4 class="text-xl font-black uppercase group-hover:pl-4 transition-all duration-300 text-black ">BUG|PWN CON 0x1</h4>
+                            <p class="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-widest ">battleCTF 2023</p>
+                            <div class="flex gap-6 mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <a href="https://www.youtube.com/watch?v=73bDk5BP4hw&list=PLTrADNdtdsKajAkcqDAi63ZD5YV8QyZu2" target="_blank" class="mono text-[9px] font-black uppercase tracking-widest underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors">CON_0x1</a>
+                                <a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="mono text-[9px] font-black uppercase tracking-widest underline decoration-1 underline-offset-4 hover:text-gray-500 transition-colors">CTF_2023</a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="py-32 bg-white border-t border-black">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-12" data-i18n="ev_lbl_prot">Sponsorship_Protocol</h5>
+            <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-16" data-i18n="sponsor_title">Soutenir la Communauté.</h2>
+            
+            <div class="grid md:grid-cols-3 gap-12 text-left max-w-5xl mx-auto">
+                <div class="space-y-4">
+                    <div class="mono text-[12px] font-black" data-i18n="sponsor_step1_title">01_ANALYSE</div>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest leading-relaxed" data-i18n="sponsor_step1_desc">Nous sponsorisons des événements CTF, des projets de recherche en sécurité et des conférences qui privilégient le réalisme technique et l'innovation.</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="mono text-[12px] font-black" data-i18n="sponsor_step2_title">02_PROPOSITION</div>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest leading-relaxed" data-i18n="sponsor_step2_desc">Envoyez votre dossier (Deck, Audience, Infrastructure) à notre unité de liaison.</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="mono text-[12px] font-black" data-i18n="sponsor_step3_title">03_DÉPLOIEMENT</div>
+                    <p class="text-xs text-gray-500 uppercase tracking-widest leading-relaxed" data-i18n="sponsor_step3_desc">Une fois validé, nous fournissons support financier, prix ou challenges exclusifs.</p>
+                </div>
+            </div>
+
+            <div class="mt-24">
+                <a href="contact.html" target="_blank" class="inline-block bg-black text-white px-16 py-6 text-[11px] font-black uppercase tracking-[0.4em] hover:bg-gray-800 transition-all" data-i18n="sponsor_btn">
+                    Lancer_Requete_Sponsoring
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-32 bg-black text-white border-t border-black">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h5 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-12" data-i18n="partner_sub">Partner_Network</h5>
+            <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-16" data-i18n="partner_title">Devenir Partenaire.</h2>
+            <p class="text-lg text-gray-400 font-light max-w-2xl mx-auto mb-24 leading-relaxed" data-i18n="partner_desc">
+                Associez votre marque à l'excellence. Sponsorisez la BUG|PWN CON ou le battleCTF pour accéder à une audience mondiale qualifiée d'experts en cybersécurité.
+            </p>
+
+            <div class="grid md:grid-cols-3 gap-0 border-t border-l border-white/20 text-left">
+                <div class="p-12 border-r border-b border-white/20 hover:bg-white/5 transition-colors">
+                    <h4 class="text-xl font-black uppercase mb-4 tracking-tight" data-i18n="p_card1_title">Visibilité Ciblée</h4>
+                    <p class="text-sm text-gray-400 leading-relaxed" data-i18n="p_card1_desc">Exposition maximale auprès d'une communauté internationale de chercheurs, pentesters et ingénieurs en sécurité.</p>
+                </div>
+                <div class="p-12 border-r border-b border-white/20 hover:bg-white/5 transition-colors">
+                    <h4 class="text-xl font-black uppercase mb-4 tracking-tight" data-i18n="p_card2_title">Acquisition de Talents</h4>
+                    <p class="text-sm text-gray-400 leading-relaxed" data-i18n="p_card2_desc">Identifiez et recrutez les meilleurs profils techniques directement lors de nos compétitions battleCTF.</p>
+                </div>
+                <div class="p-12 border-r border-b border-white/20 hover:bg-white/5 transition-colors">
+                    <h4 class="text-xl font-black uppercase mb-4 tracking-tight" data-i18n="p_card3_title">Intégration Produit</h4>
+                    <p class="text-sm text-gray-400 leading-relaxed" data-i18n="p_card3_desc">Intégrez vos solutions ou infrastructures directement dans nos environnements de compétition et scénarios d'exploitation.</p>
+                </div>
+            </div>
+
+            <div class="mt-24">
+                <a href="contact.html" target="_blank" class="inline-block bg-white text-black px-16 py-6 text-[11px] font-black uppercase tracking-[0.4em] hover:bg-gray-200 transition-all" data-i18n="partner_btn">
+                    Obtenir_Le_Deck_Partenaire
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques. <br>
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- GESTION DES TRADUCTIONS ---
+        const translations = {
+            fr: {
+                nav_services: "Services",
+                nav_research: "Recherche",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Nous contacter",
+                hero_title: "Écosystème <br> & Impact.",
+                hero_desc: "De la BUG|PWN CON au battleCTF. Nous redéfinissons les standards de la compétition offensive en streaming.",
+                con_desc: "Conférence 100% virtuelle dédiée à l'élite de la recherche en sécurité. Talks techniques, démos de 0-days et workshops interactifs diffusés en haute fidélité.",
+                con_date: "PROCHAINE ÉDITION : DÉCEMBRE 2026",
+                ctf_q_title: "Qualifiers Online",
+                ctf_q_desc: "Web // Pwn // Reverse Engineering // Forensics.",
+                ctf_f_title: "Finals: The Arena",
+                ctf_f_desc: "Top 8 Players // Format 1v1 Sudden Death // LIVE_STREAMING.",
+                sp_1: "Technical Sponsor",
+                sp_2: "Prize Pool & Infrastructure Support",
+                sp_3: "Main Sponsor // Binary Category",
+                sponsor_title: "Soutenir la Communauté.",
+                sponsor_step1_title: "01_ANALYSE",
+                sponsor_step1_desc: "Nous sponsorisons des événements CTF, des projets de recherche en sécurité et des conférences qui privilégient le réalisme technique et l'innovation.",
+                sponsor_step2_title: "02_PROPOSITION",
+                sponsor_step2_desc: "Envoyez votre dossier (Deck, Audience, Infrastructure) à notre unité de liaison.",
+                sponsor_step3_title: "03_DÉPLOIEMENT",
+                sponsor_step3_desc: "Une fois validé, nous fournissons support financier, prix ou challenges exclusifs.",
+                sponsor_btn: "Lancer_Requete_Sponsoring",
+                
+                /* Nouveaux ajouts FR - Partenaire */
+                partner_sub: "Partner_Network",
+                partner_title: "Devenir Partenaire.",
+                partner_desc: "Associez votre marque à l'excellence. Sponsorisez la BUG|PWN CON ou le battleCTF pour accéder à une audience mondiale qualifiée d'experts en cybersécurité.",
+                p_card1_title: "Visibilité Ciblée",
+                p_card1_desc: "Exposition maximale auprès d'une communauté internationale de chercheurs, pentesters et ingénieurs en sécurité.",
+                p_card2_title: "Acquisition de Talents",
+                p_card2_desc: "Identifiez et recrutez les meilleurs profils techniques directement lors de nos compétitions battleCTF.",
+                p_card3_title: "Intégration Produit",
+                p_card3_desc: "Intégrez vos solutions ou infrastructures directement dans nos environnements de compétition et scénarios d'exploitation.",
+                partner_btn: "Obtenir_Le_Deck_Partenaire",
+
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source",
+                f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP.",
+                ev_lbl_main: "Main_Infrastructures",
+                ev_lbl_ann: "// ANNUAL_SUMMIT",
+                ev_lbl_glob: "// GLOBAL_COMPETITION",
+                ev_lbl_spons: "Sponsored_Nodes",
+                ev_lbl_bug: "BUG|PWN_Events_Nodes",
+                ev_lbl_upc: "à venir",
+                ev_lbl_prot: "Sponsorship_Protocol"
+            },
+            en: {
+                nav_services: "Services",
+                nav_research: "Research",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Contact Us",
+                hero_title: "Ecosystem <br> & Impact.",
+                hero_desc: "From BUG|PWN CON to battleCTF. We are redefining the standards of offensive competition streaming.",
+                con_desc: "100% virtual conference dedicated to elite security research. Technical talks, 0-day demos, and interactive workshops broadcasted in high fidelity.",
+                con_date: "NEXT EDITION: DECEMBER 2026",
+                ctf_q_title: "Online Qualifiers",
+                ctf_q_desc: "Web // Pwn // Reverse Engineering // Forensics.",
+                ctf_f_title: "Finals: The Arena",
+                ctf_f_desc: "Top 8 Players // 1v1 Sudden Death Format // LIVE_STREAMING.",
+                sp_1: "Technical Sponsor",
+                sp_2: "Prize Pool & Infrastructure Support",
+                sp_3: "Main Sponsor // Binary Category",
+                sponsor_title: "Support the Community.",
+                sponsor_step1_title: "01_ANALYSIS",
+                sponsor_step1_desc: "We sponsor CTF events, security research projects, and conferences that prioritize technical realism and innovation.",
+                sponsor_step2_title: "02_PROPOSAL",
+                sponsor_step2_desc: "Send your pitch deck (Deck, Audience, Infrastructure) to our liaison unit.",
+                sponsor_step3_title: "03_DEPLOYMENT",
+                sponsor_step3_desc: "Once validated, we provide financial support, prizes, or exclusive challenges.",
+                sponsor_btn: "Launch_Sponsorship_Request",
+
+                /* Nouveaux ajouts EN - Partenaire */
+                partner_sub: "Partner_Network",
+                partner_title: "Become a Partner.",
+                partner_desc: "Associate your brand with excellence. Sponsor BUG|PWN CON or battleCTF to reach a highly qualified global audience of cybersecurity experts.",
+                p_card1_title: "Targeted Visibility",
+                p_card1_desc: "Maximum exposure to an international community of vulnerability researchers, pentesters, and security engineers.",
+                p_card2_title: "Talent Acquisition",
+                p_card2_desc: "Identify and recruit top technical profiles directly during our battleCTF competitions.",
+                p_card3_title: "Product Integration",
+                p_card3_desc: "Integrate your solutions or infrastructure directly into our competition environments and exploitation scenarios.",
+                partner_btn: "Request_Partner_Deck",
+
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit",
+                f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption.",
+                ev_lbl_main: "Main_Infrastructures",
+                ev_lbl_ann: "// ANNUAL_SUMMIT",
+                ev_lbl_glob: "// GLOBAL_COMPETITION",
+                ev_lbl_spons: "Sponsored_Nodes",
+                ev_lbl_bug: "BUG|PWN_Events_Nodes",
+                ev_lbl_upc: "upcoming",
+                ev_lbl_prot: "Sponsorship_Protocol"
+            }
+        };
+
+        // --- LOGIQUE DE CHANGEMENT ---
+        const langToggle = document.getElementById('lang-toggle');
+        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            localStorage.setItem('bugpwn_lang', lang);
+            
+            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage(newLang);
+        });
+
+        // Initialisation au chargement de la page
+        updateLanguage(currentLang);
+    </script>
+</body>
+</html>

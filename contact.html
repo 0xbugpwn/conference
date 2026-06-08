@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Contactez l'équipe BUG|PWN pour un audit d'infrastructure, un rapport de vulnérabilité (canal sécurisé PGP), une demande de sponsoring ou d'intervention. | Contact the BUG|PWN team for an infrastructure audit, vulnerability report (PGP secure channel), sponsorship request, or intervention.">
+    <meta name="keywords" content="contact bugpwn, security audit request, vulnerability report, PGP encryption, audit sécurité, pentest contact, cyber security services">
+    <meta property="og:title" content="Contact | BUG|PWN - Vulnerability Researcher Team">
+    <meta property="og:description" content="Contactez l'équipe BUG|PWN pour un audit d'infrastructure, un rapport de vulnérabilité (canal sécurisé PGP), une demande de sponsoring ou d'intervention. | Contact the BUG|PWN team for an infrastructure audit, vulnerability report (PGP secure channel), sponsorship request, or intervention.">
+    <meta property="og:image" content="bugpwn@1x.png">
+    <meta property="og:type" content="website">
+    <title>Contact | BUG|PWN - Vulnerability Researcher Team</title>
+    <link rel="icon" type="image/png" href="bugpwn.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+        
+        /* Pour cacher la barre de défilement tout en gardant l'overflow */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="blog.html" class="hover:text-black transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+
+            <div class="flex items-center gap-4 hidden md:flex">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
+                    EN
+                </button>
+                <a href="contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">
+                    Nous contacter
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl">
+            <div class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6">> ./SECURE_CHANNEL</div>
+            <h1 class="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-8" data-i18n="contact_title">
+                Initier <br> le Contact.
+            </h1>
+            <p class="text-lg text-gray-500 font-light max-w-xl leading-relaxed border-l-2 border-black pl-8" data-i18n="contact_desc">
+                Que ce soit pour un audit d'infrastructure, une demande de sponsoring ou un rapport de vulnérabilité, utilisez les canaux ci-dessous.
+            </p>
+        </div>
+    </header>
+
+    <section class="max-w-7xl mx-auto px-6 mb-32">
+        <div class="grid md:grid-cols-2 gap-24">
+            
+            <div>
+                <h2 class="text-[10px] font-black uppercase tracking-[0.5em] text-gray-400 mb-12">Transmission_Protocol</h2>
+                
+                <div class="space-y-6">
+                    <p class="text-sm text-gray-600 leading-relaxed font-medium" data-i18n="tp_intro">
+                        Toutes nos communications s'effectuent exclusivement via nos canaux directs. Pour initier un échange, veuillez formater votre requête selon le protocole ci-dessous.
+                    </p>
+
+                    <div class="bg-gray-50 border border-gray-200 p-8 hover:border-black transition-colors">
+                        <h3 class="text-xs font-black uppercase tracking-widest mb-6" data-i18n="tp_step_title">Format Requis :</h3>
+                        <ul class="space-y-6 text-xs text-gray-500 font-medium">
+                            <li class="flex items-start gap-4">
+                                <span class="text-black font-black">01.</span>
+                                <span data-i18n="tp_step1">Sélectionnez le nœud de routage approprié (Business ou Security).</span>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="text-black font-black">02.</span>
+                                <span data-i18n="tp_step2">Préfixez strictement votre objet : [AUDIT], [SPONSOR], [CVE] ou [OTHER].</span>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <span class="text-black font-black">03.</span>
+                                <span data-i18n="tp_step3">Le chiffrement PGP du corps du message est fortement recommandé pour les requêtes sensibles (0-days, audits), mais reste optionnel pour les prises de contact générales.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-black text-gray-400 p-6 overflow-x-auto text-[10px] leading-relaxed mono shadow-xl no-scrollbar">
+                        <span class="text-white font-bold">TO:</span> vuln.bugpwn@gmail.com<br>
+                        <span class="text-white font-bold">SUBJECT:</span> [CVE] - Authentication Bypass in SaaS<br>
+                        <br>
+                        -----BEGIN PGP MESSAGE-----<br>
+                        Version: GnuPG v2<br>
+                        <br>
+                        [VOTRE PAYLOAD CHIFFRÉ ICI]<br>
+                        -----END PGP MESSAGE-----
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-[10px] font-black uppercase tracking-[0.5em] text-gray-400 mb-12">Direct_Nodes</h2>
+                
+                <div class="space-y-12">
+                    
+                    <div class="grid grid-cols-1 gap-8 border-l border-black pl-8">
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-2" data-i18n="node_ops">Operations, Business & Events</h4>
+                            <button onclick="copyEmail('contact.bugpwn@gmail.com', this)" class="group flex items-center gap-4 mono text-lg font-bold text-black hover:text-gray-500 transition-colors text-left">
+                                <i class="far fa-envelope text-gray-400 group-hover:text-black transition-colors email-icon"></i>
+                                <span data-i18n="lbl_contact_mail">CONTACT_MAIL</span>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white bg-black px-2 py-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none copy-msg" data-i18n="btn_copy_mail">Copier</span>
+                            </button>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-[0.2em] text-gray-400 mb-2" data-i18n="node_vuln">Vulnerability Reports & Secure Channel</h4>
+                            <button onclick="copyEmail('vuln.bugpwn@gmail.com', this)" class="group flex items-center gap-4 mono text-lg font-bold text-black hover:text-gray-500 transition-colors text-left">
+                                <i class="far fa-envelope text-gray-400 group-hover:text-black transition-colors email-icon"></i>
+                                <span data-i18n="lbl_vuln_mail">VULN_MAIL</span>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white bg-black px-2 py-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none copy-msg" data-i18n="btn_copy_mail">Copier</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="pgp-section" class="bg-gray-50 border border-gray-200 p-8 group hover:border-black transition-colors">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 class="text-sm font-black uppercase tracking-widest text-black mb-1">Clé PGP Publique</h3>
+                                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Fingerprint: CC31 F2F6 AAF4 341A ADD3  0877 D1D6 6C4E 0E42 807D</p>
+                            </div>
+                            <button id="copy-btn" onclick="copyPGP()" class="w-8 h-8 flex items-center justify-center border border-gray-300 text-gray-500 hover:bg-black hover:text-white hover:border-black transition-colors" title="Copier la clé">
+                                <i class="far fa-copy"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="relative bg-black border border-black">
+                            <div id="pgp-content" class="text-gray-400 p-6 overflow-hidden text-[10px] leading-relaxed mono max-h-32 transition-all duration-500">
+<span id="pgp-raw-text">-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+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
+7MSOMMFTL3YH
+=TnvB
+-----END PGP PUBLIC KEY BLOCK-----</span>
+                            </div>
+                            <div id="pgp-fade" class="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-black to-transparent pointer-events-none"></div>
+                        </div>
+                        <button id="toggle-btn" onclick="togglePGP()" class="w-full bg-gray-200 text-black hover:bg-black hover:text-white transition-colors py-3 text-[10px] font-black uppercase tracking-widest mt-1" data-i18n="btn_show_more">
+                            Afficher la clé complète
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques. <br>
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- FONCTION COPIE EMAIL ---
+        function copyEmail(email, btn) {
+            navigator.clipboard.writeText(email).then(() => {
+                const icon = btn.querySelector('.email-icon');
+                const msg = btn.querySelector('.copy-msg');
+                
+                icon.className = 'fas fa-check text-green-600 email-icon';
+                msg.innerText = translations[currentLang]['btn_copied_mail'];
+                msg.classList.replace('bg-black', 'bg-green-600');
+                
+                setTimeout(() => {
+                    icon.className = 'far fa-envelope text-gray-400 group-hover:text-black transition-colors email-icon';
+                    msg.innerText = translations[currentLang]['btn_copy_mail'];
+                    msg.classList.replace('bg-green-600', 'bg-black');
+                }, 2000);
+            }).catch(err => console.error('Erreur lors de la copie', err));
+        }
+
+        // --- FONCTIONS PGP (Copie & Expansion) ---
+        function copyPGP() {
+            const textToCopy = document.getElementById('pgp-raw-text').innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const icon = btn.querySelector('i');
+                // Change l'icône en "check"
+                icon.className = 'fas fa-check text-green-600';
+                btn.classList.add('border-green-600');
+                
+                // Remet l'icône normale après 2 secondes
+                setTimeout(() => {
+                    icon.className = 'far fa-copy';
+                    btn.classList.remove('border-green-600');
+                }, 2000);
+            }).catch(err => {
+                console.error('Erreur lors de la copie', err);
+            });
+        }
+
+        let isExpanded = false;
+        function togglePGP() {
+            const content = document.getElementById('pgp-content');
+            const fade = document.getElementById('pgp-fade');
+            const btn = document.getElementById('toggle-btn');
+
+            if (!isExpanded) {
+                content.classList.remove('max-h-32');
+                content.classList.add('max-h-[2000px]');
+                fade.classList.add('opacity-0');
+                btn.setAttribute('data-i18n', 'btn_show_less');
+                btn.innerText = translations[currentLang]['btn_show_less'];
+            } else {
+                content.classList.remove('max-h-[2000px]');
+                content.classList.add('max-h-32');
+                fade.classList.remove('opacity-0');
+                btn.setAttribute('data-i18n', 'btn_show_more');
+                btn.innerText = translations[currentLang]['btn_show_more'];
+            }
+            isExpanded = !isExpanded;
+        }
+
+        // --- GESTION DES TRADUCTIONS ---
+        const translations = {
+            fr: {
+                nav_services: "Services",
+                nav_research: "Recherche",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Nous contacter",
+
+                contact_title: "Initier <br> le Contact.",
+                contact_desc: "Que ce soit pour un audit d'infrastructure, une demande de sponsoring ou un rapport de vulnérabilité, utilisez les canaux ci-dessous.",
+                
+                tp_intro: "Toutes nos communications s'effectuent exclusivement via nos canaux directs. Pour initier un échange, veuillez formater votre requête selon le protocole ci-dessous.",
+                tp_step_title: "Format Requis :",
+                tp_step1: "Sélectionnez le nœud de routage approprié (Business ou Security).",
+                tp_step2: "Préfixez strictement votre objet : [AUDIT], [SPONSOR], [CVE] ou [OTHER].",
+                tp_step3: "Le chiffrement PGP du corps du message est fortement recommandé pour les requêtes sensibles (0-days, audits), mais reste optionnel pour les prises de contact générales.",
+
+                btn_show_more: "Afficher la clé complète",
+                btn_show_less: "Réduire la clé",
+                btn_copy_mail: "Copier",
+                btn_copied_mail: "Copié !",
+                
+                lbl_contact_mail: "CONTACT_MAIL",
+                lbl_vuln_mail: "VULN_MAIL",
+
+                node_ops: "Opérations, Business & Événements",
+                node_vuln: "Rapports de Vulnérabilités & Canal Sécurisé",
+
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source",
+                f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP."
+            },
+            en: {
+                nav_services: "Services",
+                nav_research: "Research",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Contact Us",
+
+                contact_title: "Initiate <br> Contact.",
+                contact_desc: "Whether for an infrastructure audit, a sponsorship request, or a vulnerability report, use the channels below.",
+                
+                tp_intro: "All our communications take place exclusively via direct channels. To initiate contact, please format your request according to the protocol below.",
+                tp_step_title: "Required Format:",
+                tp_step1: "Select the appropriate routing node (Business or Security).",
+                tp_step2: "Strictly prefix your subject line: [AUDIT], [SPONSOR], [CVE], or [OTHER].",
+                tp_step3: "PGP encryption of the message body is highly recommended for sensitive requests (0-days, audits), but remains optional for general inquiries.",
+
+                btn_show_more: "Show full key",
+                btn_show_less: "Collapse key",
+                btn_copy_mail: "Copy",
+                btn_copied_mail: "Copied!",
+                
+                lbl_contact_mail: "CONTACT_MAIL",
+                lbl_vuln_mail: "VULN_MAIL",
+
+                node_ops: "Operations, Business & Events",
+                node_vuln: "Vulnerability Reports & Secure Channel",
+
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit",
+                f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption."
+            }
+        };
+
+        const langToggle = document.getElementById('lang-toggle');
+        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            localStorage.setItem('bugpwn_lang', lang);
+            
+            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage(newLang);
+        });
+
+        // Initialisation
+        updateLanguage(currentLang);
+    </script>
+</body>
+</html>

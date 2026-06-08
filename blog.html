@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Archives et writeups techniques de vulnérabilités critiques, méthodologies d'audit et rediffusions de conférences par l'unité de recherche BUG|PWN. | Technical archives and writeups of critical vulnerabilities, audit methodologies, and conference VODs by BUG|PWN.">
+    <meta name="keywords" content="cybersecurity blog, writeups, vulnerability analysis, exploit dev, reverse engineering, conférences, VOD, articles sécurité, hacking">
+    <meta property="og:title" content="Blog & Writeups | BUG|PWN - Vulnerability Researcher Team">
+    <meta property="og:description" content="Archives et writeups techniques de vulnérabilités critiques, méthodologies d'audit et rediffusions de conférences par l'unité de recherche BUG|PWN. | Technical archives and writeups of critical vulnerabilities, audit methodologies, and conference VODs by BUG|PWN.">
+    <meta property="og:image" content="bugpwn@1x.png">
+    <meta property="og:type" content="website">
+    <title>Blog & Writeups | BUG|PWN - Vulnerability Researcher Team</title>
+    <link rel="icon" type="image/png" href="bugpwn.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+        .filter-btn.active { background-color: #000; color: #fff; }
+        
+        /* Cache les articles qui ne sont pas sur la page courante */
+        .article-card.hidden-page { display: none !important; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+
+            <div class="flex items-center gap-4 hidden md:flex">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
+                    EN
+                </button>
+                <a href="contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">
+                    Nous contacter
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl">
+            <div class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6">> ./KNOWLEDGE_BASE</div>
+            <h1 class="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-8" data-i18n="hero_title">
+                Archives <br> & Writeups.
+            </h1>
+            <p class="text-lg text-gray-500 font-light max-w-xl leading-relaxed border-l-2 border-black pl-8" data-i18n="hero_desc">
+                Explorations techniques, writeups de vulnérabilités critiques, méthodologies d'audit et rediffusions de nos conférences (VOD).
+            </p>
+        </div>
+    </header>
+
+    <section class="max-w-7xl mx-auto px-6 mb-12">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-black pb-8">
+            <div class="flex flex-wrap gap-4">
+                <button class="filter-btn active border border-black px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all" data-filter="all" data-i18n="filter_all">ALL_FILES</button>
+                <button class="filter-btn border border-gray-300 text-gray-500 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:border-black hover:text-black transition-all" data-filter="writeup" data-i18n="filter_writeups">WRITEUPS</button>
+                <button class="filter-btn border border-gray-300 text-gray-500 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:border-black hover:text-black transition-all" data-filter="article" data-i18n="filter_articles">ARTICLES</button>
+                <button class="filter-btn border border-gray-300 text-gray-500 px-6 py-2 text-[10px] font-black uppercase tracking-widest hover:border-black hover:text-black transition-all" data-filter="video" data-i18n="filter_video">STREAMS & VOD</button>
+            </div>
+            <div class="relative w-full md:w-72">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                    <i class="fas fa-search"></i>
+                </div>
+                <input type="text" id="search-input" class="bg-gray-50 border border-gray-300 text-gray-900 text-[10px] font-black uppercase tracking-widest focus:ring-black focus:border-black block w-full pl-10 p-2.5 transition-colors" placeholder="RECHERCHER UN ARTICLE..." data-i18n-placeholder="search_placeholder">
+            </div>
+        </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-6 mb-32">
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-black" id="articles-container">
+            
+            <a href="blog/coop.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="article">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
+                    <img src="https://placehold.co/800x480/1E293B/FFFFFF/png?text=Counterfeit+Object-Oriented+%0AProgramming+(COOP)&font=Montserrat" alt="Counterfeit Object-Oriented Programming" class="w-full h-full object-cover">
+                    <div class="absolute top-0 right-0 bg-white text-black border-l border-b border-black px-3 py-1 text-[9px] font-black tracking-widest uppercase">
+                        ARTICLE
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between">
+                    <span>// EXPLOIT_DEV</span>
+                    <span>05.JUN.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_coop_title">
+                    Counterfeit Object-Oriented Programming (COOP)
+                </h3>
+                <p class="text-sm text-gray-600 font-medium leading-relaxed mb-8 flex-grow" data-i18n="art_coop_desc">
+                    Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.
+                </p>
+                <div class="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-2">
+                    <span data-i18n="btn_read">Lire le rapport</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=oSVg3SMjtkE" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/oSVg3SMjtkE/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/ID_DE_LA_VIDEO/hqdefault.jpg'" alt="VOD Stream 7" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// LIVE_SESSION</span>
+                    <span>31.MAY.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod7_title">
+                    Live Hack Episode 12 : La sécurité des Systèmes industriel OT/ ICS
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod7_desc">
+                    Comment protéger les systèmes industriels. Hacker : Ndeye Adama DRAMÈ
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+            
+            <a href="blog/cfi.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="article">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
+                    <img src="https://placehold.co/800x480/1E293B/FFFFFF/png?text=Control+Flow+Integrity+%0A(CFI)&font=Montserrat" alt="Control Flow Integrity" class="w-full h-full object-cover">
+                    <div class="absolute top-0 right-0 bg-white text-black border-l border-b border-black px-3 py-1 text-[9px] font-black tracking-widest uppercase">
+                        ARTICLE
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between">
+                    <span>// EXPLOIT_DEV</span>
+                    <span>27.MAY.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_cfi_title">
+                    Control Flow Integrity (CFI)
+                </h3>
+                <p class="text-sm text-gray-600 font-medium leading-relaxed mb-8 flex-grow" data-i18n="art_cfi_desc">
+                    Théorie, Mécanismes et Exploitation. Une plongée complète dans la théorie, les mécanismes de défense, les implémentations réelles et les techniques d'exploitation avancées.
+                </p>
+                <div class="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-2">
+                    <span data-i18n="btn_read">Lire le rapport</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=0mnU98e0c5g" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/0mnU98e0c5g/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/0mnU98e0c5g/hqdefault.jpg'" alt="VOD Stream 1" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// LIVE_SESSION</span>
+                    <span>29.MAR.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod1_title">
+                    Live Hack Episode 11 : Active Directory Exploitation, Hard.
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod1_desc">
+                    Exploitation d’un environnement d’entreprise multi-host (DC01 + MS01 + réseau interne segmenté) jusqu’au contrôle total du domaine par Modeste Akaffou.
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=AM07H63OJTI" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/AM07H63OJTI/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/AM07H63OJTI/hqdefault.jpg'" alt="VOD Stream 2" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// LIVE_SESSION</span>
+                    <span>01.MAY.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod2_title">
+                    Live Hack Episode 10 : Introduction à l’évasion des antivirus.
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod2_desc">
+                    Comprendre et contourner la détection basée sur les signatures par Emmanuel HEMADOU.
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=IzVxuisBr3U&list=PLTrADNdtdsKYpD4E2gofmfqGAy73Sy_VH&index=9" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/IzVxuisBr3U/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/IzVxuisBr3U/hqdefault.jpg'" alt="VOD Stream 3" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// LIVE_SESSION</span>
+                    <span>14.JAN.2024</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod3_title">
+                    LiveHack Episode 7 : reversing reverse engineering
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod3_desc">
+                    Reverse engineering by avantika
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=2IgfqpM24AI" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/2IgfqpM24AI/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/2IgfqpM24AI/hqdefault.jpg'" alt="VOD Stream 4" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// BUGPWN_CON_0x1</span>
+                    <span>04.DEC.2023</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod4_title">
+                    BUG|PWN CON Day 01 | Offensive Tradecraft: NightWalker
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod4_desc">
+                    Speaker : ph3n1x
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=tqyb28tusRg&list=PLTrADNdtdsKajAkcqDAi63ZD5YV8QyZu2&index=10" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/tqyb28tusRg/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/tqyb28tusRg/hqdefault.jpg'" alt="VOD Stream 5" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// BUGPWN_CON_0x1</span>
+                    <span>06.DEC.2023</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod5_title">
+                    BUG|PWN CON Day 03 | C2 servers: From dedicated servers to Telegram bots
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod5_desc">
+                    C2 servers: From dedicated servers to Telegram bots. Speaker : Wilfrid (aka daphnia)
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/watch?v=VpFr9EQLQoY&list=PLTrADNdtdsKajAkcqDAi63ZD5YV8QyZu2&index=7" target="_blank" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://img.youtube.com/vi/VpFr9EQLQoY/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/VpFr9EQLQoY/hqdefault.jpg'" alt="VOD Stream 6" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// BUGPWN_CON_0x1</span>
+                    <span>08.DEC.2023</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_vod6_title">
+                    BUG|PWN CON Day 05 | Deploying Post-Quantum Cryptography: Obstacles and Opportunities
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art_vod6_desc">
+                    Deploying Post-Quantum Cryptography: Obstacles and Opportunities. Speaker : Ruben Gonzalez
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">YouTube</div>
+                </div>
+            </a>
+
+            <a href="blog/jop.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="article">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
+                    <img src="https://placehold.co/800x480/374151/FFFFFF/png?text=Jump-Oriented+Programming+%0A(JOP)&font=Montserrat" alt="Jump-Oriented Programming" class="w-full h-full object-cover">
+                    <div class="absolute top-0 right-0 bg-white text-black border-l border-b border-black px-3 py-1 text-[9px] font-black tracking-widest uppercase">
+                        ARTICLE
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between">
+                    <span>// EXPLOIT_DEV</span>
+                    <span>24.MAY.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_jop_title">
+                    Jump-Oriented Programming (JOP)
+                </h3>
+                <p class="text-sm text-gray-600 font-medium leading-relaxed mb-8 flex-grow" data-i18n="art_jop_desc">
+                    Quand les gadgets sautent sans filet. Une plongée complète dans la technique JOP, son histoire, sa mécanique, son architecture et ses gadgets.
+                </p>
+                <div class="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-2">
+                    <span data-i18n="btn_read">Lire le rapport</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <a href="#video-kernel" class="article-card group relative p-8 border-r border-b border-black hover:bg-black hover:text-white transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="video">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:border-white transition-all duration-500">
+                    <img src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?fit=crop&w=800&q=80" alt="Server Room" class="w-full h-full object-cover opacity-80 group-hover:opacity-100">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur text-white rounded-full flex items-center justify-center border border-white group-hover:scale-110 transition-transform">
+                            <i class="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-600 text-white border-l border-b border-red-800 px-3 py-1 text-[9px] font-black tracking-widest uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> VOD
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between group-hover:text-gray-300">
+                    <span>// BUGPWN_CON_0x2</span>
+                    <span>15.DEC.2025</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art3_title">
+                    Talk : Advanced Kernel Exploitation
+                </h3>
+                <p class="text-sm text-gray-500 font-medium leading-relaxed mb-8 flex-grow group-hover:text-gray-300" data-i18n="art3_desc">
+                    Replay intégral de notre présentation technique lors de la BUGPWN CON. Déconstruction d'un Use-After-Free (UAF) dans le noyau Linux.
+                </p>
+                <div class="flex justify-between items-center mt-auto">
+                    <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-white">
+                        <span data-i18n="btn_watch">Voir la vidéo</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    <div class="text-[8px] uppercase tracking-widest text-gray-500">LiveForge Engine</div>
+                </div>
+            </a>
+
+            <div class="p-8 border-r border-b border-black flex items-center justify-center bg-gray-50" id="pagination-block">
+                <div class="flex gap-4 items-center">
+                    <button id="prev-page" class="w-10 h-10 border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors cursor-not-allowed opacity-30"><i class="fas fa-chevron-left"></i></button>
+                    <span class="mono text-sm font-bold" id="page-counter">1 / 1</span>
+                    <button id="next-page" class="w-10 h-10 border border-black flex items-center justify-center hover:bg-black hover:text-white transition-colors cursor-not-allowed opacity-30"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="news_title">Recevoir nos recherches (0-Spam)</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="news_desc">
+                Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.
+            </p>
+            <form class="flex flex-col md:flex-row gap-4 justify-center" id="newsletter-form">
+                <input type="email" id="news-input" required placeholder="email@domain.com" class="bg-transparent border border-gray-600 px-6 py-3 text-sm focus:outline-none focus:border-white w-full md:w-96 font-mono text-center md:text-left">
+                <button type="submit" id="news-btn" class="bg-white text-black px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all" data-i18n="news_btn">
+                    S'abonner_
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques. <br>
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- GESTION DE LA PAGINATION ET DES FILTRES ---
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const allArticles = Array.from(document.querySelectorAll('.article-card'));
+        
+        const articlesPerPage = 6; // Définir combien d'articles par page
+        let currentPage = 1;
+        let currentFilter = 'all';
+        let filteredArticles = [];
+
+        const prevBtn = document.getElementById('prev-page');
+        const nextBtn = document.getElementById('next-page');
+        const pageCounter = document.getElementById('page-counter');
+        const searchInput = document.getElementById('search-input');
+
+        function updatePagination() {
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+            // Filtrer les articles selon la catégorie sélectionnée ET la recherche
+            filteredArticles = allArticles.filter(card => {
+                const matchCategory = currentFilter === 'all' || card.getAttribute('data-category') === currentFilter;
+                const matchSearch = searchTerm === '' || card.innerText.toLowerCase().includes(searchTerm);
+                return matchCategory && matchSearch;
+            });
+
+            // Calculer le nombre total de pages
+            const totalPages = Math.ceil(filteredArticles.length / articlesPerPage) || 1;
+
+            // S'assurer que la page courante est valide
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            // Mettre à jour le texte du compteur
+            pageCounter.innerText = `${currentPage} / ${totalPages}`;
+
+            // Gérer l'état des boutons Précédent/Suivant
+            if (currentPage === 1) {
+                prevBtn.classList.add('cursor-not-allowed', 'opacity-30');
+            } else {
+                prevBtn.classList.remove('cursor-not-allowed', 'opacity-30');
+            }
+
+            if (currentPage === totalPages) {
+                nextBtn.classList.add('cursor-not-allowed', 'opacity-30');
+            } else {
+                nextBtn.classList.remove('cursor-not-allowed', 'opacity-30');
+            }
+
+            // Afficher/Cacher les articles en fonction de la page et du filtre
+            allArticles.forEach(card => {
+                card.style.display = 'none'; // Cacher tout par défaut
+                card.classList.remove('flex');
+            });
+
+            const startIndex = (currentPage - 1) * articlesPerPage;
+            const endIndex = startIndex + articlesPerPage;
+
+            filteredArticles.slice(startIndex, endIndex).forEach(card => {
+                card.style.display = 'flex'; // Afficher seulement ceux de la page courante
+            });
+        }
+
+        // Ecouteurs pour les boutons de filtres
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Style des boutons
+                filterBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-black', 'text-white');
+                    b.classList.add('text-gray-500');
+                });
+                this.classList.add('active', 'bg-black', 'text-white');
+                this.classList.remove('text-gray-500');
+
+                currentFilter = this.getAttribute('data-filter');
+                currentPage = 1; // Revenir à la page 1 lors d'un changement de filtre
+                updatePagination();
+            });
+        });
+
+        // Ecouteur pour la barre de recherche
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                currentPage = 1;
+                updatePagination();
+            });
+        }
+
+        // Ecouteurs pour la pagination
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePagination();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePagination();
+            }
+        });
+
+        // --- GESTION DE LA NEWSLETTER VIA APPS SCRIPT ---
+        const newsForm = document.getElementById('newsletter-form');
+        const newsBtn = document.getElementById('news-btn');
+        const newsInput = document.getElementById('news-input');
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxpgfOi38v9enff6fwL5n1QPLC_iPz2sXfh0YDiHL5gb5_33qmN1EOyKNqR7FXwt58a/exec';
+
+        newsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if(newsInput.value) {
+                const originalText = newsBtn.innerHTML;
+                
+                // Feedback visuel de transmission
+                newsBtn.innerHTML = "SENDING_ <i class='fas fa-circle-notch fa-spin ml-2'></i>";
+                
+                let requestBody = new FormData();
+                requestBody.append('Email', newsInput.value);
+
+                fetch(scriptURL, { method: 'POST', body: requestBody })
+                    .then(() => {
+                        // On affiche toujours "TRANSMIS" sans analyser la réponse
+                        newsBtn.innerHTML = "TRANSMIS <i class='fas fa-check ml-2'></i>";
+                        newsBtn.classList.remove('bg-white', 'text-black');
+                        newsBtn.classList.add('bg-gray-500', 'text-white');
+                        newsInput.value = '';
+                        
+                        setTimeout(() => {
+                            newsBtn.innerHTML = originalText;
+                            newsBtn.classList.add('bg-white', 'text-black');
+                            newsBtn.classList.remove('bg-gray-500', 'text-white');
+                        }, 3000);
+                    })
+                    .catch(() => {
+                        // Même en cas d'erreur réseau, on ne donne pas d'info sur le pourquoi
+                        newsBtn.innerHTML = "DONE_";
+                        setTimeout(() => newsBtn.innerHTML = originalText, 3000);
+                    });
+            }
+        });
+
+        // --- GESTION DES TRADUCTIONS ---
+        const translations = {
+            fr: {
+                nav_services: "Services",
+                nav_research: "Recherche",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Nous contacter",
+                hero_title: "Archives <br> & Articles.",
+                hero_desc: "Explorations techniques, writeups de vulnérabilités critiques, méthodologies d'audit et rediffusions de nos conférences (VOD).",
+                
+                filter_all: "ALL_FILES",
+                filter_writeups: "WRITEUPS",
+                filter_articles: "ARTICLES",
+                filter_video: "STREAMS & VOD",
+                search_placeholder: "RECHERCHER UN ARTICLE...",
+                
+                art3_title: "Talk : Advanced Kernel Exploitation",
+                art3_desc: "Replay intégral de notre présentation technique lors de la BUGPWN CON. Déconstruction d'un Use-After-Free (UAF) dans le noyau Linux.",
+                
+                art_cfi_title: "Control Flow Integrity (CFI)",
+                art_cfi_desc: "Théorie, Mécanismes et Exploitation. Une plongée complète dans la théorie, les mécanismes de défense, les implémentations réelles et les techniques d'exploitation avancées.",
+                
+                art_jop_title: "Jump-Oriented Programming (JOP)",
+                art_jop_desc: "Quand les gadgets sautent sans filet. Une plongée complète dans la technique JOP, son histoire, sa mécanique, son architecture et ses gadgets.",
+
+                art_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
+                art_coop_desc: "Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.",
+
+                art_vod1_title: "Live Hack Episode 11 : Active Directory Exploitation, Hard.",
+                art_vod1_desc: "Exploitation d’un environnement d’entreprise multi-host (DC01 + MS01 + réseau interne segmenté) jusqu’au contrôle total du domaine par Modeste Akaffou.",
+                art_vod2_title: "Live Hack Episode 10 : Introduction à l’évasion des antivirus.",
+                art_vod2_desc: "Comprendre et contourner la détection basée sur les signatures par Emmanuel HEMADOU.",
+                art_vod3_title: "LiveHack Episode 7 : reversing reverse engineering",
+                art_vod3_desc: "Reverse engineering by avantika",
+                art_vod4_title: "BUG|PWN CON Day 01 | Offensive Tradecraft: NightWalker",
+                art_vod4_desc: "Speaker : ph3n1x",
+                art_vod5_title: "BUG|PWN CON Day 03 | C2 servers: From dedicated servers to Telegram bots",
+                art_vod5_desc: "C2 servers: From dedicated servers to Telegram bots. Speaker : Wilfrid (aka daphnia)",
+                art_vod6_title: "BUG|PWN CON Day 05 | Deploying Post-Quantum Cryptography: Obstacles and Opportunities",
+                art_vod6_desc: "Deploying Post-Quantum Cryptography: Obstacles and Opportunities. Speaker : Ruben Gonzalez",
+                art_vod7_title: "Live Hack Episode 12 : La sécurité des Systèmes industriel OT/ ICS",
+                art_vod7_desc: "Comment protéger les systèmes industriels. Hacker : Ndeye Adama DRAMÈ",
+
+                btn_read: "Lire le rapport",
+                btn_watch: "Voir la vidéo",
+                
+                news_title: "Recevoir nos recherches (0-Spam)",
+                news_desc: "Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.",
+                news_btn: "S'abonner_",
+
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source",
+                f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP."
+            },
+            en: {
+                nav_services: "Services",
+                nav_research: "Research",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Contact Us",
+                hero_title: "Archives <br> & Writeups.",
+                hero_desc: "Technical explorations, critical vulnerability writeups, audit methodologies, and conference replays (VOD).",
+                
+                filter_all: "ALL_FILES",
+                filter_writeups: "WRITEUPS",
+                filter_articles: "ARTICLES",
+                filter_video: "STREAMS & VOD",
+                search_placeholder: "SEARCH AN ARTICLE...",
+
+                art3_title: "Talk: Advanced Kernel Exploitation",
+                art3_desc: "Full replay of our technical presentation at BUGPWN CON. Deconstructing a Use-After-Free (UAF) in the Linux kernel.",
+                
+                art_cfi_title: "Control Flow Integrity (CFI)",
+                art_cfi_desc: "Theory, Mechanisms and Exploitation. A complete dive into theory, defense mechanisms, real-world implementations, and advanced exploitation techniques.",
+                
+                art_jop_title: "Jump-Oriented Programming (JOP)",
+                art_jop_desc: "When gadgets jump without a net. A complete dive into the JOP technique, its history, mechanics, architecture, and gadgets.",
+
+                art_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
+                art_coop_desc: "An exploitation technique that reuses C++ polymorphism mechanisms to bypass modern defenses against arbitrary code execution.",
+
+                art_vod1_title: "Live Hack Episode 11: Active Directory Exploitation, Hard.",
+                art_vod1_desc: "Exploitation of a multi-host corporate environment (DC01 + MS01 + segmented internal network) to full domain control by Modeste Akaffou.",
+                art_vod2_title: "Live Hack Episode 10: Introduction to Antivirus Evasion.",
+                art_vod2_desc: "Understanding and bypassing signature-based detection by Emmanuel HEMADOU.",
+                art_vod3_title: "LiveHack Episode 7: reversing reverse engineering",
+                art_vod3_desc: "Reverse engineering by avantika",
+                art_vod4_title: "BUG|PWN CON Day 01 | Offensive Tradecraft: NightWalker",
+                art_vod4_desc: "Speaker: ph3n1x",
+                art_vod5_title: "BUG|PWN CON Day 03 | C2 servers: From dedicated servers to Telegram bots",
+                art_vod5_desc: "C2 servers: From dedicated servers to Telegram bots. Speaker: Wilfrid (aka daphnia)",
+                art_vod6_title: "BUG|PWN CON Day 05 | Deploying Post-Quantum Cryptography: Obstacles and Opportunities",
+                art_vod6_desc: "Deploying Post-Quantum Cryptography: Obstacles and Opportunities. Speaker: Ruben Gonzalez",
+                art_vod7_title: "Live Hack Episode 12: OT/ICS Industrial Systems Security",
+                art_vod7_desc: "How to protect industrial systems. Hacker: Ndeye Adama DRAMÈ",
+
+                btn_read: "Read report",
+                btn_watch: "Watch video",
+
+                news_title: "Receive our research (0-Spam)",
+                news_desc: "Subscribe to our secure transmission feed. Strictly technical writeups, CTF announcements, and public audit reports.",
+                news_btn: "Subscribe_",
+
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit",
+                f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption."
+            }
+        };
+
+        const langToggle = document.getElementById('lang-toggle');
+        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
+
+        function updateLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            localStorage.setItem('bugpwn_lang', lang);
+            
+            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+            
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (translations[lang] && translations[lang][key]) {
+                    el.placeholder = translations[lang][key];
+                }
+            });
+        }
+
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage(newLang);
+        });
+
+        // Initialisation globale
+        updateLanguage(currentLang);
+        updatePagination(); // Lance le calcul de pagination au chargement
+    </script>
+</body>
+</html>
