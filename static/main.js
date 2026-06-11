@@ -1,4 +1,4 @@
-let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
+let currentLang = localStorage.getItem('bugpwn_lang') || 'en';
 
 function updateLanguage(lang) {
     currentLang = lang;
