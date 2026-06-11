@@ -7,10 +7,10 @@
     <meta name="keywords" content="cybersecurity blog, writeups, vulnerability analysis, exploit dev, reverse engineering, conférences, VOD, articles sécurité, hacking">
     <meta property="og:title" content="Blog & Writeups | BUG|PWN - Vulnerability Researcher Team">
     <meta property="og:description" content="Archives et writeups techniques de vulnérabilités critiques, méthodologies d'audit et rediffusions de conférences par l'unité de recherche BUG|PWN. | Technical archives and writeups of critical vulnerabilities, audit methodologies, and conference VODs by BUG|PWN.">
-    <meta property="og:image" content="bugpwn@1x.png">
+    <meta property="og:image" content="static/bugpwn@1x.png">
     <meta property="og:type" content="website">
     <title>Blog & Writeups | BUG|PWN - Vulnerability Researcher Team</title>
-    <link rel="icon" type="image/png" href="bugpwn.png">
+    <link rel="icon" type="image/png" href="static/bugpwn.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
@@ -41,13 +41,34 @@
                 <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
             </div>
 
-            <div class="flex items-center gap-4 hidden md:flex">
+            <div class="hidden md:flex items-center gap-4">
                 <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
                     EN
                 </button>
                 <a href="contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">
                     Nous contacter
                 </a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">
+                    EN
+                </button>
             </div>
         </div>
     </nav>
@@ -84,6 +105,28 @@
     <section class="max-w-7xl mx-auto px-6 mb-32">
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-black" id="articles-container">
             
+            <a href="blog/cve-2026-11645.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="writeup">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
+                    <img src="https://placehold.co/800x480/1E293B/FFFFFF/png?text=CVE-2026-11645&font=Montserrat" alt="CVE-2026-11645" class="w-full h-full object-cover">
+                    <div class="absolute top-0 right-0 bg-white text-black border-l border-b border-black px-3 py-1 text-[9px] font-black tracking-widest uppercase">
+                        WRITEUP
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between">
+                    <span>// 0-DAY_ANALYSIS</span>
+                    <span>09.JUN.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_cve_title">
+                    CVE-2026-11645 : Out-of-Bounds Read/Write dans V8.
+                </h3>
+                <p class="text-sm text-gray-600 font-medium leading-relaxed mb-8 flex-grow" data-i18n="art_cve_desc">
+                    Analyse technique complète du cinquième zero-day Chrome de 2026, activement exploité dans la nature. Examen des mécanismes OOB dans TurboFan, des primitives addrof / fakeobj, de la chaîne d'exploitation complète et des recommandations de défense.
+                </p>
+                <div class="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-2">
+                    <span data-i18n="btn_read">Lire le rapport</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
             <a href="blog/coop.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="article">
                 <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
                     <img src="https://placehold.co/800x480/1E293B/FFFFFF/png?text=Counterfeit+Object-Oriented+%0AProgramming+(COOP)&font=Montserrat" alt="Counterfeit Object-Oriented Programming" class="w-full h-full object-cover">
@@ -565,45 +608,6 @@
             }
         });
 
-        // --- GESTION DE LA NEWSLETTER VIA APPS SCRIPT ---
-        const newsForm = document.getElementById('newsletter-form');
-        const newsBtn = document.getElementById('news-btn');
-        const newsInput = document.getElementById('news-input');
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbxpgfOi38v9enff6fwL5n1QPLC_iPz2sXfh0YDiHL5gb5_33qmN1EOyKNqR7FXwt58a/exec';
-
-        newsForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if(newsInput.value) {
-                const originalText = newsBtn.innerHTML;
-                
-                // Feedback visuel de transmission
-                newsBtn.innerHTML = "SENDING_ <i class='fas fa-circle-notch fa-spin ml-2'></i>";
-                
-                let requestBody = new FormData();
-                requestBody.append('Email', newsInput.value);
-
-                fetch(scriptURL, { method: 'POST', body: requestBody })
-                    .then(() => {
-                        // On affiche toujours "TRANSMIS" sans analyser la réponse
-                        newsBtn.innerHTML = "TRANSMIS <i class='fas fa-check ml-2'></i>";
-                        newsBtn.classList.remove('bg-white', 'text-black');
-                        newsBtn.classList.add('bg-gray-500', 'text-white');
-                        newsInput.value = '';
-                        
-                        setTimeout(() => {
-                            newsBtn.innerHTML = originalText;
-                            newsBtn.classList.add('bg-white', 'text-black');
-                            newsBtn.classList.remove('bg-gray-500', 'text-white');
-                        }, 3000);
-                    })
-                    .catch(() => {
-                        // Même en cas d'erreur réseau, on ne donne pas d'info sur le pourquoi
-                        newsBtn.innerHTML = "DONE_";
-                        setTimeout(() => newsBtn.innerHTML = originalText, 3000);
-                    });
-            }
-        });
-
         // --- GESTION DES TRADUCTIONS ---
         const translations = {
             fr: {
@@ -629,6 +633,9 @@
                 
                 art_jop_title: "Jump-Oriented Programming (JOP)",
                 art_jop_desc: "Quand les gadgets sautent sans filet. Une plongée complète dans la technique JOP, son histoire, sa mécanique, son architecture et ses gadgets.",
+
+                art_cve_title: "CVE-2026-11645 : Out-of-Bounds Read/Write dans V8.",
+                art_cve_desc: "Analyse technique complète du cinquième zero-day Chrome de 2026, activement exploité dans la nature. Examen des mécanismes OOB dans TurboFan, des primitives addrof / fakeobj, de la chaîne d'exploitation complète et des recommandations de défense.",
 
                 art_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
                 art_coop_desc: "Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.",
@@ -685,6 +692,9 @@
                 art_jop_title: "Jump-Oriented Programming (JOP)",
                 art_jop_desc: "When gadgets jump without a net. A complete dive into the JOP technique, its history, mechanics, architecture, and gadgets.",
 
+                art_cve_title: "CVE-2026-11645: Out-of-Bounds Read/Write in V8.",
+                art_cve_desc: "Complete technical analysis of the fifth Chrome zero-day of 2026, actively exploited in the wild. Examination of OOB mechanisms in TurboFan, addrof / fakeobj primitives, the full exploit chain, and defense recommendations.",
+
                 art_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
                 art_coop_desc: "An exploitation technique that reuses C++ polymorphism mechanisms to bypass modern defenses against arbitrary code execution.",
 
@@ -717,40 +727,8 @@
                 footer_pgp: "For all sensitive communication, please use PGP encryption."
             }
         };
-
-        const langToggle = document.getElementById('lang-toggle');
-        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
-
-        function updateLanguage(lang) {
-            currentLang = lang;
-            document.documentElement.lang = lang;
-            localStorage.setItem('bugpwn_lang', lang);
-            
-            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
-
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[lang] && translations[lang][key]) {
-                    el.innerHTML = translations[lang][key];
-                }
-            });
-            
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-i18n-placeholder');
-                if (translations[lang] && translations[lang][key]) {
-                    el.placeholder = translations[lang][key];
-                }
-            });
-        }
-
-        langToggle.addEventListener('click', () => {
-            const newLang = currentLang === 'fr' ? 'en' : 'fr';
-            updateLanguage(newLang);
-        });
-
-        // Initialisation globale
-        updateLanguage(currentLang);
         updatePagination(); // Lance le calcul de pagination au chargement
     </script>
+    <script src="static/main.js"></script>
 </body>
 </html>

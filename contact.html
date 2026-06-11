@@ -7,10 +7,10 @@
     <meta name="keywords" content="contact bugpwn, security audit request, vulnerability report, PGP encryption, audit sécurité, pentest contact, cyber security services">
     <meta property="og:title" content="Contact | BUG|PWN - Vulnerability Researcher Team">
     <meta property="og:description" content="Contactez l'équipe BUG|PWN pour un audit d'infrastructure, un rapport de vulnérabilité (canal sécurisé PGP), une demande de sponsoring ou d'intervention. | Contact the BUG|PWN team for an infrastructure audit, vulnerability report (PGP secure channel), sponsorship request, or intervention.">
-    <meta property="og:image" content="bugpwn@1x.png">
+    <meta property="og:image" content="static/bugpwn@1x.png">
     <meta property="og:type" content="website">
     <title>Contact | BUG|PWN - Vulnerability Researcher Team</title>
-    <link rel="icon" type="image/png" href="bugpwn.png">
+    <link rel="icon" type="image/png" href="static/bugpwn.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
@@ -41,13 +41,34 @@
                 <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
             </div>
 
-            <div class="flex items-center gap-4 hidden md:flex">
+            <div class="hidden md:flex items-center gap-4">
                 <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
                     EN
                 </button>
                 <a href="contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">
                     Nous contacter
                 </a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">
+                    EN
+                </button>
             </div>
         </div>
     </nav>
@@ -386,32 +407,7 @@ Zi9J4FWpHi4xGAAQ8+lmgsRuEmaEa0TEE+eKl0rqlUx9uNMKCv1oaU4G4HeD4tYJ
                 footer_pgp: "For all sensitive communication, please use PGP encryption."
             }
         };
-
-        const langToggle = document.getElementById('lang-toggle');
-        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
-
-        function updateLanguage(lang) {
-            currentLang = lang;
-            document.documentElement.lang = lang;
-            localStorage.setItem('bugpwn_lang', lang);
-            
-            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
-
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[lang] && translations[lang][key]) {
-                    el.innerHTML = translations[lang][key];
-                }
-            });
-        }
-
-        langToggle.addEventListener('click', () => {
-            const newLang = currentLang === 'fr' ? 'en' : 'fr';
-            updateLanguage(newLang);
-        });
-
-        // Initialisation
-        updateLanguage(currentLang);
     </script>
+    <script src="static/main.js"></script>
 </body>
 </html>

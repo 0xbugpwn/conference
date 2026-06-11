@@ -7,9 +7,10 @@
     <meta name="keywords" content="JOP, Jump-Oriented Programming, exploit dev, ROP alternative, cybersecurity writeup, reverse engineering, exploitation binaire, bypass">
     <meta property="og:title" content="Jump-Oriented Programming | BUG|PWN">
     <meta property="og:description" content="Jump-Oriented Programming (JOP) : Quand les gadgets sautent sans filet. Plongée complète dans la technique JOP, sa mécanique et ses gadgets. | Jump-Oriented Programming (JOP): A complete dive into the JOP technique, its mechanics, architecture, and gadgets.">
-    <meta property="og:image" content="../bugpwn@1x.png">
+    <meta property="og:image" content="../static/bugpwn@1x.png">
     <meta property="og:type" content="article">
     <title>Jump-Oriented Programming | BUG|PWN</title>
+    <link rel="icon" type="image/png" href="../static/bugpwn.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
@@ -48,9 +49,30 @@
                 <a href="../blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
                 <a href="../events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
             </div>
-            <div class="flex items-center gap-4 hidden md:flex">
+            <div class="hidden md:flex items-center gap-4">
                 <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">EN</button>
                 <a href="../contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">Nous contacter</a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="../index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="../research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="../contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">
+                    EN
+                </button>
             </div>
         </div>
     </nav>
@@ -901,54 +923,6 @@ sh.<span class="text-yellow-400">interactive</span>()</pre>
     </footer>
 
     <script>
-        function copyToClipboard(elementId, btn) {
-            const textToCopy = document.getElementById(elementId).innerText;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> COPIÉ';
-                btn.classList.add('text-green-600');
-                btn.classList.remove('text-gray-500');
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.remove('text-green-600');
-                    btn.classList.add('text-gray-500');
-                }, 2000);
-            });
-        }
-
-        const newsForm = document.getElementById('newsletter-form');
-        const newsBtn = document.getElementById('news-btn');
-        const newsInput = document.getElementById('news-input');
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbxpgfOi38v9enff6fwL5n1QPLC_iPz2sXfh0YDiHL5gb5_33qmN1EOyKNqR7FXwt58a/exec';
-
-        if (newsForm) {
-            newsForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                if (newsInput.value) {
-                    const originalText = newsBtn.innerHTML;
-                    newsBtn.innerHTML = "SENDING_ <i class='fas fa-circle-notch fa-spin ml-2'></i>";
-                    let requestBody = new FormData();
-                    requestBody.append('Email', newsInput.value);
-                    fetch(scriptURL, { method: 'POST', body: requestBody, mode: 'no-cors' })
-                        .then(() => {
-                            newsBtn.innerHTML = "TRANSMIS <i class='fas fa-check ml-2'></i>";
-                            newsBtn.classList.remove('bg-white', 'text-black');
-                            newsBtn.classList.add('bg-gray-500', 'text-white');
-                            newsInput.value = '';
-                            setTimeout(() => {
-                                newsBtn.innerHTML = originalText;
-                                newsBtn.classList.add('bg-white', 'text-black');
-                                newsBtn.classList.remove('bg-gray-500', 'text-white');
-                            }, 3000);
-                        })
-                        .catch(() => {
-                            newsBtn.innerHTML = "DONE_";
-                            setTimeout(() => newsBtn.innerHTML = originalText, 3000);
-                        });
-                }
-            });
-        }
-
         const translations = {
             fr: {
                 nav_services: "Services", nav_research: "Recherche", nav_blog: "Blog",
@@ -1191,29 +1165,7 @@ sh.<span class="text-yellow-400">interactive</span>()</pre>
                 art_h2_8: "08 - References"
             }
         };
-
-        const langToggle = document.getElementById('lang-toggle');
-        let currentLang = localStorage.getItem('bugpwn_lang') || 'fr';
-
-        function updateLanguage(lang) {
-            currentLang = lang;
-            document.documentElement.lang = lang;
-            localStorage.setItem('bugpwn_lang', lang);
-            langToggle.innerText = lang === 'fr' ? 'EN' : 'FR';
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[lang] && translations[lang][key]) {
-                    el.innerHTML = translations[lang][key];
-                }
-            });
-        }
-
-        langToggle.addEventListener('click', () => {
-            const newLang = currentLang === 'fr' ? 'en' : 'fr';
-            updateLanguage(newLang);
-        });
-
-        updateLanguage(currentLang);
     </script>
+    <script src="../static/main.js"></script>
 </body>
 </html>
