@@ -3,14 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="BUG|PWN est une équipe de chercheurs de vulnérabilités spécialisée dans l'audit de code source, le développement d'exploits et le reverse engineering. | BUG|PWN is a vulnerability research team specialized in source code auditing, exploit development, and reverse engineering.">
-    <meta name="keywords" content="cybersecurity, vulnerability research, exploit development, reverse engineering, audit de code source, pentest, sécurité, bugpwn, 0-day, hacking">
+    <meta name="description" content="BUG|PWN is a vulnerability research team specialized in source code auditing, exploit development, and reverse engineering.">
+    <meta name="keywords" content="cybersecurity, vulnerability research, exploit development, reverse engineering, source code audit, pentest, security, bugpwn, 0-day, hacking">
     <meta property="og:title" content="BUG|PWN - Vulnerability Researcher Team">
-    <meta property="og:description" content="BUG|PWN est une équipe de chercheurs de vulnérabilités spécialisée dans l'audit de code source, le développement d'exploits et le reverse engineering. | BUG|PWN is a vulnerability research team specialized in source code auditing, exploit development, and reverse engineering.">
-    <meta property="og:image" content="static/bugpwn@1x.png">
+    <meta property="og:description" content="BUG|PWN is a vulnerability research team specialized in source code auditing, exploit development, and reverse engineering.">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bugpwn.com/">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="BUG|PWN - Vulnerability Researcher Team">
+    <meta name="twitter:description" content="BUG|PWN is a vulnerability research team specialized in source code auditing, exploit development, and reverse engineering.">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/">
     <title>BUG|PWN - Vulnerability Researcher Team</title>
     <link rel="icon" type="image/png" href="static/bugpwn.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "BUG|PWN",
+        "url": "https://bugpwn.com/",
+        "logo": "https://bugpwn.com/static/bugpwn.png",
+        "description": "BUG|PWN is a vulnerability research team specialized in source code auditing, exploit development, and reverse engineering.",
+        "sameAs": []
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "BUG|PWN",
+        "url": "https://bugpwn.com/"
+    }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
@@ -414,6 +442,20 @@
                     <h3 class="text-xs font-black uppercase tracking-[0.4em] mb-16 text-gray-500">LATEST_WRITEUPS</h3>
                     
                     <div class="space-y-12">
+                        <a href="blog/cve-2026-11645.html" class="block cursor-pointer group/item">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_cve_title">
+                                    CVE-2026-11645: Out-of-Bounds Read/Write in V8
+                                </h4>
+                                <span class="mono text-[9px] border border-white/20 px-2 py-1 text-gray-500 group-hover/item:text-white transition-colors">ZERO_DAY</span>
+                            </div>
+                            <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_cve_desc">
+                                Zero-day Chrome activement exploité dans la nature : lecture/écriture hors limites dans le moteur V8/TurboFan. Mécanismes, primitives d'exploitation et chaîne d'attaque complète.
+                            </p>
+                        </a>
+
+                        <div class="h-px bg-white/10"></div>
+
                         <a href="blog/coop.html" class="block cursor-pointer group/item">
                             <div class="flex justify-between items-start mb-4">
                                 <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_coop_title">
@@ -423,20 +465,6 @@
                             </div>
                             <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_coop_desc">
                                 Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.
-                            </p>
-                        </a>
-
-                        <div class="h-px bg-white/10"></div>
-
-                        <a href="blog/cfi.html" class="block cursor-pointer group/item">
-                            <div class="flex justify-between items-start mb-4">
-                                <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_cfi_title">
-                                    Control Flow Integrity (CFI)
-                                </h4>
-                                <span class="mono text-[9px] border border-white/20 px-2 py-1 text-gray-500 group-hover/item:text-white transition-colors">EXPLOIT_DEV</span>
-                            </div>
-                            <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_cfi_desc">
-                                Théorie, Mécanismes et Exploitation. Une plongée complète dans la théorie, les mécanismes de défense, les implémentations réelles et les techniques d'exploitation avancées.
                             </p>
                         </a>
 
@@ -562,8 +590,8 @@
                 ev2_desc: "Support technique et infrastructure pour la compétition. BUG|PWN s'engage pour l'excellence de la communauté.",
                 w_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
                 w_coop_desc: "Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.",
-                w_cfi_title: "Control Flow Integrity (CFI)",
-                w_cfi_desc: "Théorie, Mécanismes et Exploitation. Une plongée complète dans la théorie, les mécanismes de défense, les implémentations réelles et les techniques d'exploitation avancées.",
+                w_cve_title: "CVE-2026-11645 : Out-of-Bounds Read/Write dans V8",
+                w_cve_desc: "Zero-day Chrome activement exploité dans la nature : lecture/écriture hors limites dans le moteur V8/TurboFan. Mécanismes, primitives d'exploitation et chaîne d'attaque complète.",
                 ctf_archive: "Voir toutes les archives",
                 footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
                 f_link_audit: "Audit de Code Source",
@@ -632,8 +660,8 @@
                 ev2_desc: "Technical and infrastructure support for the competition. BUG|PWN is committed to community excellence.",
                 w_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
                 w_coop_desc: "An exploitation technique that reuses C++ polymorphism mechanisms to bypass modern defenses against arbitrary code execution.",
-                w_cfi_title: "Control Flow Integrity (CFI)",
-                w_cfi_desc: "Theory, Mechanisms and Exploitation. A complete dive into theory, defense mechanisms, real-world implementations, and advanced exploitation techniques.",
+                w_cve_title: "CVE-2026-11645: Out-of-Bounds Read/Write in V8",
+                w_cve_desc: "Actively exploited Chrome zero-day: an out-of-bounds read/write in the V8/TurboFan engine. Mechanisms, exploitation primitives, and the complete attack chain.",
                 ctf_archive: "View all archives",
                 footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
                 f_link_audit: "Source Code Audit",

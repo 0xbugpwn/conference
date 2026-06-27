@@ -3,14 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Control Flow Integrity (CFI) : Théorie, mécanismes de défense, implémentations réelles et techniques d'exploitation avancées (DOP) par BUG|PWN. | Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
-    <meta name="keywords" content="Control Flow Integrity, CFI, DOP, Data-Oriented Programming, exploit dev, shadow stack, LLVM CFI, cybersécurité, hacking, bypass">
+    <meta name="description" content="Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
+    <meta name="keywords" content="Control Flow Integrity, CFI, DOP, Data-Oriented Programming, exploit dev, shadow stack, LLVM CFI, cybersecurity, hacking, bypass">
     <meta property="og:title" content="Control Flow Integrity | BUG|PWN">
-    <meta property="og:description" content="Control Flow Integrity (CFI) : Théorie, mécanismes de défense, implémentations réelles et techniques d'exploitation avancées (DOP) par BUG|PWN. | Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
-    <meta property="og:image" content="../bugpwn@1x.png">
+    <meta property="og:description" content="Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
     <meta property="og:type" content="article">
+    <meta property="og:url" content="https://bugpwn.com/blog/cfi.html">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Control Flow Integrity | BUG|PWN">
+    <meta name="twitter:description" content="Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/blog/cfi.html">
     <title>Control Flow Integrity | BUG|PWN</title>
-    <link rel="icon" type="image/png" href="../bugpwn.png">
+    <link rel="icon" type="image/png" href="../static/bugpwn.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Control Flow Integrity",
+        "description": "Control Flow Integrity (CFI): Theory, defense mechanisms, real-world implementations, and advanced exploitation techniques (DOP) by BUG|PWN.",
+        "image": "https://bugpwn.com/static/bugpwn@1x.png",
+        "author": { "@type": "Organization", "name": "BUG|PWN", "url": "https://bugpwn.com/" },
+        "publisher": { "@type": "Organization", "name": "BUG|PWN", "logo": { "@type": "ImageObject", "url": "https://bugpwn.com/static/bugpwn.png" } },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": "https://bugpwn.com/blog/cfi.html" }
+    }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">

@@ -3,14 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Counterfeit Object-Oriented Programming (COOP) : technique d'exploitation avancée réutilisant le polymorphisme C++ pour contourner les défenses CFI. | Counterfeit Object-Oriented Programming (COOP): advanced exploitation technique reusing C++ polymorphism to bypass CFI defenses.">
-    <meta name="keywords" content="COOP, Counterfeit Object-Oriented Programming, C++ exploit, CFI bypass, vtable hijacking, cybersecurity writeup, reverse engineering, exploitation mémoire">
+    <meta name="description" content="Counterfeit Object-Oriented Programming (COOP): advanced exploitation technique reusing C++ polymorphism to bypass CFI defenses.">
+    <meta name="keywords" content="COOP, Counterfeit Object-Oriented Programming, C++ exploit, CFI bypass, vtable hijacking, cybersecurity writeup, reverse engineering, memory exploitation">
     <meta property="og:title" content="Counterfeit Object-Oriented Programming | BUG|PWN">
-    <meta property="og:description" content="Counterfeit Object-Oriented Programming (COOP) : technique d'exploitation avancée réutilisant le polymorphisme C++ pour contourner les défenses CFI. | Counterfeit Object-Oriented Programming (COOP): advanced exploitation technique reusing C++ polymorphism to bypass CFI defenses.">
-    <meta property="og:image" content="../bugpwn@1x.png">
+    <meta property="og:description" content="Counterfeit Object-Oriented Programming (COOP): advanced exploitation technique reusing C++ polymorphism to bypass CFI defenses.">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
     <meta property="og:type" content="article">
+    <meta property="og:url" content="https://bugpwn.com/blog/coop.html">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Counterfeit Object-Oriented Programming | BUG|PWN">
+    <meta name="twitter:description" content="Counterfeit Object-Oriented Programming (COOP): advanced exploitation technique reusing C++ polymorphism to bypass CFI defenses.">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/blog/coop.html">
     <title>Counterfeit Object-Oriented Programming | BUG|PWN</title>
-    <link rel="icon" type="image/png" href="../bugpwn.png">
+    <link rel="icon" type="image/png" href="../static/bugpwn.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Counterfeit Object-Oriented Programming",
+        "description": "Counterfeit Object-Oriented Programming (COOP): advanced exploitation technique reusing C++ polymorphism to bypass CFI defenses.",
+        "image": "https://bugpwn.com/static/bugpwn@1x.png",
+        "author": { "@type": "Organization", "name": "BUG|PWN", "url": "https://bugpwn.com/" },
+        "publisher": { "@type": "Organization", "name": "BUG|PWN", "logo": { "@type": "ImageObject", "url": "https://bugpwn.com/static/bugpwn.png" } },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": "https://bugpwn.com/blog/coop.html" }
+    }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
