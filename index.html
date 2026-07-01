@@ -442,6 +442,20 @@
                     <h3 class="text-xs font-black uppercase tracking-[0.4em] mb-16 text-gray-500">LATEST_WRITEUPS</h3>
                     
                     <div class="space-y-12">
+                        <a href="blog/civetweb-ssi-rce.html" class="block cursor-pointer group/item">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_civet_title">
+                                    CivetWeb: PUT + SSI = RCE
+                                </h4>
+                                <span class="mono text-[9px] border border-white/20 px-2 py-1 text-gray-500 group-hover/item:text-white transition-colors">WEB_SEC</span>
+                            </div>
+                            <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_civet_desc">
+                                How two fully legitimate CivetWeb features silently combine to produce arbitrary remote code execution. Source code analysis, live PoC, and hardening recommendations.
+                            </p>
+                        </a>
+
+                        <div class="h-px bg-white/10"></div>
+
                         <a href="blog/cve-2026-11645.html" class="block cursor-pointer group/item">
                             <div class="flex justify-between items-start mb-4">
                                 <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_cve_title">
@@ -451,20 +465,6 @@
                             </div>
                             <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_cve_desc">
                                 Zero-day Chrome activement exploité dans la nature : lecture/écriture hors limites dans le moteur V8/TurboFan. Mécanismes, primitives d'exploitation et chaîne d'attaque complète.
-                            </p>
-                        </a>
-
-                        <div class="h-px bg-white/10"></div>
-
-                        <a href="blog/coop.html" class="block cursor-pointer group/item">
-                            <div class="flex justify-between items-start mb-4">
-                                <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_coop_title">
-                                    Counterfeit Object-Oriented Programming (COOP)
-                                </h4>
-                                <span class="mono text-[9px] border border-white/20 px-2 py-1 text-gray-500 group-hover/item:text-white transition-colors">EXPLOIT_DEV</span>
-                            </div>
-                            <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_coop_desc">
-                                Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.
                             </p>
                         </a>
 
@@ -588,6 +588,8 @@
                 ev1_btn: "S'inscrire_Mainframe",
                 ev2_title: "Sponsor: NICSC 2026",
                 ev2_desc: "Support technique et infrastructure pour la compétition. BUG|PWN s'engage pour l'excellence de la communauté.",
+                w_civet_title: "CivetWeb : PUT + SSI = RCE",
+                w_civet_desc: "Comment deux fonctionnalités entièrement légitimes de CivetWeb se combinent pour produire une exécution de commande arbitraire à distance. Analyse du code source, PoC live et recommandations de hardening.",
                 w_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
                 w_coop_desc: "Une technique d'exploitation qui réutilise les mécanismes du polymorphisme C++ pour contourner les défenses modernes contre l'exécution de code arbitraire.",
                 w_cve_title: "CVE-2026-11645 : Out-of-Bounds Read/Write dans V8",
@@ -658,6 +660,8 @@
                 ev1_btn: "Register_Mainframe",
                 ev2_title: "Sponsor: NICSC 2026",
                 ev2_desc: "Technical and infrastructure support for the competition. BUG|PWN is committed to community excellence.",
+                w_civet_title: "CivetWeb: PUT + SSI = RCE",
+                w_civet_desc: "How two fully legitimate CivetWeb features silently combine to produce arbitrary remote code execution. Source code analysis, live PoC, and hardening recommendations.",
                 w_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
                 w_coop_desc: "An exploitation technique that reuses C++ polymorphism mechanisms to bypass modern defenses against arbitrary code execution.",
                 w_cve_title: "CVE-2026-11645: Out-of-Bounds Read/Write in V8",

