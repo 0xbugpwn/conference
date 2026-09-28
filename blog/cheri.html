@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CHERI (Capability Hardware Enhanced RISC Instructions) : définition, anatomie des capabilities, implémentations concrètes (Morello, CHERIoT), alliances industrielles, threat model et PoCs pratiques sur CheriBSD.">
+    <meta name="keywords" content="CHERI, Capability Hardware, CheriBSD, Arm Morello, CHERIoT, memory safety, capability architecture, DARPA CTSRD, hardware security, RISC-V CHERI">
+    <meta property="og:title" content="CHERI : Capabilities Matérielles pour la Sécurité Mémoire | BUG|PWN">
+    <meta property="og:description" content="CHERI (Capability Hardware Enhanced RISC Instructions) : définition, anatomie des capabilities, implémentations concrètes (Morello, CHERIoT), alliances industrielles, threat model et PoCs pratiques sur CheriBSD.">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://bugpwn.com/blog/cheri.html">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CHERI : Capabilities Matérielles pour la Sécurité Mémoire | BUG|PWN">
+    <meta name="twitter:description" content="CHERI (Capability Hardware Enhanced RISC Instructions) : définition, anatomie des capabilities, implémentations concrètes (Morello, CHERIoT), alliances industrielles, threat model et PoCs pratiques sur CheriBSD.">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/blog/cheri.html">
+    <title>CHERI : Capabilities Matérielles pour la Sécurité Mémoire | BUG|PWN</title>
+    <link rel="icon" type="image/png" href="../static/bugpwn.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "CHERI : Capabilities Matérielles pour la Sécurité Mémoire",
+        "description": "CHERI (Capability Hardware Enhanced RISC Instructions) : définition, anatomie des capabilities, implémentations concrètes (Morello, CHERIoT), alliances industrielles, threat model et PoCs pratiques sur CheriBSD.",
+        "image": "https://bugpwn.com/static/bugpwn@1x.png",
+        "author": { "@type": "Organization", "name": "BUG|PWN", "url": "https://bugpwn.com/" },
+        "publisher": { "@type": "Organization", "name": "BUG|PWN", "logo": { "@type": "ImageObject", "url": "https://bugpwn.com/static/bugpwn.png" } },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": "https://bugpwn.com/blog/cheri.html" }
+    }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+
+        .article-body h2 { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; margin-top: 5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #000; }
+        .article-body h3 { font-size: 1.125rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; margin-top: 3rem; margin-bottom: 1.5rem; }
+        .article-body p { color: #4b5563; font-weight: 300; line-height: 1.8; margin-bottom: 1.5rem; font-size: 1.125rem; }
+        .article-body strong { color: #000; font-weight: 700; }
+        .article-body ul { margin-bottom: 2rem; color: #4b5563; font-weight: 300; font-size: 1.125rem; }
+        .article-body li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .article-body li::before { content: '>'; position: absolute; left: 0; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 0.8rem; color: #000; top: 0.2rem; }
+
+        .article-body code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.85em; font-weight: 600; border: 1px solid #e5e7eb; }
+
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 2rem 0; }
+        .tbl th { text-align: left; padding: 0.6rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; border-bottom: 2px solid #000; font-weight: 700; }
+        .tbl td { padding: 0.6rem 1rem; border-bottom: 1px solid #e5e7eb; color: #374151; line-height: 1.5; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .bdg { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 3px; display: inline-block; }
+        .bdg.r { background: #fef2f2; color: #b91c1c; }
+        .bdg.g { background: #f0fdf4; color: #15803d; }
+        .bdg.b { background: #eff6ff; color: #1d4ed8; }
+        .bdg.a { background: #fffbeb; color: #b45309; }
+
+        .no-scrollbar::-webkit-scrollbar { height: 6px; }
+        .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="../index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="../index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+            <div class="hidden md:flex items-center gap-4">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">EN</button>
+                <a href="../contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">Nous contacter</a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="../index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="../research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="../contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">
+                    EN
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl mx-auto">
+            <a href="../blog.html" class="inline-flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-black transition-colors mb-12 group" data-i18n="art_back">
+                <i class="fas fa-arrow-left group-hover:-translate-x-2 transition-transform"></i> Retour_Archives
+            </a>
+            <div class="flex flex-wrap gap-4 mb-8">
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-gray-50 text-black">Hardware Security</span>
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-black text-white">DÉFENSE</span>
+                <span class="border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-widest mono text-gray-500">18.SEP.2026</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8" data-i18n="art_title">
+                Sécurité Matérielle :<br>
+                <span class="text-gray-300">CHERI</span><br>
+                Capabilities en Profondeur.
+            </h1>
+            <p class="text-xl text-gray-500 max-w-2xl leading-relaxed font-light border-l-2 border-black pl-8 mb-16" data-i18n="art_subtitle">
+                Quand le processeur refuse lui-même la corruption mémoire. Définition, anatomie des capabilities, implémentations concrètes, alliances industrielles, PoCs pratiques et les angles morts qui subsistent.
+            </p>
+            <div class="flex items-center gap-6 border-t border-gray-200 pt-8">
+                <div class="w-16 h-16 bg-black text-white flex items-center justify-center font-black text-2xl">R</div>
+                <div>
+                    <div class="text-sm font-black uppercase tracking-widest">Sadoc ADONON</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mono mt-1" data-i18n="art_author_role">Lead Vulnerability Researcher</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- TABLE DES MATIÈRES -->
+    <section class="max-w-4xl mx-auto px-6 py-16">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-8">
+            <h2 style="font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:-0.02em;margin-bottom:1.5rem;border:none;padding:0;margin-top:0;" data-i18n="toc_title">Table des matières</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;font-size:0.95rem;">
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_1"><strong>01.</strong> Origine et motivation</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_2"><strong>02.</strong> Définition</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_3"><strong>03.</strong> Concept fondamental</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_4"><strong>04.</strong> Anatomie d'une capability</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_5"><strong>05.</strong> Modèle de sécurité (threat model)</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_6"><strong>06.</strong> Domaines d'application</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_7"><strong>07.</strong> Implémentations concrètes</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_8"><strong>08.</strong> Alliances et sponsors</div>
+                </div>
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_9"><strong>09.</strong> Mise en place de l'environnement de test</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_10"><strong>10.</strong> PoC #1 : Sécurité spatiale en action</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_11"><strong>11.</strong> PoC #2 : Falsification de pointeur</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_12"><strong>12.</strong> Limites et angles morts réels</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_13"><strong>13.</strong> Questions et interrogations ouvertes</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_14"><strong>14.</strong> Le futur</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_15"><strong>15.</strong> Références</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="max-w-3xl mx-auto px-6 pb-32 article-body">
+
+        <h2 data-i18n="art_h2_1">01 - Origine et motivation</h2>
+        <h3 data-i18n="art_h3_1">Le problème de la sécurité mémoire en C/C++</h3>
+
+        <p data-i18n="art_p1">
+            Depuis des décennies, les langages C et C++ dominent les systèmes critiques (noyaux, navigateurs, firmwares, serveurs) pour leur performance et leur contrôle bas niveau. Ce contrôle a un prix : aucune barrière native n'empêche un pointeur de sortir de ses bornes légitimes. Selon une analyse de Microsoft portant sur douze années de CVE corrigées (<a href="https://www.microsoft.com/en-us/msrc/blog/2019/07/we-need-a-safer-systems-programming-language" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">MSRC, 2019</a>) et une étude de l'équipe sécurité de Chrome portant sur 912 failles critiques corrigées depuis 2015 (<a href="https://security.googleblog.com/2021/09/an-update-on-memory-safety-in-chrome.html" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">Google Security Blog, 2021</a>), environ 70% des vulnérabilités critiques corrigées dans ces bases de code sont des corruptions de mémoire : débordements de tampon, use-after-free, confusions de type. Ce chiffre décrit une tendance mesurée sur des périodes précises, pas une statistique universelle valable pour tout projet logiciel.
+        </p>
+        <p data-i18n="art_p2">
+            La réponse historique a été d'empiler des mitigations logicielles et matérielles partielles : canaries de pile, ASLR, NX/DEP, RELRO, CFI, Shadow Stacks. Nous avons détaillé dans nos articles sur le <a href="jop.html" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">Jump-Oriented Programming</a> et le <a href="coop.html" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">Counterfeit Object-Oriented Programming</a> comment chacune de ces protections, prise isolément, finit par être contournée par une combinaison de fuite d'information et de réutilisation de code. Ces mécanismes réduisent la surface d'attaque, ils ne l'éliminent pas : ils sont probabilistes (ASLR), partiels (NX ne protège pas contre le code-reuse) ou détectent la corruption après coup plutôt que de l'empêcher.
+        </p>
+
+        <div class="bg-gray-50 border-l-4 border-black p-8 my-12">
+            <p class="text-xl !text-black italic font-medium !mb-0" data-i18n="art_quote1">
+                "Repousser indéfiniment les mêmes symptômes ne règle pas la maladie. Il fallait remonter à la source : le pointeur lui-même."
+            </p>
+        </div>
+
+        <p data-i18n="art_p3">
+            C'est ce constat qui a motivé, dès 2010, le projet <strong>CTSRD</strong> (Capsicum, TESLA and CHERI), une collaboration entre le <strong>Computer Laboratory de l'Université de Cambridge</strong> et <strong>SRI International</strong>, financée initialement par la <strong>DARPA</strong> dans le cadre des programmes CRASH puis SSITH (<a href="https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">University of Cambridge, page du projet CTSRD/CHERI</a>). L'objectif : reconcevoir le jeu d'instructions du processeur lui-même, pour que la notion de pointeur mémoire porte, nativement, la preuve de sa propre légitimité.
+        </p>
+
+        <h2 data-i18n="art_h2_2">02 - Définition</h2>
+        <h3 data-i18n="art_h3_2">Qu'est-ce que CHERI, précisément</h3>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// DEFINITION_FORMELLE</div>
+            <p class="!text-gray-300 !text-sm !mb-0 leading-relaxed" data-i18n="art_p4">
+                <strong class="!text-white">CHERI</strong> (Capability Hardware Enhanced RISC Instructions) est une extension d'architecture de jeu d'instructions (ISA) qui introduit des <strong class="!text-white">capabilities</strong> matérielles : des pointeurs étendus, infalsifiables et vérifiés par le processeur à chaque déréférencement, portant leurs propres bornes mémoire, permissions d'accès et un bit de validité. CHERI étend un jeu d'instructions existant (MIPS, RISC-V, Arm) plutôt que de le remplacer, avec des modes de compatibilité, notamment hybrides, qui peuvent faciliter la migration de code existant. Les garanties de sécurité mémoire dépendent toutefois du mode d'exécution effectivement utilisé : code legacy non modifié, code hybride mêlant pointeurs classiques et capabilities, ou code recompilé en mode purecap, où pointeurs et conventions d'appel sont pleinement adaptés aux capabilities.
+            </p>
+        </div>
+
+        <p data-i18n="art_p5">
+            Cette définition tient en quelques lignes mais recouvre un changement de paradigme profond : au lieu de faire confiance au compilateur ou à des heuristiques runtime pour détecter une corruption, c'est le <strong>processeur</strong> qui refuse physiquement d'exécuter une instruction mémoire hors des droits accordés à la capability utilisée. La violation ne peut pas se produire silencieusement, elle est interceptée avant que le moindre octet ne soit écrit.
+        </p>
+
+        <h2 data-i18n="art_h2_3">03 - Concept fondamental</h2>
+        <h3 data-i18n="art_h3_3">La capability comme unité de confiance</h3>
+
+        <p data-i18n="art_p6">
+            Une capability CHERI encode simultanément quatre informations : une <strong>adresse</strong> (comme un pointeur classique), des <strong>bornes</strong> (base et longueur, définissant l'objet mémoire précis auquel elle donne accès), des <strong>permissions</strong> (lecture, écriture, exécution, capacité à charger ou stocker d'autres capabilities...) et un <strong>bit de tag</strong> qui indique si la capability est valide ou non.
+        </p>
+
+        <h3 data-i18n="art_h3_3_2">Les trois garanties de sécurité</h3>
+        <p data-i18n="art_p7">
+            Trois propriétés, appliquées par le matériel à chaque instruction, forment le socle du modèle CHERI :
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_provenance">
+                <strong>Provenance validity :</strong> une capability ne peut être créée que par dérivation d'une capability déjà valide (via des instructions comme <code>CSetBounds</code>), ou par le matériel et le noyau au démarrage. Il est impossible de fabriquer une capability à partir d'un entier arbitraire.
+            </li>
+            <li data-i18n="art_li_monotonicity">
+                <strong>Monotonicity :</strong> une capability dérivée ne peut que restreindre les droits de sa parente (bornes plus étroites, permissions retirées), jamais les élargir. Le principe du moindre privilège est appliqué mécaniquement, par construction.
+            </li>
+            <li data-i18n="art_li_tag">
+                <strong>Tag unforgeability :</strong> chaque mot mémoire de la taille d'une capability est associé à un bit de tag hors bande, dans une mémoire dite "taguée". Toute écriture qui ne respecte pas le format capability (écriture partielle, octet par octet, opération arithmétique brute sur les bits encodés) efface ce bit automatiquement. Une capability dont le tag est à zéro redevient un simple entier inerte : toute tentative de l'utiliser comme pointeur déclenche une exception matérielle.
+            </li>
+        </ul>
+
+        <p data-i18n="art_p8">
+            L'encodage réel sur une architecture CHERI 64-bit ("CHERI-128") compresse ces informations dans 128 bits via un format nommé <strong>CHERI Concentrate</strong>, auquel s'ajoute le bit de tag stocké séparément par le contrôleur mémoire. Une capability occupe donc deux fois la taille d'un pointeur classique en mémoire, un compromis assumé en échange des garanties apportées.
+        </p>
+
+        <h2 data-i18n="art_h2_4">04 - Anatomie d'une capability</h2>
+        <h3 data-i18n="art_h3_4_1">Les champs, visuellement</h3>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-microchip text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">capability_layout.txt</span>
+        </div>
+        <button onclick="copyToClipboard('code-layout', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-layout">
+<span class="text-gray-500">Capability CHERI - représentation conceptuelle (schématique, pas un format figé)</span>
+
+<span class="text-white font-bold">[ Tag matériel, 1 bit ]</span>  <span class="text-gray-500">hors-bande, stocké séparément par le contrôleur mémoire</span>
+     <span class="text-gray-500">|</span>
+     <span class="text-gray-500">+-- si TAG = 0 : capability invalide -> toute utilisation comme pointeur</span>
+     <span class="text-gray-500">    déclenche une exception matérielle (CHERI capability fault)</span>
+
+<span class="text-white font-bold">[ Représentation de la capability, 128 bits sur CHERI-128 / CHERI Concentrate ]</span>
+  <span class="text-yellow-400">Address</span>       <span class="text-gray-500">le "curseur" -- équivalent d'un pointeur classique</span>
+  <span class="text-yellow-400">Permissions</span>   <span class="text-gray-500">R / W / X / Load-Cap / Store-Cap / Seal / Invoke ...</span>
+  <span class="text-yellow-400">Bounds</span>        <span class="text-gray-500">base + longueur, encodage compressé (dépend de l'implémentation)</span>
+  <span class="text-yellow-400">Object Type</span>   <span class="text-gray-500">scellée ou non (compartimentalisation)</span>
+  <span class="text-gray-500">... d'autres métadonnées existent selon l'architecture et la spécification</span>
+
+<span class="text-gray-500"># Note : schéma conceptuel. La disposition exacte des champs, leur taille</span>
+<span class="text-gray-500"># et leur encodage varient selon l'architecture CHERI (CHERI-128, Morello...)</span>
+<span class="text-gray-500"># et sa spécification. Le tag est toujours stocké séparément de la</span>
+<span class="text-gray-500"># représentation elle-même, jamais additionné dans un "total de bits" unique.</span>
+<span class="text-gray-500">#</span>
+<span class="text-gray-500"># Conséquence pratique : une capability occupe généralement le double de la</span>
+<span class="text-gray-500"># taille d'un pointeur classique équivalent (128 bits vs 64 bits), un coût</span>
+<span class="text-gray-500"># qui dépend aussi de l'alignement et des structures de données utilisées.</span></pre>
+</div>
+
+        <h3 data-i18n="art_h3_4_2">Les instructions clés de l'ISA CHERI</h3>
+        <p data-i18n="art_p9">
+            L'extension CHERI ajoute une famille d'instructions dédiées à la manipulation des capabilities (illustrées ici en CHERI-RISC-V simplifié, l'équivalent existe sur Arm Morello sous des mnémoniques proches). Chacune applique explicitement les trois garanties vues plus haut.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">cheri_isa.s</span>
+        </div>
+        <button onclick="copyToClipboard('code-isa', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-isa">
+<span class="text-gray-500">; Dériver une capability plus étroite (ex: allocation heap de "len" octets)</span>
+<span class="text-blue-400">CSetBounds</span>  <span class="text-yellow-400">c1</span>, <span class="text-yellow-400">c0</span>, <span class="text-yellow-400">len</span>      <span class="text-gray-500">; c1 = derive(c0), bornes = [addr(c0), addr(c0)+len]</span>
+                              <span class="text-gray-500">; len hors de l'espace de c0 -> exception immédiate</span>
+
+<span class="text-gray-500">; Introspection (lecture des champs, sans jamais permettre l'écriture directe)</span>
+<span class="text-blue-400">CGetBase</span>    <span class="text-yellow-400">rd</span>, <span class="text-yellow-400">c1</span>            <span class="text-gray-500">; rd = base de c1</span>
+<span class="text-blue-400">CGetLen</span>     <span class="text-yellow-400">rd</span>, <span class="text-yellow-400">c1</span>            <span class="text-gray-500">; rd = longueur (bornes) de c1</span>
+<span class="text-blue-400">CGetPerm</span>    <span class="text-yellow-400">rd</span>, <span class="text-yellow-400">c1</span>            <span class="text-gray-500">; rd = bitmask des permissions de c1</span>
+<span class="text-blue-400">CGetTag</span>     <span class="text-yellow-400">rd</span>, <span class="text-yellow-400">c1</span>            <span class="text-gray-500">; rd = 1 si c1 est valide, 0 sinon</span>
+
+<span class="text-gray-500">; Restreindre les permissions (monotonicity : jamais l'inverse)</span>
+<span class="text-blue-400">CAndPerm</span>    <span class="text-yellow-400">c2</span>, <span class="text-yellow-400">c1</span>, <span class="text-yellow-400">mask</span>      <span class="text-gray-500">; c2 = derive(c1), perm(c2) = perm(c1) AND mask</span>
+
+<span class="text-gray-500">; Scellement : rend une capability non-déréférençable directement</span>
+<span class="text-gray-500">; (base de l'object-capability pattern et de la compartimentalisation)</span>
+<span class="text-blue-400">CSeal</span>       <span class="text-yellow-400">c3</span>, <span class="text-yellow-400">c1</span>, <span class="text-yellow-400">c_otype</span>   <span class="text-gray-500">; c3 = c1 scellée sous le type c_otype</span>
+<span class="text-blue-400">CUnseal</span>     <span class="text-yellow-400">c4</span>, <span class="text-yellow-400">c3</span>, <span class="text-yellow-400">c_otype</span>   <span class="text-gray-500">; descellement, uniquement si c_otype correspond</span>
+
+<span class="text-gray-500">; Transfert de contrôle sécurisé entre domaines de compartimentalisation</span>
+<span class="text-green-400">CInvoke</span>     <span class="text-yellow-400">c_code</span>, <span class="text-yellow-400">c_data</span>    <span class="text-gray-500">; saut + échange de capabilities scellées, atomique</span>
+
+<span class="text-gray-500">; Toute instruction mémoire "classique" porte désormais un contrôle implicite</span>
+<span class="text-blue-400">Ld</span>    <span class="text-yellow-400">rd</span>, 0(<span class="text-yellow-400">c1</span>)          <span class="text-gray-500">; charge depuis l'adresse de c1</span>
+                              <span class="text-gray-500">; vérifie : tag=1 ET in-bounds ET perm R, sinon fault</span>
+<span class="text-blue-400">Sd</span>    <span class="text-yellow-400">rs</span>, 0(<span class="text-yellow-400">c1</span>)          <span class="text-gray-500">; stocke à l'adresse de c1</span>
+                              <span class="text-gray-500">; vérifie : tag=1 ET in-bounds ET perm W, sinon fault</span></pre>
+</div>
+
+        <h2 data-i18n="art_h2_5">05 - Modèle de sécurité (threat model)</h2>
+        <h3 data-i18n="art_h3_5">Ce que CHERI garantit, et ce qu'il ne garantit pas seul</h3>
+
+        <p data-i18n="art_p10">
+            Voici un bilan honnête, dans le même esprit que nos analyses de protections logicielles : CHERI n'est pas une solution magique universelle, c'est une fondation matérielle sur laquelle d'autres mécanismes doivent parfois s'appuyer pour couvrir l'ensemble du spectre des vulnérabilités mémoire.
+        </p>
+
+        <div class="overflow-x-auto">
+        <table class="tbl">
+            <thead>
+                <tr><th data-i18n="art_thm_th1">Menace</th><th data-i18n="art_thm_th2">Protection CHERI</th><th data-i18n="art_thm_th3">Limitation / condition</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td data-i18n="art_thm_r1_1">Débordement spatial (hors des bornes)</td>
+                    <td><span class="bdg g" data-i18n="art_thm_badge_covered">Couverte</span></td>
+                    <td data-i18n="art_thm_r1_3">Dépend de l'autorité (bornes) de la capability effectivement utilisée pour l'accès.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="art_thm_r2_1">Falsification de pointeur (pointer forgery)</td>
+                    <td><span class="bdg g" data-i18n="art_thm_badge_covered">Couverte</span></td>
+                    <td data-i18n="art_thm_r2_3">N'élimine pas un accès déjà rendu possible via une capability légitime détournée par ailleurs.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="art_thm_r3_1">Sécurité temporelle (use-after-free)</td>
+                    <td><span class="bdg r" data-i18n="art_thm_badge_notcovered">Non couverte seule</span></td>
+                    <td data-i18n="art_thm_r3_3">Nécessite une stratégie de révocation dédiée (Cornucopia sur CheriBSD, barrière de chargement CHERIoT).</td>
+                </tr>
+                <tr>
+                    <td data-i18n="art_thm_r4_1">Détournement de flot de contrôle</td>
+                    <td><span class="bdg a" data-i18n="art_thm_badge_partial">Partielle</span></td>
+                    <td data-i18n="art_thm_r4_3">Dépend du modèle de contrôle de flot retenu et de l'implémentation exacte.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="art_thm_r5_1">Compartimentalisation</td>
+                    <td><span class="bdg b" data-i18n="art_thm_badge_enabled">Rendue possible</span></td>
+                    <td data-i18n="art_thm_r5_3">Le mécanisme existe (scellement, <code>CInvoke</code>), la politique de découpage reste à concevoir par le développeur.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="art_thm_r6_1">Bug de logique métier</td>
+                    <td><span class="bdg r" data-i18n="art_thm_badge_notcovered2">Non couverte</span></td>
+                    <td data-i18n="art_thm_r6_3">Contrôles applicatifs nécessaires ; hors du périmètre matériel de CHERI.</td>
+                </tr>
+                <tr>
+                    <td data-i18n="art_thm_r7_1">Canaux auxiliaires / DMA non contrôlé</td>
+                    <td><span class="bdg r" data-i18n="art_thm_badge_notcovered3">Non couverte</span></td>
+                    <td data-i18n="art_thm_r7_3">Mitigations microarchitecturales spécifiques et IOMMU/architecture SoC complète à considérer séparément.</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+        <p class="!text-sm !text-gray-500" data-i18n="art_p10b">
+            Ces garanties concrètes dépendent de l'architecture CHERI considérée, du mode de compilation (purecap vs hybride), du système d'exploitation et des mécanismes additionnels effectivement activés.
+        </p>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// THREAT_MODEL_SUMMARY</div>
+            <p class="!text-gray-300 !text-sm !mb-0 leading-relaxed" data-i18n="art_p11">
+                CHERI déplace la ligne de défense au niveau le plus bas possible : le jeu d'instructions. Cela ferme silencieusement des classes entières de techniques d'exploitation, y compris celles décrites dans nos articles JOP et COOP, qui reposent toutes sur la capacité à fabriquer ou rediriger un pointeur à partir d'une fuite mémoire. Dans un environnement purecap correctement configuré, un leak d'adresse seul <strong class="!text-white">ne suffit généralement plus</strong> : les possibilités d'exploitation dépendent ensuite des capabilities déjà disponibles, des permissions en jeu, des interfaces de transition et de la présence d'autres primitives de corruption.
+            </p>
+        </div>
+
+        <h2 data-i18n="art_h2_dom">06 - Domaines d'application</h2>
+        <h3 data-i18n="art_h3_dom">Où CHERI change concrètement la donne</h3>
+
+        <p data-i18n="art_p_dom_intro">
+            Le modèle CHERI n'est pas uniforme dans sa pertinence : certains domaines logiciels bénéficient immédiatement et directement de la sécurité spatiale matérielle, d'autres s'y intéressent surtout pour la compartimentalisation à bas coût qu'il rend possible. Voici les terrains où l'adoption est la plus étudiée ou la plus avancée.
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_dom_embedded">
+                <strong>Systèmes embarqués et IoT :</strong> le terrain de prédilection de CHERIoT. Les microcontrôleurs pilotant des objets connectés tournent historiquement sur du C peu audité, avec des cycles de mise à jour rares. Des botnets comme Mirai ont exploité exactement ce type de faiblesses à grande échelle ; une sécurité mémoire appliquée au niveau matériel, sans réécriture du firmware existant, change directement la donne économique de ces attaques.
+            </li>
+            <li data-i18n="art_li_dom_ics">
+                <strong>Infrastructures critiques et systèmes industriels (OT/ICS) :</strong> ces environnements combinent contraintes temps-réel, cycles de vie de plusieurs décennies et impossibilité pratique de tout réécrire dans un langage memory-safe. CHERI ouvre une piste de durcissement qui préserverait le code C existant, mais son adoption en environnement OT reste à démontrer : compatibilité avec les processeurs et RTOS déjà déployés, déterminisme temps-réel, exigences de certification, disponibilité de l'outillage, et gestion des interfaces avec des composants non-CHERI et du DMA restent des questions ouvertes plutôt que des problèmes résolus.
+            </li>
+            <li data-i18n="art_li_dom_browser">
+                <strong>Navigateurs et moteurs de rendu :</strong> les parseurs de contenu non fiable (moteurs JavaScript, décodeurs image, PDF) concentrent une part disproportionnée des CVE critiques exploitées en conditions réelles, souvent via des techniques de code-reuse comme celles que nous avons couvertes dans nos articles JOP et COOP. C'est l'un des moteurs de l'intérêt de Google pour la sécurité mémoire matérielle.
+            </li>
+            <li data-i18n="art_li_dom_cloud">
+                <strong>Cloud et environnements multi-tenant :</strong> <code>CInvoke</code> fournit un mécanisme matériel pouvant faciliter une compartimentalisation à grain fin, en héritage direct des travaux Capsicum du même laboratoire de Cambridge. Le coût réel et le niveau d'isolation obtenus, comparés à une isolation par processus ou par conteneur, dépendent de l'architecture, du runtime et de la politique de sécurité retenue : une piste prometteuse, pas encore une comparaison chiffrée établie.
+            </li>
+            <li data-i18n="art_li_dom_automotive">
+                <strong>Automobile et avionique :</strong> secteurs régis par des normes de sûreté strictes (ISO 26262, DO-178C) et des bases de code C historiques impossibles à migrer rapidement. La convergence entre exigences de sûreté fonctionnelle et de cybersécurité pousse un intérêt naissant mais croissant pour une garantie matérielle plutôt que purement procédurale.
+            </li>
+            <li data-i18n="art_li_dom_gov">
+                <strong>Secteur défense et gouvernemental :</strong> l'origine même du financement DARPA et UKRI place naturellement les chaînes d'approvisionnement logicielles critiques de la défense parmi les premiers terrains d'évaluation, avec des exigences de traçabilité et de certification qui accompagnent déjà les programmes Morello.
+            </li>
+        </ul>
+
+        <p data-i18n="art_p_dom_outro">
+            Le fil conducteur entre ces domaines n'est pas la nature du logiciel, mais un même constat : une base de code C ou C++ ancienne, critique, trop volumineuse ou trop contrainte pour être réécrite intégralement dans un langage memory-safe, mais dont le coût d'une compromission mémoire reste inacceptable.
+        </p>
+
+        <h2 data-i18n="art_h2_6">07 - Implémentations concrètes</h2>
+        <h3 data-i18n="art_h3_6">De la recherche au silicium</h3>
+
+        <p data-i18n="art_p12">
+            CHERI n'est plus un concept purement académique. Plusieurs implémentations matérielles et logicielles existent aujourd'hui, à des stades de maturité très différents.
+        </p>
+
+        <h3 data-i18n="art_h3_6_1">Arm Morello</h3>
+        <p data-i18n="art_p13">
+            <strong>Morello</strong> est un programme de recherche mené par Arm en collaboration avec l'Université de Cambridge, SRI International et l'UKRI, avec le soutien du gouvernement britannique. Il s'agit d'une extension expérimentale de l'architecture Armv8-A intégrant CHERI, matérialisée par une puce et une carte de développement distribuées dès 2022 à plus de 150 organisations (universités, industriels, agences gouvernementales). Arm est explicite sur son statut : <code class="bg-gray-800 text-white border-gray-700">Prototype de recherche</code>, non destiné à une production commerciale en l'état.
+        </p>
+
+        <h3 data-i18n="art_h3_6_2">Microsoft CHERIoT</h3>
+        <p data-i18n="art_p14">
+            <strong>CHERIoT</strong> (CHERI for embedded IoT) est une adaptation de Microsoft Research ciblant les microcontrôleurs bas coût, où chaque octet de RAM compte. Basé sur un cœur RISC-V Ibex modifié, CHERIoT ajoute la compartimentalisation à grain fin et une stratégie de révocation temporelle conçue pour en réduire fortement le coût, via un mécanisme de balayage en arrière-plan couplé à une barrière de chargement ; le coût réel dépend du modèle d'utilisation et de la charge. L'ensemble (cœur RTL, RTOS, toolchain) a été publié en open source en 2023, avec l'objectif explicite de protéger le code embarqué généralement peu audité qui pilote des objets connectés.
+        </p>
+
+        <h3 data-i18n="art_h3_6_3">CheriBSD et les portages RISC-V</h3>
+        <p data-i18n="art_p15">
+            <strong>CheriBSD</strong> est un portage complet de FreeBSD exploitant CHERI : noyau, espace utilisateur et une bonne partie des paquets (via le projet CheriBSD Ports) recompilés en mode purecap. C'est l'environnement de référence pour expérimenter avec CHERI sur simulateur QEMU CHERI-RISC-V sans matériel Morello physique, ce que nous utilisons plus loin pour nos PoCs. Des portages CHERI-RISC-V existent également indépendamment de CheriBSD, visés par un groupe de travail au sein de RISC-V International.
+        </p>
+
+        <h3 data-i18n="art_h3_6_4">Autres acteurs</h3>
+        <p data-i18n="art_p16">
+            <strong>SCI Semiconductor</strong>, spin-off issue directement des travaux de Cambridge, développe des produits commerciaux basés sur CHERIoT pour l'embarqué sécurisé. <strong>Google</strong> a publiquement soutenu les recherches sur la sécurité mémoire matérielle en tant que complément à ses investissements dans Rust et les langages memory-safe. La liste des organisations impliquées dans le programme d'accès technologique DSbD (voir section suivante) dépasse la centaine d'entités.
+        </p>
+
+        <h2 data-i18n="art_h2_7">08 - Alliances et sponsors</h2>
+        <h3 data-i18n="art_h3_7">Qui finance CHERI, et pourquoi</h3>
+
+        <p data-i18n="art_p17">
+            La trajectoire de CHERI, d'un papier de recherche à des puces distribuées à l'industrie, s'explique par une chaîne de financement et de soutien institutionnel inhabituellement large pour un projet d'architecture matérielle.
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_darpa">
+                <strong>DARPA (États-Unis) :</strong> financeur initial via les programmes CRASH puis SSITH (Cybersecurity and Assured Systems Engineering), qui visait explicitement à "éliminer" plutôt qu'à "atténuer" les classes de vulnérabilités matérielles.
+            </li>
+            <li data-i18n="art_li_uk">
+                <strong>UKRI / Digital Security by Design (DSbD) :</strong> programme britannique lancé en 2019, financé à hauteur de 70 millions de livres par le gouvernement (Industrial Strategy Challenge Fund) et complété par au moins 117 millions de livres d'investissement industriel, soit environ 187 millions de livres au total (<a href="https://www.ukri.org/what-we-do/browse-our-areas-of-investment-and-support/digital-security-by-design/" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">UKRI</a>). Son volet matériel a directement soutenu la production des puces et cartes Morello ainsi que leur diffusion auprès d'un consortium de plus de 150 organisations.
+            </li>
+            <li data-i18n="art_li_arm">
+                <strong>Arm :</strong> partenaire industriel qui a conçu et fabrique le silicium Morello, intégrant CHERI dans une variante expérimentale de son architecture Armv8-A.
+            </li>
+            <li data-i18n="art_li_msft">
+                <strong>Microsoft :</strong> à travers Microsoft Research, sponsor et co-créateur de CHERIoT, avec publication en open source du cœur processeur, du RTOS et de la toolchain associée.
+            </li>
+            <li data-i18n="art_li_google">
+                <strong>Google :</strong> soutien financier et technique aux travaux de recherche sur la sécurité mémoire matérielle, en complément de ses initiatives internes sur les langages memory-safe.
+            </li>
+            <li data-i18n="art_li_academic">
+                <strong>Université de Cambridge et SRI International :</strong> les deux institutions académiques à l'origine du projet CTSRD, qui continuent de porter la recherche fondamentale et la spécification formelle du modèle CHERI.
+            </li>
+            <li data-i18n="art_li_alliance">
+                <strong>CHERI Alliance :</strong> initiative industrielle dédiée à l'adoption de CHERI, rassemblant notamment Google, Microsoft, Arm, Wind River, Siemens, Codasip, VeriSilicon, les universités de Cambridge et d'Edimbourg, SRI International, ainsi que des agences gouvernementales britanniques (NCSC, DSTL) (<a href="https://cheri-alliance.org/" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">cheri-alliance.org</a>).
+            </li>
+        </ul>
+
+        <p data-i18n="art_p18">
+            Cette alliance mêle financement public de recherche défense (DARPA), investissement industriel souverain (UKRI), et adoption par des acteurs commerciaux de premier plan (Arm, Microsoft, Google). C'est ce triptyque, rare dans le monde de l'architecture matérielle, qui explique pourquoi CHERI a dépassé le stade du papier académique.
+        </p>
+
+        <h2 data-i18n="art_h2_8">09 - Mise en place de l'environnement de test</h2>
+        <h3 data-i18n="art_h3_8">Reproduire les PoCs sans matériel Morello</h3>
+
+        <p data-i18n="art_p19">
+            Pas besoin d'une carte Morello physique pour expérimenter : le projet <code>cheribuild</code> automatise la construction d'un environnement complet CheriBSD riscv64-purecap, exécute sous QEMU avec support CHERI. C'est cet environnement qui sert de base aux PoCs des sections suivantes.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">setup.sh</span>
+        </div>
+        <button onclick="copyToClipboard('code-setup', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-setup">
+<span class="text-gray-500"># Récupérer l'outil de build officiel du projet CTSRD-CHERI</span>
+$ git clone <span class="text-green-400">https://github.com/CTSRD-CHERI/cheribuild</span>
+$ <span class="text-blue-400">cd</span> cheribuild
+
+<span class="text-gray-500"># Construire la toolchain CHERI-Clang/LLVM + un noyau CheriBSD purecap</span>
+<span class="text-gray-500"># pour riscv64 (premier build : plusieurs heures, compilation complète)</span>
+$ ./cheribuild.py -d cheribsd-riscv64-purecap disk-image-riscv64-purecap
+
+<span class="text-gray-500"># Lancer la machine virtuelle QEMU avec support CHERI activé</span>
+$ ./cheribuild.py run-riscv64-purecap
+
+<span class="text-gray-500"># Une fois dans le système, vérifier que l'extension est bien activée</span>
+root@cheribsd:~ # sysctl hw.model
+<span class="text-purple-400">hw.model: CHERI-RISC-V rv64gcxcheri (purecap)</span></pre>
+</div>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest" data-i18n="art_env_label">// ENVIRONNEMENT_RÉEL_DE_CET_ARTICLE</div>
+            <p class="!text-gray-300 !text-sm !mb-4 leading-relaxed" data-i18n="art_env_intro">
+                Les PoCs de cet article (les trois variantes de compilation du PoC #1, et le PoC #2) ne sont pas illustratifs : ils ont été réellement compilés et exécutés pour cette publication, sur l'environnement suivant, construit intégralement depuis les sources.
+            </p>
+            <ul class="!text-gray-300 !text-sm space-y-1 mono !mb-0">
+                <li data-i18n="art_env_1">llvm-project (toolchain CHERI-Clang) : commit <code>7e122876ee</code></li>
+                <li data-i18n="art_env_2">CheriBSD : FreeBSD 15.0-CURRENT, build <code>main-88f39900c329-dirty</code>, noyau <code>CHERI-PURECAP-QEMU</code></li>
+                <li data-i18n="art_env_3">QEMU CHERI (fork CHERI-Alliance/qemu) : version 7.1.0, commit <code>fed6e523</code></li>
+                <li data-i18n="art_env_4">Cible : riscv64-purecap, révocation de capabilities (CHERI_CAPREVOKE) compilée dans le noyau mais non déclenchée automatiquement par l'allocateur par défaut</li>
+            </ul>
+        </div>
+
+        <h2 data-i18n="art_h2_9">10 - PoC #1 : Sécurité spatiale en action</h2>
+        <h3 data-i18n="art_h3_9">Un débordement de tampon trivial, deux issues radicalement différentes</h3>
+
+        <p data-i18n="art_p20">
+            Le code suivant contient un débordement de pile classique : aucune vérification de longueur avant la copie dans un tampon fixe. Compilons-le pour trois cibles : une architecture RISC-V standard sans CHERI, une architecture CHERI en ABI hybride (le matériel est disponible mais les pointeurs restent classiques par défaut), et le mode purecap, puis comparons les trois exécutions réelles.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">vuln.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-vuln', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-vuln">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;string.h&gt;</span>
+
+<span class="text-blue-400">void</span> <span class="text-white font-bold">vuln</span>(<span class="text-blue-400">char</span> *input) {
+    <span class="text-blue-400">char</span> buf[<span class="text-purple-400">16</span>];
+    <span class="text-white font-bold">strcpy</span>(buf, input);           <span class="text-gray-500">// aucune vérification de longueur</span>
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"buf = %s\n"</span>, buf);
+}
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">int</span> argc, <span class="text-blue-400">char</span> **argv) {
+    <span class="text-blue-400">if</span> (argc < <span class="text-purple-400">2</span>) <span class="text-blue-400">return</span> <span class="text-purple-400">1</span>;
+    <span class="text-white font-bold">vuln</span>(argv[<span class="text-purple-400">1</span>]);
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">build_compare.sh</span>
+        </div>
+        <button onclick="copyToClipboard('code-build', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-build">
+<span class="text-gray-500"># --- Non-CHERI : architecture classique, pointeurs 64-bit ---</span>
+$ clang -target riscv64-unknown-freebsd -march=rv64gc -mabi=lp64d \
+    -O0 -o vuln_noncheri vuln.c
+
+<span class="text-gray-500"># --- Hybride : matériel CHERI disponible, ABI à pointeurs classiques ---</span>
+$ clang -target riscv64-unknown-freebsd -march=rv64gcxcheri -mabi=lp64d \
+    -O0 -o vuln_hybrid vuln.c
+
+<span class="text-gray-500"># --- Purecap : capabilities partout, ABI CHERI ---</span>
+$ clang -target riscv64-unknown-freebsd -march=rv64gcxcheri -mabi=l64pc128d \
+    -O0 -o vuln_purecap vuln.c
+
+<span class="text-gray-500"># --- Exécution réelle sur CheriBSD 15.0-CURRENT / QEMU CHERI, charge de 40 octets ---</span>
+$ ./vuln_noncheri AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+<span class="text-purple-400">Segmentation fault (core dumped)</span>     <span class="text-gray-500"># signal 11 : corruption silencieuse, crash tardif</span>
+
+$ ./vuln_hybrid AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+<span class="text-purple-400">Segmentation fault (core dumped)</span>     <span class="text-gray-500"># signal 11 : identique au non-CHERI, l'ABI hybride</span>
+                                      <span class="text-gray-500"># seule ne protège pas un char buf[16] classique</span>
+
+$ ./vuln_purecap AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+<span class="text-purple-400">In-address space security exception (core dumped)</span>     <span class="text-gray-500"># signal 34 (SIGPROT)</span></pre>
+</div>
+
+        <p data-i18n="art_p21">
+            La sortie brute suffit déjà à illustrer la différence. Voici la confirmation côté noyau, capturée via <code>dmesg</code> sur une CheriBSD 15.0-CURRENT réellement compilée et démarrée sous QEMU CHERI pour cet article (voir l'encart environnement ci-dessous pour les versions exactes) :
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-bug text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">dmesg.log</span>
+        </div>
+        <button onclick="copyToClipboard('code-trap', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-trap">
+root@cheribsd-riscv64-purecap:~ # dmesg | tail -3
+pid 1649 (vuln_noncheri), jid 0, uid 0: <span class="text-purple-400">exited on signal 11</span> (core dumped)
+pid 1650 (vuln_hybrid), jid 0, uid 0: <span class="text-purple-400">exited on signal 11</span> (core dumped)
+pid 1504 (vuln_purecap), jid 0, uid 0: <span class="text-purple-400">exited on signal 34</span> (core dumped)
+
+<span class="text-gray-500"># signal 11 = SIGSEGV (violation mémoire classique, détectée après le fait)</span>
+<span class="text-gray-500"># signal 34 = SIGPROT (faute de capability CHERI, bloquée au moment de l'écriture)</span></pre>
+</div>
+
+        <p data-i18n="art_p22">
+            Le point clé n'est pas qu'une affirmation : désassemblé avec <code>llvm-objdump</code>, le prologue réel de <code>vuln()</code> en purecap contient l'instruction <code>csetbounds ca0, ca0, 16</code> (adresse <code>0x1952</code> dans notre binaire), qui restreint la capability de pile à exactement la taille réelle de <code>buf</code> (16 octets, pas un de plus). Le 17e octet écrit par <code>strcpy</code> vise donc une adresse <em>hors de l'autorité</em> de cette capability, d'où le SIGPROT immédiat. Résultat plus surprenant, et plus instructif : le binaire <em>hybride</em> (matériel CHERI présent, ABI à pointeurs classiques) plante exactement comme le binaire non-CHERI, signal 11 dans les deux cas. Dans ce PoC précis, le buffer est manipulé via des pointeurs classiques et la compilation en ABI hybride ne fournit aucune protection contre ce débordement particulier ; cela ne signifie pas que tout code hybride est dépourvu de tout mécanisme CHERI, seulement que rien ne protège automatiquement du code qui n'utilise pas explicitement de capabilities. Contrairement à un canary, qui au moins détecte la corruption au moment du <code>ret</code>, l'écriture fautive n'est ici bloquée par aucune vérification de bornes au moment où elle se produit.
+        </p>
+
+        <h2 data-i18n="art_h2_10">11 - PoC #2 : Falsification de pointeur</h2>
+        <h3 data-i18n="art_h3_10">Quand un leak d'adresse parfait ne suffit plus</h3>
+
+        <p data-i18n="art_p23">
+            Toute la mécanique du JOP et du COOP, que nous avons détaillée dans nos articles précédents, repose sur une même prémisse : une fuite d'information (format string, heap leak, side-channel) livre une adresse numérique exacte, que l'attaquant réinjecte ensuite comme pointeur pour rediriger le flot de contrôle. Testons cette prémisse sur CHERI purecap.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">forge.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-forge', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-forge">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;string.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdint.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;cheriintrin.h&gt;</span>
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">void</span>) {
+    setvbuf(stdout, <span class="text-purple-400">NULL</span>, _IONBF, <span class="text-purple-400">0</span>);  <span class="text-gray-500">// sortie non tamponnée : sinon perdue au SIGPROT</span>
+    <span class="text-gray-500">/* Adresse "fuitée" par un bug indépendant (format string, heap leak...) */</span>
+    uintptr_t raw_addr = <span class="text-purple-400">0x0000004012345000UL</span>;
+
+    <span class="text-gray-500">/* On copie ces 8 octets bruts dans l'emplacement mémoire d'une</span>
+    <span class="text-gray-500">   capability de 16 octets (128 bits) : exactement ce que ferait</span>
+    <span class="text-gray-500">   un attaquant qui rejoue un JOP/ROP classique après un leak */</span>
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> forged;
+    <span class="text-white font-bold">memcpy</span>(&forged, &raw_addr, <span class="text-blue-400">sizeof</span>(raw_addr));  <span class="text-gray-500">// écriture non-capability-aware</span>
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"[forge] adresse encodée : 0x%lx\n"</span>, (uintptr_t)<span class="text-white font-bold">cheri_address_get</span>(forged));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"[forge] tag              : %d\n"</span>, <span class="text-white font-bold">cheri_tag_get</span>(forged));
+
+    <span class="text-blue-400">int</span> value = *(<span class="text-blue-400">volatile int</span> * <span class="text-yellow-400">__capability</span>)forged;  <span class="text-gray-500">// CHERI fault immédiat</span>
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"jamais atteint : %x\n"</span>, value);
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">./forge</span>
+        </div>
+        <button onclick="copyToClipboard('code-forgeout', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-forgeout">
+root@cheribsd-riscv64-purecap:~ # ./forge
+[forge] adresse encodée : <span class="text-purple-400">0x4012345000</span>
+[forge] tag              : <span class="text-purple-400">0</span>
+<span class="text-purple-400">In-address space security exception (core dumped)</span>
+
+root@cheribsd-riscv64-purecap:~ # dmesg | tail -1
+pid 1550 (forge), jid 0, uid 0: <span class="text-purple-400">exited on signal 34</span> (core dumped)
+
+<span class="text-gray-500"># l'adresse est correctement recopiée (0x4012345000), mais le tag reste à 0 :</span>
+<span class="text-gray-500"># memcpy() écrit les octets bruts sans passer par une instruction capability,</span>
+<span class="text-gray-500"># le contrôleur mémoire efface le bit de tag hors-bande associé à ce mot.</span>
+<span class="text-gray-500"># Le déréférencement qui suit déclenche SIGPROT avant toute lecture.</span></pre>
+</div>
+
+        <p data-i18n="art_p24">
+            L'adresse numérique est correcte, parfaitement exacte, identique à celle qui aurait suffi sur une architecture classique. Elle ne sert pourtant à rien : le bit de tag, absent de la mémoire adressable conventionnelle, ne peut être positionné que par une instruction CHERI légitime opérant sur une capability parente déjà valide. C'est exactement la garantie de <strong>provenance validity</strong> à l'œuvre. Nuance importante pour la section suivante : ce résultat vaut pour du code compilé en mode <em>purecap</em>. Du code <em>hybride</em>, qui mélange volontairement pointeurs classiques et capabilities pour faciliter la migration progressive, peut réintroduire une fenêtre d'autorité ambiante si le portage n'est pas audité avec rigueur. Plus largement, CHERI complique ou empêche certaines étapes des chaînes JOP/COOP lorsqu'elles nécessitent la fabrication ou l'élargissement d'une capability, mais la faisabilité réelle d'une exploitation dépend toujours des capabilities déjà légitimement accessibles, des transitions hybrides et des autres primitives disponibles : ce n'est pas une fermeture totale et automatique du mécanisme.
+        </p>
+
+        <h2 data-i18n="art_h2_11">12 - Limites et angles morts réels</h2>
+        <h3 data-i18n="art_h3_11">Ce que CHERI ne résout pas</h3>
+
+        <p data-i18n="art_p25">
+            Présenter CHERI sans ses limites serait malhonnête. Voici les angles morts documentés, connus des chercheurs du domaine eux-mêmes.
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_gap_temporal">
+                <strong>Le fossé de la sécurité temporelle :</strong> sans mécanisme de révocation actif (Cornucopia sur CheriBSD, stratégie de révocation à coût réduit de CHERIoT via barrière de chargement), une capability vers un objet libéré reste utilisable. Nous l'avons vérifié directement : sur notre CheriBSD purecap, avec révocation compilée dans le noyau mais non déclenchée par l'allocateur par défaut, le tag d'une capability reste à 1 après <code>free()</code>. La révocation à grande échelle reste une charge de recherche active, avec un coût runtime non négligeable selon l'implémentation.
+            </li>
+            <li data-i18n="art_li_logic">
+                <strong>Bugs de logique applicative :</strong> CHERI protège des objets mémoire, pas de la logique métier. Un contrôle d'accès manquant, une race condition / TOCTOU, ou un integer overflow qui fausse un calcul métier restent parfaitement invisibles pour CHERI dès lors que les accès mémoire eux-mêmes respectent les bornes et permissions accordées.
+            </li>
+            <li data-i18n="art_li_hybrid">
+                <strong>Code legacy en mode hybride :</strong> CHERI propose un ABI hybride permettant de mélanger pointeurs classiques et capabilities pour une migration incrémentale. Tout code qui reste en mode legacy non-purecap n'est pas protégé, et les frontières purecap/hybride peuvent devenir des points de confusion si elles ne sont pas auditées.
+            </li>
+            <li data-i18n="art_li_sidechannel">
+                <strong>Canaux auxiliaires (side-channels) :</strong> CHERI ne mitige pas les attaques à exécution spéculative de classe Spectre, ni les canaux temporels ou de cache. Une vérification de capability qui échoue peut elle-même avoir des effets de bord microarchitecturaux exploitables.
+            </li>
+            <li data-i18n="art_li_tcb">
+                <strong>Base de confiance (TCB) :</strong> les garanties reposent sur un compilateur capability-aware correct et sur le noyau qui distribue les capabilities racines au démarrage et lors des appels système. Un bug dans cette base de confiance compromet tout l'édifice au-dessus.
+            </li>
+            <li data-i18n="art_li_dma">
+                <strong>Acteurs non-CPU :</strong> des périphériques capables de DMA, des accélérateurs ou un cœur opérant en mode non-CHERI peuvent toujours écrire en mémoire brute sans passer par une vérification de capability, à moins que l'ensemble du SoC (IOMMU inclus) ne soit lui-même conçu CHERI-aware, ce qui reste rare en dehors des prototypes dédiés.
+            </li>
+            <li data-i18n="art_li_cost">
+                <strong>Coût d'adoption :</strong> pointeurs doubles en taille, mémoire taguée nécessitant un contrôleur adapté, recompilation de la pile logicielle complète. C'est ce coût qui explique pourquoi CHERI reste, à ce jour, au stade du prototype (Morello) et du silicium embarqué de niche (CHERIoT) plutôt que du CPU grand public.
+            </li>
+        </ul>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// BILAN_HONNETE</div>
+            <p class="!text-gray-300 !text-sm !mb-0 leading-relaxed" data-i18n="art_p26">
+                CHERI n'est pas la fin de la sécurité mémoire, c'est un changement de la ligne de départ. Il ferme des classes entières de vulnérabilités spatiales au niveau matériel, mais déplace la difficulté vers la sécurité temporelle, l'adoption écosystème et la confiance dans la base logicielle qui reste au-dessus du matériel.
+            </p>
+        </div>
+
+        <h2 data-i18n="art_h2_q">13 - Questions et interrogations ouvertes</h2>
+        <h3 data-i18n="art_h3_q">Ce que le débat de recherche n'a pas encore tranché</h3>
+
+        <p data-i18n="art_p_q_intro">
+            Au-delà des limites déjà documentées en section 12, certaines questions restent activement débattues dans la communauté de recherche et l'industrie, sans réponse définitive à ce jour.
+        </p>
+
+        <h3 data-i18n="art_h3_q1">Questions techniques non résolues</h3>
+        <ul class="space-y-4">
+            <li data-i18n="art_li_q_temporal">
+                <strong>Quel coût runtime pour une révocation généralisée ?</strong> Cornucopia sur CheriBSD et la barrière de chargement de CHERIoT prouvent la faisabilité de la sécurité temporelle, mais leur coût à l'échelle de charges de travail réelles (pas seulement des benchmarks académiques) reste une question ouverte.
+            </li>
+            <li data-i18n="art_li_q_sidechannel">
+                <strong>CHERI introduit-il de nouveaux gadgets spéculatifs ?</strong> L'extension n'a jamais prétendu couvrir les attaques de classe Spectre, mais la question de savoir si le mécanisme de vérification de capability lui-même crée de nouveaux canaux auxiliaires microarchitecturaux fait l'objet de recherches en cours.
+            </li>
+            <li data-i18n="art_li_q_hybrid_window">
+                <strong>Combien de temps la période de transition hybride peut-elle durer ?</strong> Le mode hybride facilite la migration incrémentale, mais plus il persiste longtemps dans une base de code, plus les frontières purecap/hybride deviennent des points de confusion potentiels. Personne n'a de réponse définitive sur la durée acceptable de cette phase.
+            </li>
+        </ul>
+
+        <h3 data-i18n="art_h3_q2">Questions d'adoption et d'économie</h3>
+        <ul class="space-y-4">
+            <li data-i18n="art_li_q_migration">
+                <strong>Qui absorbe le coût de migration ?</strong> Recompiler des bases de code C/C++ massives (noyaux, navigateurs) en purecap est un effort non trivial, tout comme le doublement de la taille des pointeurs et le besoin d'une mémoire taguée compatible.
+            </li>
+            <li data-i18n="art_li_q_silicon">
+                <strong>CHERI atteindra-t-il un jour le silicium grand public ?</strong> Morello reste officiellement un véhicule de recherche : aucun engagement de production commerciale n'a été annoncé par Arm à ce jour.
+            </li>
+            <li data-i18n="art_li_q_standard">
+                <strong>Quand la standardisation RISC-V aboutira-t-elle ?</strong> Le groupe de travail CHERI-RISC-V avance au sein de RISC-V International, mais la ratification finale et sa compatibilité avec d'autres extensions concurrentes ne sont pas encore tranchées.
+            </li>
+        </ul>
+
+        <h3 data-i18n="art_h3_q3">Critiques de fond</h3>
+        <ul class="space-y-4">
+            <li data-i18n="art_li_q_falsesense">
+                <strong>Le risque de faux sentiment de sécurité :</strong> certains chercheurs pointent qu'une couverture matérielle de la sécurité spatiale pourrait detourner l'attention d'autres classes de vulnérabilités (logique applicative, side-channels) qui restent, elles, entièrement exploitables.
+            </li>
+            <li data-i18n="art_li_q_tcb_debate">
+                <strong>Une confiance déplacée plutôt qu'éliminée :</strong> les garanties de CHERI reposent in fine sur un compilateur et un noyau corrects. Le débat porte sur la difficulté réelle d'auditer cette base de confiance réduite, comparée à l'ancien modèle où tout était suspect par défaut.
+            </li>
+            <li data-i18n="art_li_q_rust">
+                <strong>CHERI face aux langages memory-safe :</strong> l'effort d'ingénierie derrière CHERI (nouveau silicium, nouvelle toolchain, migration massive) est-il mieux investi que la réécriture progressive en Rust pour le code neuf ? La position dominante est que les deux approches sont complémentaires plutôt que concurrentes, CHERI pour le C legacy irréductible, Rust pour le code neuf, mais ce n'est pas un consensus universel.
+            </li>
+        </ul>
+
+        <h2 data-i18n="art_h2_12">14 - Le futur</h2>
+        <h3 data-i18n="art_h3_12">Standardisation, silicium de production et questions ouvertes</h3>
+
+        <p data-i18n="art_p27">
+            Deux trajectoires parallèles dessinent l'avenir de CHERI. Côté matériel, un groupe de travail au sein de <strong>RISC-V International</strong> avance sur la standardisation d'une extension CHERI officielle pour l'ISA RISC-V (<a href="https://riscv-europe.org/summit/2025/media/proceedings/2025-05-14-RISC-V-Summit-Europe-P3.2.03-KURD-abstract.pdf" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">RISC-V Summit Europe, 2025</a>) : un groupe de travail actif, pas encore une spécification ratifiée. Des cartes de développement commerciales existent déjà, comme la SONATA (lowRISC), et du silicium a été annoncé autour de la famille ICENI basée sur CHERIoT, ce qui ouvrirait la porte à une adoption par des fondeurs multiples plutôt qu'un seul acteur. Côté Arm, Morello reste officiellement désigné comme un véhicule de recherche : aucun engagement de mise en production commerciale n'a été annoncé, mais les enseignements tirés du programme continuent d'alimenter les discussions au sein d'Arm sur l'avenir de son architecture (statuts vérifiés en septembre 2026, susceptibles d'évoluer).
+        </p>
+        <p data-i18n="art_p28">
+            Plusieurs questions restent activement étudiées par la communauté de recherche : le passage à l'échelle de la révocation temporelle sans dégradation de performance perceptible, la maturité des compilateurs et de la chaîne d'outils purecap pour des bases de code massives (navigateurs, noyaux), la gestion de la fragmentation ABI entre code hybride et purecap durant une période de transition potentiellement longue, et enfin l'alignement des incitations économiques : qui absorbe le coût de migration d'une base de code existante vers CHERI. Ce dernier point est de plus en plus poussé par la pression réglementaire : les feuilles de route memory-safety publiées par plusieurs agences gouvernementales américaines, ainsi que le Cyber Resilience Act européen, déplacent progressivement cette question du terrain purement technique vers celui de la conformité.
+        </p>
+
+        <h2 data-i18n="art_h2_13">15 - Références</h2>
+
+<ul class="space-y-3">
+    <li>Watson, R.N.M. et al., <em>"The CHERI Capability Model: Revisiting RISC in an Age of Risk"</em>, ISCA 2014</li>
+    <li>Watson, R.N.M. et al., <em>"CHERI: A Hybrid Capability-System Architecture for Scalable Software Compartmentalization"</em>, IEEE S&amp;P 2015</li>
+    <li>Woodruff, J. et al., <em>"CHERI Concentrate: Practical Compressed Capabilities"</em>, IEEE Transactions on Computers, 2019</li>
+    <li>Arm Limited, <em>"Morello Program Overview"</em>, 2022</li>
+    <li>Microsoft Research, <em>"CHERIoT: Rethinking Security for Low-cost Embedded Systems"</em>, ASPLOS 2023</li>
+    <li>UKRI / Digital Security by Design Programme, documentation publique du programme, <a href="https://www.ukri.org/what-we-do/browse-our-areas-of-investment-and-support/digital-security-by-design/" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">ukri.org</a></li>
+    <li>Miller, M. (Microsoft Security Response Center), <em>"We need a safer systems programming language"</em>, 2019, <a href="https://www.microsoft.com/en-us/msrc/blog/2019/07/we-need-a-safer-systems-programming-language" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">microsoft.com/msrc</a></li>
+    <li>Google Security Blog, <em>"An update on Memory Safety in Chrome"</em>, 2021, <a href="https://security.googleblog.com/2021/09/an-update-on-memory-safety-in-chrome.html" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">security.googleblog.com</a></li>
+    <li>University of Cambridge, Department of Computer Science and Technology, page du projet CTSRD/CHERI, <a href="https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">cl.cam.ac.uk</a></li>
+    <li>CHERI Alliance, présentation de l'initiative industrielle, <a href="https://cheri-alliance.org/" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">cheri-alliance.org</a></li>
+    <li>Kurd, T., <em>"Standardizing CHERI-RISC-V"</em>, RISC-V Summit Europe, 2025, <a href="https://riscv-europe.org/summit/2025/media/proceedings/2025-05-14-RISC-V-Summit-Europe-P3.2.03-KURD-abstract.pdf" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">riscv-europe.org</a></li>
+    <li>Projet <code>cheribuild</code> et documentation CheriBSD, <a href="https://github.com/CTSRD-CHERI/cheribuild" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors flex items-center gap-1.5 inline-flex mt-1"><i class="fab fa-github text-xs"></i> github.com/CTSRD-CHERI/cheribuild</a></li>
+    <li>Microsoft, <em>CHERIoT-RTOS</em>, <a href="https://github.com/microsoft/cheriot-rtos" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors flex items-center gap-1.5 inline-flex mt-1"><i class="fab fa-github text-xs"></i> github.com/microsoft/cheriot-rtos</a></li>
+    <li>BUG|PWN, <a href="jop.html" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">"Jump-Oriented Programming"</a> et <a href="coop.html" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">"Counterfeit Object-Oriented Programming"</a>, références croisées sur les techniques que CHERI neutralise</li>
+</ul>
+
+    </main>
+
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="news_title">Recevoir nos recherches (0-Spam)</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="news_desc">
+                Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.
+            </p>
+            <form class="flex flex-col md:flex-row gap-4 justify-center" id="newsletter-form">
+                <input type="email" id="news-input" required placeholder="email@domain.com" class="bg-transparent border border-gray-600 px-6 py-3 text-sm focus:outline-none focus:border-white w-full md:w-96 font-mono text-center md:text-left">
+                <button type="submit" id="news-btn" class="bg-white text-black px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all" data-i18n="news_btn">
+                    S'abonner_
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="../contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const translations = {
+            fr: {
+                nav_services: "Services", nav_research: "Recherche", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Nous contacter",
+                news_title: "Recevoir nos recherches (0-Spam)",
+                news_desc: "Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.",
+                news_btn: "S'abonner_",
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source", f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPIER",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Retour_Archives",
+                art_title: "Sécurité Matérielle :<br>\n                <span class=\"text-gray-300\">CHERI</span><br>\n                Capabilities en Profondeur.",
+                art_subtitle: "Quand le processeur refuse lui-même la corruption mémoire. Définition, anatomie des capabilities, implémentations concrètes, alliances industrielles, PoCs pratiques et les angles morts qui subsistent.",
+                art_author_role: "Lead Vulnerability Researcher",
+                toc_title: "Table des matières",
+                toc_1: "<strong>01.</strong> Origine et motivation",
+                toc_2: "<strong>02.</strong> Définition",
+                toc_3: "<strong>03.</strong> Concept fondamental",
+                toc_4: "<strong>04.</strong> Anatomie d'une capability",
+                toc_5: "<strong>05.</strong> Modèle de sécurité (threat model)",
+                toc_6: "<strong>06.</strong> Domaines d'application",
+                toc_7: "<strong>07.</strong> Implémentations concrètes",
+                toc_8: "<strong>08.</strong> Alliances et sponsors",
+                toc_9: "<strong>09.</strong> Mise en place de l'environnement de test",
+                toc_10: "<strong>10.</strong> PoC #1 : Sécurité spatiale en action",
+                toc_11: "<strong>11.</strong> PoC #2 : Falsification de pointeur",
+                toc_12: "<strong>12.</strong> Limites et angles morts réels",
+                toc_13: "<strong>13.</strong> Questions et interrogations ouvertes",
+                toc_14: "<strong>14.</strong> Le futur",
+                toc_15: "<strong>15.</strong> Références",
+                art_h2_1: "01 - Origine et motivation",
+                art_h3_1: "Le problème de la sécurité mémoire en C/C++",
+                art_p1: "Depuis des décennies, les langages C et C++ dominent les systèmes critiques (noyaux, navigateurs, firmwares, serveurs) pour leur performance et leur contrôle bas niveau. Ce contrôle a un prix : aucune barrière native n'empêche un pointeur de sortir de ses bornes légitimes. Selon une analyse de Microsoft portant sur douze années de CVE corrigées (<a href=\"https://www.microsoft.com/en-us/msrc/blog/2019/07/we-need-a-safer-systems-programming-language\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">MSRC, 2019</a>) et une étude de l'équipe sécurité de Chrome portant sur 912 failles critiques corrigées depuis 2015 (<a href=\"https://security.googleblog.com/2021/09/an-update-on-memory-safety-in-chrome.html\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">Google Security Blog, 2021</a>), environ 70% des vulnérabilités critiques corrigées dans ces bases de code sont des corruptions de mémoire : débordements de tampon, use-after-free, confusions de type. Ce chiffre décrit une tendance mesurée sur des périodes précises, pas une statistique universelle valable pour tout projet logiciel.",
+                art_p2: "La réponse historique a été d'empiler des mitigations logicielles et matérielles partielles : canaries de pile, ASLR, NX/DEP, RELRO, CFI, Shadow Stacks. Nous avons détaillé dans nos articles sur le <a href=\"jop.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">Jump-Oriented Programming</a> et le <a href=\"coop.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">Counterfeit Object-Oriented Programming</a> comment chacune de ces protections, prise isolément, finit par être contournée par une combinaison de fuite d'information et de réutilisation de code. Ces mécanismes réduisent la surface d'attaque, ils ne l'éliminent pas : ils sont probabilistes (ASLR), partiels (NX ne protège pas contre le code-reuse) ou détectent la corruption après coup plutôt que de l'empêcher.",
+                art_quote1: "\"Repousser indéfiniment les mêmes symptômes ne règle pas la maladie. Il fallait remonter à la source : le pointeur lui-même.\"",
+                art_p3: "C'est ce constat qui a motivé, dès 2010, le projet <strong>CTSRD</strong> (Capsicum, TESLA and CHERI), une collaboration entre le <strong>Computer Laboratory de l'Université de Cambridge</strong> et <strong>SRI International</strong>, financée initialement par la <strong>DARPA</strong> dans le cadre des programmes CRASH puis SSITH (<a href=\"https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">University of Cambridge, page du projet CTSRD/CHERI</a>). L'objectif : reconcevoir le jeu d'instructions du processeur lui-même, pour que la notion de pointeur mémoire porte, nativement, la preuve de sa propre légitimité.",
+                art_h2_2: "02 - Définition",
+                art_h3_2: "Qu'est-ce que CHERI, précisément",
+                art_p4: "<strong class=\"!text-white\">CHERI</strong> (Capability Hardware Enhanced RISC Instructions) est une extension d'architecture de jeu d'instructions (ISA) qui introduit des <strong class=\"!text-white\">capabilities</strong> matérielles : des pointeurs étendus, infalsifiables et vérifiés par le processeur à chaque déréférencement, portant leurs propres bornes mémoire, permissions d'accès et un bit de validité. CHERI étend un jeu d'instructions existant (MIPS, RISC-V, Arm) plutôt que de le remplacer, avec des modes de compatibilité, notamment hybrides, qui peuvent faciliter la migration de code existant. Les garanties de sécurité mémoire dépendent toutefois du mode d'exécution effectivement utilisé : code legacy non modifié, code hybride mêlant pointeurs classiques et capabilities, ou code recompilé en mode purecap, où pointeurs et conventions d'appel sont pleinement adaptés aux capabilities.",
+                art_p5: "Cette définition tient en quelques lignes mais recouvre un changement de paradigme profond : au lieu de faire confiance au compilateur ou à des heuristiques runtime pour détecter une corruption, c'est le <strong>processeur</strong> qui refuse physiquement d'exécuter une instruction mémoire hors des droits accordés à la capability utilisée. La violation ne peut pas se produire silencieusement, elle est interceptée avant que le moindre octet ne soit écrit.",
+                art_h2_3: "03 - Concept fondamental",
+                art_h3_3: "La capability comme unité de confiance",
+                art_p6: "Une capability CHERI encode simultanément quatre informations : une <strong>adresse</strong> (comme un pointeur classique), des <strong>bornes</strong> (base et longueur, définissant l'objet mémoire précis auquel elle donne accès), des <strong>permissions</strong> (lecture, écriture, exécution, capacité à charger ou stocker d'autres capabilities...) et un <strong>bit de tag</strong> qui indique si la capability est valide ou non.",
+                art_h3_3_2: "Les trois garanties de sécurité",
+                art_p7: "Trois propriétés, appliquées par le matériel à chaque instruction, forment le socle du modèle CHERI :",
+                art_li_provenance: "<strong>Provenance validity :</strong> une capability ne peut être créée que par dérivation d'une capability déjà valide (via des instructions comme <code>CSetBounds</code>), ou par le matériel et le noyau au démarrage. Il est impossible de fabriquer une capability à partir d'un entier arbitraire.",
+                art_li_monotonicity: "<strong>Monotonicity :</strong> une capability dérivée ne peut que restreindre les droits de sa parente (bornes plus étroites, permissions retirées), jamais les élargir. Le principe du moindre privilège est appliqué mécaniquement, par construction.",
+                art_li_tag: "<strong>Tag unforgeability :</strong> chaque mot mémoire de la taille d'une capability est associé à un bit de tag hors bande, dans une mémoire dite \"taguée\". Toute écriture qui ne respecte pas le format capability (écriture partielle, octet par octet, opération arithmétique brute sur les bits encodés) efface ce bit automatiquement. Une capability dont le tag est à zéro redevient un simple entier inerte : toute tentative de l'utiliser comme pointeur déclenche une exception matérielle.",
+                art_p8: "L'encodage réel sur une architecture CHERI 64-bit (\"CHERI-128\") compresse ces informations dans 128 bits via un format nommé <strong>CHERI Concentrate</strong>, auquel s'ajoute le bit de tag stocké séparément par le contrôleur mémoire. Une capability occupe donc deux fois la taille d'un pointeur classique en mémoire, un compromis assumé en échange des garanties apportées.",
+                art_h2_4: "04 - Anatomie d'une capability",
+                art_h3_4_1: "Les champs, visuellement",
+                art_h3_4_2: "Les instructions clés de l'ISA CHERI",
+                art_p9: "L'extension CHERI ajoute une famille d'instructions dédiées à la manipulation des capabilities (illustrées ici en CHERI-RISC-V simplifié, l'équivalent existe sur Arm Morello sous des mnémoniques proches). Chacune applique explicitement les trois garanties vues plus haut.",
+                art_h2_5: "05 - Modèle de sécurité (threat model)",
+                art_h3_5: "Ce que CHERI garantit, et ce qu'il ne garantit pas seul",
+                art_p10: "Voici un bilan honnête, dans le même esprit que nos analyses de protections logicielles : CHERI n'est pas une solution magique universelle, c'est une fondation matérielle sur laquelle d'autres mécanismes doivent parfois s'appuyer pour couvrir l'ensemble du spectre des vulnérabilités mémoire.",
+                art_thm_th1: "Menace", art_thm_th2: "Protection CHERI", art_thm_th3: "Limitation / condition",
+                art_thm_r1_1: "Débordement spatial (hors des bornes)",
+                art_thm_r1_3: "Dépend de l'autorité (bornes) de la capability effectivement utilisée pour l'accès.",
+                art_thm_r2_1: "Falsification de pointeur (pointer forgery)",
+                art_thm_r2_3: "N'élimine pas un accès déjà rendu possible via une capability légitime détournée par ailleurs.",
+                art_thm_r3_1: "Sécurité temporelle (use-after-free)",
+                art_thm_r3_3: "Nécessite une stratégie de révocation dédiée (Cornucopia sur CheriBSD, barrière de chargement CHERIoT).",
+                art_thm_r4_1: "Détournement de flot de contrôle",
+                art_thm_r4_3: "Dépend du modèle de contrôle de flot retenu et de l'implémentation exacte.",
+                art_thm_r5_1: "Compartimentalisation",
+                art_thm_r5_3: "Le mécanisme existe (scellement, <code>CInvoke</code>), la politique de découpage reste à concevoir par le développeur.",
+                art_thm_r6_1: "Bug de logique métier",
+                art_thm_r6_3: "Contrôles applicatifs nécessaires ; hors du périmètre matériel de CHERI.",
+                art_thm_r7_1: "Canaux auxiliaires / DMA non contrôlé",
+                art_thm_r7_3: "Mitigations microarchitecturales spécifiques et IOMMU/architecture SoC complète à considérer séparément.",
+                art_thm_badge_covered: "Couverte", art_thm_badge_notcovered: "Non couverte seule",
+                art_thm_badge_partial: "Partielle", art_thm_badge_enabled: "Rendue possible",
+                art_thm_badge_notcovered2: "Non couverte", art_thm_badge_notcovered3: "Non couverte",
+                art_p10b: "Ces garanties concrètes dépendent de l'architecture CHERI considérée, du mode de compilation (purecap vs hybride), du système d'exploitation et des mécanismes additionnels effectivement activés.",
+                art_p11: "CHERI déplace la ligne de défense au niveau le plus bas possible : le jeu d'instructions. Cela ferme silencieusement des classes entières de techniques d'exploitation, y compris celles décrites dans nos articles JOP et COOP, qui reposent toutes sur la capacité à fabriquer ou rediriger un pointeur à partir d'une fuite mémoire. Dans un environnement purecap correctement configuré, un leak d'adresse seul <strong class=\"!text-white\">ne suffit généralement plus</strong> : les possibilités d'exploitation dépendent ensuite des capabilities déjà disponibles, des permissions en jeu, des interfaces de transition et de la présence d'autres primitives de corruption.",
+                art_h2_dom: "06 - Domaines d'application",
+                art_h3_dom: "Où CHERI change concrètement la donne",
+                art_p_dom_intro: "Le modèle CHERI n'est pas uniforme dans sa pertinence : certains domaines logiciels bénéficient immédiatement et directement de la sécurité spatiale matérielle, d'autres s'y intéressent surtout pour la compartimentalisation à bas coût qu'il rend possible. Voici les terrains où l'adoption est la plus étudiée ou la plus avancée.",
+                art_li_dom_embedded: "<strong>Systèmes embarqués et IoT :</strong> le terrain de prédilection de CHERIoT. Les microcontrôleurs pilotant des objets connectés tournent historiquement sur du C peu audité, avec des cycles de mise à jour rares. Des botnets comme Mirai ont exploité exactement ce type de faiblesses à grande échelle ; une sécurité mémoire appliquée au niveau matériel, sans réécriture du firmware existant, change directement la donne économique de ces attaques.",
+                art_li_dom_ics: "<strong>Infrastructures critiques et systèmes industriels (OT/ICS) :</strong> ces environnements combinent contraintes temps-réel, cycles de vie de plusieurs décennies et impossibilité pratique de tout réécrire dans un langage memory-safe. CHERI ouvre une piste de durcissement qui préserverait le code C existant, mais son adoption en environnement OT reste à démontrer : compatibilité avec les processeurs et RTOS déjà déployés, déterminisme temps-réel, exigences de certification, disponibilité de l'outillage, et gestion des interfaces avec des composants non-CHERI et du DMA restent des questions ouvertes plutôt que des problèmes résolus.",
+                art_li_dom_browser: "<strong>Navigateurs et moteurs de rendu :</strong> les parseurs de contenu non fiable (moteurs JavaScript, décodeurs image, PDF) concentrent une part disproportionnée des CVE critiques exploitées en conditions réelles, souvent via des techniques de code-reuse comme celles que nous avons couvertes dans nos articles JOP et COOP. C'est l'un des moteurs de l'intérêt de Google pour la sécurité mémoire matérielle.",
+                art_li_dom_cloud: "<strong>Cloud et environnements multi-tenant :</strong> <code>CInvoke</code> fournit un mécanisme matériel pouvant faciliter une compartimentalisation à grain fin, en héritage direct des travaux Capsicum du même laboratoire de Cambridge. Le coût réel et le niveau d'isolation obtenus, comparés à une isolation par processus ou par conteneur, dépendent de l'architecture, du runtime et de la politique de sécurité retenue : une piste prometteuse, pas encore une comparaison chiffrée établie.",
+                art_li_dom_automotive: "<strong>Automobile et avionique :</strong> secteurs régis par des normes de sûreté strictes (ISO 26262, DO-178C) et des bases de code C historiques impossibles à migrer rapidement. La convergence entre exigences de sûreté fonctionnelle et de cybersécurité pousse un intérêt naissant mais croissant pour une garantie matérielle plutôt que purement procédurale.",
+                art_li_dom_gov: "<strong>Secteur défense et gouvernemental :</strong> l'origine même du financement DARPA et UKRI place naturellement les chaînes d'approvisionnement logicielles critiques de la défense parmi les premiers terrains d'évaluation, avec des exigences de traçabilité et de certification qui accompagnent déjà les programmes Morello.",
+                art_p_dom_outro: "Le fil conducteur entre ces domaines n'est pas la nature du logiciel, mais un même constat : une base de code C ou C++ ancienne, critique, trop volumineuse ou trop contrainte pour être réécrite intégralement dans un langage memory-safe, mais dont le coût d'une compromission mémoire reste inacceptable.",
+                art_h2_6: "07 - Implémentations concrètes",
+                art_h3_6: "De la recherche au silicium",
+                art_p12: "CHERI n'est plus un concept purement académique. Plusieurs implémentations matérielles et logicielles existent aujourd'hui, à des stades de maturité très différents.",
+                art_h3_6_1: "Arm Morello",
+                art_p13: "<strong>Morello</strong> est un programme de recherche mené par Arm en collaboration avec l'Université de Cambridge, SRI International et l'UKRI, avec le soutien du gouvernement britannique. Il s'agit d'une extension expérimentale de l'architecture Armv8-A intégrant CHERI, matérialisée par une puce et une carte de développement distribuées dès 2022 à plus de 150 organisations (universités, industriels, agences gouvernementales). Arm est explicite sur son statut : <code class=\"bg-gray-800 text-white border-gray-700\">Prototype de recherche</code>, non destiné à une production commerciale en l'état.",
+                art_h3_6_2: "Microsoft CHERIoT",
+                art_p14: "<strong>CHERIoT</strong> (CHERI for embedded IoT) est une adaptation de Microsoft Research ciblant les microcontrôleurs bas coût, où chaque octet de RAM compte. Basé sur un cœur RISC-V Ibex modifié, CHERIoT ajoute la compartimentalisation à grain fin et une stratégie de révocation temporelle conçue pour en réduire fortement le coût, via un mécanisme de balayage en arrière-plan couplé à une barrière de chargement ; le coût réel dépend du modèle d'utilisation et de la charge. L'ensemble (cœur RTL, RTOS, toolchain) a été publié en open source en 2023, avec l'objectif explicite de protéger le code embarqué généralement peu audité qui pilote des objets connectés.",
+                art_h3_6_3: "CheriBSD et les portages RISC-V",
+                art_p15: "<strong>CheriBSD</strong> est un portage complet de FreeBSD exploitant CHERI : noyau, espace utilisateur et une bonne partie des paquets (via le projet CheriBSD Ports) recompilés en mode purecap. C'est l'environnement de référence pour expérimenter avec CHERI sur simulateur QEMU CHERI-RISC-V sans matériel Morello physique, ce que nous utilisons plus loin pour nos PoCs. Des portages CHERI-RISC-V existent également indépendamment de CheriBSD, visés par un groupe de travail au sein de RISC-V International.",
+                art_h3_6_4: "Autres acteurs",
+                art_p16: "<strong>SCI Semiconductor</strong>, spin-off issue directement des travaux de Cambridge, développe des produits commerciaux basés sur CHERIoT pour l'embarqué sécurisé. <strong>Google</strong> a publiquement soutenu les recherches sur la sécurité mémoire matérielle en tant que complément à ses investissements dans Rust et les langages memory-safe. La liste des organisations impliquées dans le programme d'accès technologique DSbD (voir section suivante) dépasse la centaine d'entités.",
+                art_h2_7: "08 - Alliances et sponsors",
+                art_h3_7: "Qui finance CHERI, et pourquoi",
+                art_p17: "La trajectoire de CHERI, d'un papier de recherche à des puces distribuées à l'industrie, s'explique par une chaîne de financement et de soutien institutionnel inhabituellement large pour un projet d'architecture matérielle.",
+                art_li_darpa: "<strong>DARPA (États-Unis) :</strong> financeur initial via les programmes CRASH puis SSITH (Cybersecurity and Assured Systems Engineering), qui visait explicitement à \"éliminer\" plutôt qu'à \"atténuer\" les classes de vulnérabilités matérielles.",
+                art_li_uk: "<strong>UKRI / Digital Security by Design (DSbD) :</strong> programme britannique lancé en 2019, financé à hauteur de 70 millions de livres par le gouvernement (Industrial Strategy Challenge Fund) et complété par au moins 117 millions de livres d'investissement industriel, soit environ 187 millions de livres au total (<a href=\"https://www.ukri.org/what-we-do/browse-our-areas-of-investment-and-support/digital-security-by-design/\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">UKRI</a>). Son volet matériel a directement soutenu la production des puces et cartes Morello ainsi que leur diffusion auprès d'un consortium de plus de 150 organisations.",
+                art_li_arm: "<strong>Arm :</strong> partenaire industriel qui a conçu et fabrique le silicium Morello, intégrant CHERI dans une variante expérimentale de son architecture Armv8-A.",
+                art_li_msft: "<strong>Microsoft :</strong> à travers Microsoft Research, sponsor et co-créateur de CHERIoT, avec publication en open source du cœur processeur, du RTOS et de la toolchain associée.",
+                art_li_google: "<strong>Google :</strong> soutien financier et technique aux travaux de recherche sur la sécurité mémoire matérielle, en complément de ses initiatives internes sur les langages memory-safe.",
+                art_li_academic: "<strong>Université de Cambridge et SRI International :</strong> les deux institutions académiques à l'origine du projet CTSRD, qui continuent de porter la recherche fondamentale et la spécification formelle du modèle CHERI.",
+                art_li_alliance: "<strong>CHERI Alliance :</strong> initiative industrielle dédiée à l'adoption de CHERI, rassemblant notamment Google, Microsoft, Arm, Wind River, Siemens, Codasip, VeriSilicon, les universités de Cambridge et d'Edimbourg, SRI International, ainsi que des agences gouvernementales britanniques (NCSC, DSTL) (<a href=\"https://cheri-alliance.org/\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">cheri-alliance.org</a>).",
+                art_p18: "Cette alliance mêle financement public de recherche défense (DARPA), investissement industriel souverain (UKRI), et adoption par des acteurs commerciaux de premier plan (Arm, Microsoft, Google). C'est ce triptyque, rare dans le monde de l'architecture matérielle, qui explique pourquoi CHERI a dépassé le stade du papier académique.",
+                art_h2_8: "09 - Mise en place de l'environnement de test",
+                art_h3_8: "Reproduire les PoCs sans matériel Morello",
+                art_p19: "Pas besoin d'une carte Morello physique pour expérimenter : le projet <code>cheribuild</code> automatise la construction d'un environnement complet CheriBSD riscv64-purecap, exécute sous QEMU avec support CHERI. C'est cet environnement qui sert de base aux PoCs des sections suivantes.",
+                art_env_label: "// ENVIRONNEMENT_RÉEL_DE_CET_ARTICLE",
+                art_env_intro: "Les PoCs de cet article (les trois variantes de compilation du PoC #1, et le PoC #2) ne sont pas illustratifs : ils ont été réellement compilés et exécutés pour cette publication, sur l'environnement suivant, construit intégralement depuis les sources.",
+                art_env_1: "llvm-project (toolchain CHERI-Clang) : commit <code>7e122876ee</code>",
+                art_env_2: "CheriBSD : FreeBSD 15.0-CURRENT, build <code>main-88f39900c329-dirty</code>, noyau <code>CHERI-PURECAP-QEMU</code>",
+                art_env_3: "QEMU CHERI (fork CHERI-Alliance/qemu) : version 7.1.0, commit <code>fed6e523</code>",
+                art_env_4: "Cible : riscv64-purecap, révocation de capabilities (CHERI_CAPREVOKE) compilée dans le noyau mais non déclenchée automatiquement par l'allocateur par défaut",
+                art_h2_9: "10 - PoC #1 : Sécurité spatiale en action",
+                art_h3_9: "Un débordement de tampon trivial, deux issues radicalement différentes",
+                art_p20: "Le code suivant contient un débordement de pile classique : aucune vérification de longueur avant la copie dans un tampon fixe. Compilons-le pour trois cibles : une architecture RISC-V standard sans CHERI, une architecture CHERI en ABI hybride (le matériel est disponible mais les pointeurs restent classiques par défaut), et le mode purecap, puis comparons les trois exécutions réelles.",
+                art_p21: "La sortie brute suffit déjà à illustrer la différence. Voici la confirmation côté noyau, capturée via <code>dmesg</code> sur une CheriBSD 15.0-CURRENT réellement compilée et démarrée sous QEMU CHERI pour cet article (voir l'encart environnement ci-dessous pour les versions exactes) :",
+                art_p22: "Le point clé n'est pas qu'une affirmation : désassemblé avec <code>llvm-objdump</code>, le prologue réel de <code>vuln()</code> en purecap contient l'instruction <code>csetbounds ca0, ca0, 16</code> (adresse <code>0x1952</code> dans notre binaire), qui restreint la capability de pile à exactement la taille réelle de <code>buf</code> (16 octets, pas un de plus). Le 17e octet écrit par <code>strcpy</code> vise donc une adresse <em>hors de l'autorité</em> de cette capability, d'où le SIGPROT immédiat. Résultat plus surprenant, et plus instructif : le binaire <em>hybride</em> (matériel CHERI présent, ABI à pointeurs classiques) plante exactement comme le binaire non-CHERI, signal 11 dans les deux cas. Dans ce PoC précis, le buffer est manipulé via des pointeurs classiques et la compilation en ABI hybride ne fournit aucune protection contre ce débordement particulier ; cela ne signifie pas que tout code hybride est dépourvu de tout mécanisme CHERI, seulement que rien ne protège automatiquement du code qui n'utilise pas explicitement de capabilities. Contrairement à un canary, qui au moins détecte la corruption au moment du <code>ret</code>, l'écriture fautive n'est ici bloquée par aucune vérification de bornes au moment où elle se produit.",
+                art_h2_10: "11 - PoC #2 : Falsification de pointeur",
+                art_h3_10: "Quand un leak d'adresse parfait ne suffit plus",
+                art_p23: "Toute la mécanique du JOP et du COOP, que nous avons détaillée dans nos articles précédents, repose sur une même prémisse : une fuite d'information (format string, heap leak, side-channel) livre une adresse numérique exacte, que l'attaquant réinjecte ensuite comme pointeur pour rediriger le flot de contrôle. Testons cette prémisse sur CHERI purecap.",
+                art_p24: "L'adresse numérique est correcte, parfaitement exacte, identique à celle qui aurait suffi sur une architecture classique. Elle ne sert pourtant à rien : le bit de tag, absent de la mémoire adressable conventionnelle, ne peut être positionné que par une instruction CHERI légitime opérant sur une capability parente déjà valide. C'est exactement la garantie de <strong>provenance validity</strong> à l'œuvre. Nuance importante pour la section suivante : ce résultat vaut pour du code compilé en mode <em>purecap</em>. Du code <em>hybride</em>, qui mélange volontairement pointeurs classiques et capabilities pour faciliter la migration progressive, peut réintroduire une fenêtre d'autorité ambiante si le portage n'est pas audité avec rigueur. Plus largement, CHERI complique ou empêche certaines étapes des chaînes JOP/COOP lorsqu'elles nécessitent la fabrication ou l'élargissement d'une capability, mais la faisabilité réelle d'une exploitation dépend toujours des capabilities déjà légitimement accessibles, des transitions hybrides et des autres primitives disponibles : ce n'est pas une fermeture totale et automatique du mécanisme.",
+                art_h2_11: "12 - Limites et angles morts réels",
+                art_h3_11: "Ce que CHERI ne résout pas",
+                art_p25: "Présenter CHERI sans ses limites serait malhonnête. Voici les angles morts documentés, connus des chercheurs du domaine eux-mêmes.",
+                art_li_gap_temporal: "<strong>Le fossé de la sécurité temporelle :</strong> sans mécanisme de révocation actif (Cornucopia sur CheriBSD, stratégie de révocation à coût réduit de CHERIoT via barrière de chargement), une capability vers un objet libéré reste utilisable. Nous l'avons vérifié directement : sur notre CheriBSD purecap, avec révocation compilée dans le noyau mais non déclenchée par l'allocateur par défaut, le tag d'une capability reste à 1 après <code>free()</code>. La révocation à grande échelle reste une charge de recherche active, avec un coût runtime non négligeable selon l'implémentation.",
+                art_li_logic: "<strong>Bugs de logique applicative :</strong> CHERI protège des objets mémoire, pas de la logique métier. Un contrôle d'accès manquant, une race condition / TOCTOU, ou un integer overflow qui fausse un calcul métier restent parfaitement invisibles pour CHERI dès lors que les accès mémoire eux-mêmes respectent les bornes et permissions accordées.",
+                art_li_hybrid: "<strong>Code legacy en mode hybride :</strong> CHERI propose un ABI hybride permettant de mélanger pointeurs classiques et capabilities pour une migration incrémentale. Tout code qui reste en mode legacy non-purecap n'est pas protégé, et les frontières purecap/hybride peuvent devenir des points de confusion si elles ne sont pas auditées.",
+                art_li_sidechannel: "<strong>Canaux auxiliaires (side-channels) :</strong> CHERI ne mitige pas les attaques à exécution spéculative de classe Spectre, ni les canaux temporels ou de cache. Une vérification de capability qui échoue peut elle-même avoir des effets de bord microarchitecturaux exploitables.",
+                art_li_tcb: "<strong>Base de confiance (TCB) :</strong> les garanties reposent sur un compilateur capability-aware correct et sur le noyau qui distribue les capabilities racines au démarrage et lors des appels système. Un bug dans cette base de confiance compromet tout l'édifice au-dessus.",
+                art_li_dma: "<strong>Acteurs non-CPU :</strong> des périphériques capables de DMA, des accélérateurs ou un cœur opérant en mode non-CHERI peuvent toujours écrire en mémoire brute sans passer par une vérification de capability, à moins que l'ensemble du SoC (IOMMU inclus) ne soit lui-même conçu CHERI-aware, ce qui reste rare en dehors des prototypes dédiés.",
+                art_li_cost: "<strong>Coût d'adoption :</strong> pointeurs doubles en taille, mémoire taguée nécessitant un contrôleur adapté, recompilation de la pile logicielle complète. C'est ce coût qui explique pourquoi CHERI reste, à ce jour, au stade du prototype (Morello) et du silicium embarqué de niche (CHERIoT) plutôt que du CPU grand public.",
+                art_p26: "CHERI n'est pas la fin de la sécurité mémoire, c'est un changement de la ligne de départ. Il ferme des classes entières de vulnérabilités spatiales au niveau matériel, mais déplace la difficulté vers la sécurité temporelle, l'adoption écosystème et la confiance dans la base logicielle qui reste au-dessus du matériel.",
+                art_h2_q: "13 - Questions et interrogations ouvertes",
+                art_h3_q: "Ce que le débat de recherche n'a pas encore tranché",
+                art_p_q_intro: "Au-delà des limites déjà documentées en section 12, certaines questions restent activement débattues dans la communauté de recherche et l'industrie, sans réponse définitive à ce jour.",
+                art_h3_q1: "Questions techniques non résolues",
+                art_li_q_temporal: "<strong>Quel coût runtime pour une révocation généralisée ?</strong> Cornucopia sur CheriBSD et la barrière de chargement de CHERIoT prouvent la faisabilité de la sécurité temporelle, mais leur coût à l'échelle de charges de travail réelles (pas seulement des benchmarks académiques) reste une question ouverte.",
+                art_li_q_sidechannel: "<strong>CHERI introduit-il de nouveaux gadgets spéculatifs ?</strong> L'extension n'a jamais prétendu couvrir les attaques de classe Spectre, mais la question de savoir si le mécanisme de vérification de capability lui-même crée de nouveaux canaux auxiliaires microarchitecturaux fait l'objet de recherches en cours.",
+                art_li_q_hybrid_window: "<strong>Combien de temps la période de transition hybride peut-elle durer ?</strong> Le mode hybride facilite la migration incrémentale, mais plus il persiste longtemps dans une base de code, plus les frontières purecap/hybride deviennent des points de confusion potentiels. Personne n'a de réponse définitive sur la durée acceptable de cette phase.",
+                art_h3_q2: "Questions d'adoption et d'économie",
+                art_li_q_migration: "<strong>Qui absorbe le coût de migration ?</strong> Recompiler des bases de code C/C++ massives (noyaux, navigateurs) en purecap est un effort non trivial, tout comme le doublement de la taille des pointeurs et le besoin d'une mémoire taguée compatible.",
+                art_li_q_silicon: "<strong>CHERI atteindra-t-il un jour le silicium grand public ?</strong> Morello reste officiellement un véhicule de recherche : aucun engagement de production commerciale n'a été annoncé par Arm à ce jour.",
+                art_li_q_standard: "<strong>Quand la standardisation RISC-V aboutira-t-elle ?</strong> Le groupe de travail CHERI-RISC-V avance au sein de RISC-V International, mais la ratification finale et sa compatibilité avec d'autres extensions concurrentes ne sont pas encore tranchées.",
+                art_h3_q3: "Critiques de fond",
+                art_li_q_falsesense: "<strong>Le risque de faux sentiment de sécurité :</strong> certains chercheurs pointent qu'une couverture matérielle de la sécurité spatiale pourrait detourner l'attention d'autres classes de vulnérabilités (logique applicative, side-channels) qui restent, elles, entièrement exploitables.",
+                art_li_q_tcb_debate: "<strong>Une confiance déplacée plutôt qu'éliminée :</strong> les garanties de CHERI reposent in fine sur un compilateur et un noyau corrects. Le débat porte sur la difficulté réelle d'auditer cette base de confiance réduite, comparée à l'ancien modèle où tout était suspect par défaut.",
+                art_li_q_rust: "<strong>CHERI face aux langages memory-safe :</strong> l'effort d'ingénierie derrière CHERI (nouveau silicium, nouvelle toolchain, migration massive) est-il mieux investi que la réécriture progressive en Rust pour le code neuf ? La position dominante est que les deux approches sont complémentaires plutôt que concurrentes, CHERI pour le C legacy irréductible, Rust pour le code neuf, mais ce n'est pas un consensus universel.",
+                art_h2_12: "14 - Le futur",
+                art_h3_12: "Standardisation, silicium de production et questions ouvertes",
+                art_p27: "Deux trajectoires parallèles dessinent l'avenir de CHERI. Côté matériel, un groupe de travail au sein de <strong>RISC-V International</strong> avance sur la standardisation d'une extension CHERI officielle pour l'ISA RISC-V (<a href=\"https://riscv-europe.org/summit/2025/media/proceedings/2025-05-14-RISC-V-Summit-Europe-P3.2.03-KURD-abstract.pdf\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">RISC-V Summit Europe, 2025</a>) : un groupe de travail actif, pas encore une spécification ratifiée. Des cartes de développement commerciales existent déjà, comme la SONATA (lowRISC), et du silicium a été annoncé autour de la famille ICENI basée sur CHERIoT, ce qui ouvrirait la porte à une adoption par des fondeurs multiples plutôt qu'un seul acteur. Côté Arm, Morello reste officiellement désigné comme un véhicule de recherche : aucun engagement de mise en production commerciale n'a été annoncé, mais les enseignements tirés du programme continuent d'alimenter les discussions au sein d'Arm sur l'avenir de son architecture (statuts vérifiés en septembre 2026, susceptibles d'évoluer).",
+                art_p28: "Plusieurs questions restent activement étudiées par la communauté de recherche : le passage à l'échelle de la révocation temporelle sans dégradation de performance perceptible, la maturité des compilateurs et de la chaîne d'outils purecap pour des bases de code massives (navigateurs, noyaux), la gestion de la fragmentation ABI entre code hybride et purecap durant une période de transition potentiellement longue, et enfin l'alignement des incitations économiques : qui absorbe le coût de migration d'une base de code existante vers CHERI. Ce dernier point est de plus en plus poussé par la pression réglementaire : les feuilles de route memory-safety publiées par plusieurs agences gouvernementales américaines, ainsi que le Cyber Resilience Act européen, déplacent progressivement cette question du terrain purement technique vers celui de la conformité.",
+                art_h2_13: "15 - Références"
+            },
+            en: {
+                nav_services: "Services", nav_research: "Research", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Contact Us",
+                news_title: "Receive our research (0-Spam)",
+                news_desc: "Subscribe to our secure transmission feed. Strictly technical writeups, CTF announcements, and public audit reports.",
+                news_btn: "Subscribe_",
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit", f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPY",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Back_Archives",
+                art_title: "Hardware Security :<br>\n                <span class=\"text-gray-300\">CHERI</span><br>\n                Capabilities In Depth.",
+                art_subtitle: "When the processor itself refuses memory corruption. Definition, anatomy of capabilities, concrete implementations, industry alliances, practical PoCs, and the blind spots that remain.",
+                art_author_role: "Lead Vulnerability Researcher",
+                toc_title: "Table of contents",
+                toc_1: "<strong>01.</strong> Origin and motivation",
+                toc_2: "<strong>02.</strong> Definition",
+                toc_3: "<strong>03.</strong> Fundamental concept",
+                toc_4: "<strong>04.</strong> Anatomy of a capability",
+                toc_5: "<strong>05.</strong> Security model (threat model)",
+                toc_6: "<strong>06.</strong> Application domains",
+                toc_7: "<strong>07.</strong> Concrete implementations",
+                toc_8: "<strong>08.</strong> Alliances and sponsors",
+                toc_9: "<strong>09.</strong> Setting up the test environment",
+                toc_10: "<strong>10.</strong> PoC #1: Spatial safety in action",
+                toc_11: "<strong>11.</strong> PoC #2: Pointer forgery",
+                toc_12: "<strong>12.</strong> Real limits and blind spots",
+                toc_13: "<strong>13.</strong> Open questions and debates",
+                toc_14: "<strong>14.</strong> The future",
+                toc_15: "<strong>15.</strong> References",
+                art_h2_1: "01 - Origin and motivation",
+                art_h3_1: "The memory safety problem in C/C++",
+                art_p1: "For decades, C and C++ have dominated critical systems (kernels, browsers, firmware, servers) for their performance and low-level control. That control comes at a price: no native barrier stops a pointer from stepping outside its legitimate bounds. According to a Microsoft analysis of twelve years of patched CVEs (<a href=\"https://www.microsoft.com/en-us/msrc/blog/2019/07/we-need-a-safer-systems-programming-language\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">MSRC, 2019</a>) and a Chrome security team study of 912 critical bugs fixed since 2015 (<a href=\"https://security.googleblog.com/2021/09/an-update-on-memory-safety-in-chrome.html\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">Google Security Blog, 2021</a>), roughly 70% of the critical vulnerabilities fixed in these codebases are memory corruption issues: buffer overflows, use-after-free, type confusion. This figure describes a trend measured over specific periods, not a universal statistic valid for every software project.",
+                art_p2: "The historical answer has been to stack partial software and hardware mitigations: stack canaries, ASLR, NX/DEP, RELRO, CFI, Shadow Stacks. We detailed in our articles on <a href=\"jop.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">Jump-Oriented Programming</a> and <a href=\"coop.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">Counterfeit Object-Oriented Programming</a> how each of these protections, taken in isolation, eventually gets bypassed through a combination of information leaks and code reuse. These mechanisms reduce the attack surface, they don't eliminate it: they are probabilistic (ASLR), partial (NX doesn't protect against code-reuse), or they detect corruption after the fact rather than preventing it.",
+                art_quote1: "\"Endlessly pushing back the same symptoms doesn't cure the disease. We had to go back to the source: the pointer itself.\"",
+                art_p3: "This observation is what motivated, starting in 2010, the <strong>CTSRD</strong> project (Capsicum, TESLA and CHERI), a collaboration between the <strong>University of Cambridge Computer Laboratory</strong> and <strong>SRI International</strong>, initially funded by <strong>DARPA</strong> under the CRASH and later SSITH programs (<a href=\"https://www.cl.cam.ac.uk/research/security/ctsrd/cheri/\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">University of Cambridge, CTSRD/CHERI project page</a>). The goal: redesign the processor's own instruction set so that the very notion of a memory pointer natively carries proof of its own legitimacy.",
+                art_h2_2: "02 - Definition",
+                art_h3_2: "What CHERI actually is",
+                art_p4: "<strong class=\"!text-white\">CHERI</strong> (Capability Hardware Enhanced RISC Instructions) is an instruction set architecture (ISA) extension that introduces hardware <strong class=\"!text-white\">capabilities</strong>: extended, unforgeable pointers checked by the processor on every dereference, carrying their own memory bounds, access permissions, and a validity bit. CHERI extends an existing instruction set (MIPS, RISC-V, Arm) rather than replacing it, with compatibility modes, notably hybrid ones, that can ease the migration of existing code. Memory safety guarantees, however, depend on the execution mode actually in use: unmodified legacy code, hybrid code mixing classic pointers and capabilities, or code recompiled in purecap mode, where pointers and calling conventions are fully adapted to capabilities.",
+                art_p5: "This definition fits in a few lines but covers a deep paradigm shift: instead of trusting the compiler or runtime heuristics to detect corruption, it is the <strong>processor</strong> itself that physically refuses to execute a memory instruction outside the rights granted to the capability being used. The violation cannot happen silently; it is intercepted before a single byte is written.",
+                art_h2_3: "03 - Fundamental concept",
+                art_h3_3: "The capability as a unit of trust",
+                art_p6: "A CHERI capability simultaneously encodes four pieces of information: an <strong>address</strong> (like a classic pointer), <strong>bounds</strong> (base and length, defining the precise memory object it grants access to), <strong>permissions</strong> (read, write, execute, the ability to load or store other capabilities...), and a <strong>tag bit</strong> indicating whether the capability is valid.",
+                art_h3_3_2: "The three security guarantees",
+                art_p7: "Three properties, enforced by hardware on every instruction, form the foundation of the CHERI model:",
+                art_li_provenance: "<strong>Provenance validity:</strong> a capability can only be created by deriving it from an already-valid capability (via instructions like <code>CSetBounds</code>), or by hardware/the kernel at boot time. It is impossible to fabricate a capability from an arbitrary integer.",
+                art_li_monotonicity: "<strong>Monotonicity:</strong> a derived capability can only restrict its parent's rights (narrower bounds, removed permissions), never widen them. The principle of least privilege is enforced mechanically, by construction.",
+                art_li_tag: "<strong>Tag unforgeability:</strong> every memory word the size of a capability is associated with an out-of-band tag bit, in so-called \"tagged\" memory. Any write that doesn't respect the capability format (a partial, byte-by-byte write, a raw arithmetic operation on the encoded bits) automatically clears that bit. A capability whose tag is zero reverts to a plain inert integer: any attempt to use it as a pointer triggers a hardware exception.",
+                art_p8: "The actual encoding on a 64-bit CHERI architecture (\"CHERI-128\") compresses this information into 128 bits via a format called <strong>CHERI Concentrate</strong>, plus the tag bit stored separately by the memory controller. A capability therefore takes up twice the size of a classic pointer in memory, a trade-off accepted in exchange for the guarantees it provides.",
+                art_h2_4: "04 - Anatomy of a capability",
+                art_h3_4_1: "The fields, visually",
+                art_h3_4_2: "Key instructions of the CHERI ISA",
+                art_p9: "The CHERI extension adds a family of instructions dedicated to manipulating capabilities (shown here in simplified CHERI-RISC-V; equivalents exist on Arm Morello under similar mnemonics). Each one explicitly enforces the three guarantees described above.",
+                art_h2_5: "05 - Security model (threat model)",
+                art_h3_5: "What CHERI guarantees, and what it does not guarantee alone",
+                art_p10: "Here is an honest assessment, in the same spirit as our analyses of software protections: CHERI is not a universal magic bullet, it is a hardware foundation that other mechanisms sometimes need to build on to cover the full spectrum of memory vulnerabilities.",
+                art_thm_th1: "Threat", art_thm_th2: "CHERI protection", art_thm_th3: "Limitation / condition",
+                art_thm_r1_1: "Spatial out-of-bounds access",
+                art_thm_r1_3: "Depends on the authority (bounds) of the capability actually used for the access.",
+                art_thm_r2_1: "Pointer forgery",
+                art_thm_r2_3: "Does not eliminate access already made possible via a legitimate capability misused elsewhere.",
+                art_thm_r3_1: "Temporal safety (use-after-free)",
+                art_thm_r3_3: "Requires a dedicated revocation strategy (Cornucopia on CheriBSD, CHERIoT's load barrier).",
+                art_thm_r4_1: "Control-flow hijacking",
+                art_thm_r4_3: "Depends on the control-flow model chosen and the exact implementation.",
+                art_thm_r5_1: "Compartmentalization",
+                art_thm_r5_3: "The mechanism exists (sealing, <code>CInvoke</code>); the partitioning policy is still up to the developer.",
+                art_thm_r6_1: "Business logic bugs",
+                art_thm_r6_3: "Application-level controls required; outside CHERI's hardware scope.",
+                art_thm_r7_1: "Side channels / uncontrolled DMA",
+                art_thm_r7_3: "Specific microarchitectural mitigations and a full IOMMU/SoC-level design need to be considered separately.",
+                art_thm_badge_covered: "Covered", art_thm_badge_notcovered: "Not covered alone",
+                art_thm_badge_partial: "Partial", art_thm_badge_enabled: "Made possible",
+                art_thm_badge_notcovered2: "Not covered", art_thm_badge_notcovered3: "Not covered",
+                art_p10b: "These concrete guarantees depend on the specific CHERI architecture considered, the compilation mode (purecap vs hybrid), the operating system, and the additional mechanisms actually enabled.",
+                art_p11: "CHERI moves the defense line as low as possible: the instruction set itself. This silently shuts down entire classes of exploitation techniques, including those described in our JOP and COOP articles, all of which rely on the ability to fabricate or redirect a pointer from a memory leak. In a properly configured purecap environment, an address leak alone <strong class=\"!text-white\">is generally no longer enough</strong>: the remaining exploitation possibilities then depend on the capabilities already available, the permissions in play, transition interfaces, and the presence of other corruption primitives.",
+                art_h2_dom: "06 - Application domains",
+                art_h3_dom: "Where CHERI concretely changes the game",
+                art_p_dom_intro: "The CHERI model's relevance isn't uniform: some software domains benefit immediately and directly from hardware spatial safety, others are mainly interested in the low-cost compartmentalization it enables. Here are the areas where adoption is most studied or most advanced.",
+                art_li_dom_embedded: "<strong>Embedded systems and IoT:</strong> CHERIoT's home turf. Microcontrollers driving connected devices historically run lightly-audited C, with rare update cycles. Botnets like Mirai exploited exactly this kind of weakness at scale; hardware-enforced memory safety, without rewriting existing firmware, directly changes the economics of these attacks.",
+                art_li_dom_ics: "<strong>Critical infrastructure and industrial systems (OT/ICS):</strong> these environments combine real-time constraints, multi-decade lifecycles, and the practical impossibility of rewriting everything in a memory-safe language. CHERI opens a hardening path that would preserve existing C code, but its adoption in OT environments remains to be demonstrated: compatibility with already-deployed processors and RTOSes, real-time determinism, certification requirements, tooling availability, and interfacing with non-CHERI components and DMA remain open questions rather than solved problems.",
+                art_li_dom_browser: "<strong>Browsers and rendering engines:</strong> parsers of untrusted content (JavaScript engines, image decoders, PDF) account for a disproportionate share of critical CVEs exploited in the wild, often via code-reuse techniques like the ones we covered in our JOP and COOP articles. This is one of the drivers behind Google's interest in hardware memory safety.",
+                art_li_dom_cloud: "<strong>Cloud and multi-tenant environments:</strong> <code>CInvoke</code> provides a hardware mechanism that can facilitate fine-grained compartmentalization, a direct legacy of the Capsicum work from the same Cambridge lab. The actual cost and isolation level achieved, compared to process- or container-level isolation, depend on the architecture, runtime, and security policy chosen: a promising direction, not yet an established quantitative comparison.",
+                art_li_dom_automotive: "<strong>Automotive and avionics:</strong> sectors governed by strict safety standards (ISO 26262, DO-178C) and legacy C codebases that cannot be quickly migrated. The convergence of functional safety and cybersecurity requirements is driving nascent but growing interest in a hardware-backed guarantee rather than a purely procedural one.",
+                art_li_dom_gov: "<strong>Defense and government sector:</strong> the very origin of DARPA and UKRI funding naturally places critical defense software supply chains among the first evaluation grounds, with traceability and certification requirements that already accompany the Morello programs.",
+                art_p_dom_outro: "The common thread across these domains isn't the nature of the software, but a shared observation: an old, critical C or C++ codebase, too large or too constrained to be fully rewritten in a memory-safe language, yet where the cost of a memory compromise remains unacceptable.",
+                art_h2_6: "07 - Concrete implementations",
+                art_h3_6: "From research to silicon",
+                art_p12: "CHERI is no longer a purely academic concept. Several hardware and software implementations exist today, at very different stages of maturity.",
+                art_h3_6_1: "Arm Morello",
+                art_p13: "<strong>Morello</strong> is a research program led by Arm in collaboration with the University of Cambridge, SRI International, and UKRI, with support from the UK government. It is an experimental extension of the Armv8-A architecture integrating CHERI, materialized as a chip and development board distributed since 2022 to more than 150 organizations (universities, industry, government agencies). Arm is explicit about its status: <code class=\"bg-gray-800 text-white border-gray-700\">Research prototype</code>, not intended for commercial production as-is.",
+                art_h3_6_2: "Microsoft CHERIoT",
+                art_p14: "<strong>CHERIoT</strong> (CHERI for embedded IoT) is a Microsoft Research adaptation targeting low-cost microcontrollers, where every byte of RAM counts. Built on a modified RISC-V Ibex core, CHERIoT adds fine-grained compartmentalization and a temporal revocation strategy designed to sharply cut its cost, via a background sweeping mechanism paired with a load barrier; the real-world cost depends on the usage pattern and load. The whole stack (RTL core, RTOS, toolchain) was open-sourced in 2023, with the explicit goal of protecting the often lightly-audited embedded code that drives connected devices.",
+                art_h3_6_3: "CheriBSD and RISC-V ports",
+                art_p15: "<strong>CheriBSD</strong> is a complete port of FreeBSD leveraging CHERI: kernel, userspace, and a large share of packages (via the CheriBSD Ports project) recompiled in purecap mode. It is the reference environment for experimenting with CHERI on the QEMU CHERI-RISC-V simulator without physical Morello hardware, which is what we use further below for our PoCs. CHERI-RISC-V ports also exist independently of CheriBSD, pursued by a working group within RISC-V International.",
+                art_h3_6_4: "Other players",
+                art_p16: "<strong>SCI Semiconductor</strong>, a spin-off directly stemming from Cambridge's work, develops commercial products based on CHERIoT for secure embedded systems. <strong>Google</strong> has publicly supported research into hardware memory safety as a complement to its own investments in Rust and memory-safe languages. The list of organizations involved in the DSbD technology access program (see next section) exceeds a hundred entities.",
+                art_h2_7: "08 - Alliances and sponsors",
+                art_h3_7: "Who funds CHERI, and why",
+                art_p17: "CHERI's trajectory, from a research paper to chips distributed across industry, is explained by a funding and institutional support chain that is unusually broad for a hardware architecture project.",
+                art_li_darpa: "<strong>DARPA (United States):</strong> initial funder via the CRASH and later SSITH programs (Cybersecurity and Assured Systems Engineering), which explicitly aimed to \"eliminate\" rather than \"mitigate\" classes of hardware vulnerabilities.",
+                art_li_uk: "<strong>UKRI / Digital Security by Design (DSbD):</strong> a UK program launched in 2019, funded with £70 million from government (Industrial Strategy Challenge Fund) and matched by at least £117 million in industry investment, roughly £187 million in total (<a href=\"https://www.ukri.org/what-we-do/browse-our-areas-of-investment-and-support/digital-security-by-design/\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">UKRI</a>). Its hardware component directly supported production of the Morello chips and boards as well as their distribution to a consortium of more than 150 organizations.",
+                art_li_arm: "<strong>Arm:</strong> the industry partner that designed and manufactured the Morello silicon, integrating CHERI into an experimental variant of its Armv8-A architecture.",
+                art_li_msft: "<strong>Microsoft:</strong> through Microsoft Research, sponsor and co-creator of CHERIoT, with open-source publication of the processor core, RTOS, and associated toolchain.",
+                art_li_google: "<strong>Google:</strong> financial and technical support for research into hardware memory safety, complementing its internal initiatives around memory-safe languages.",
+                art_li_academic: "<strong>University of Cambridge and SRI International:</strong> the two academic institutions behind the CTSRD project, which continue to drive foundational research and the formal specification of the CHERI model.",
+                art_li_alliance: "<strong>CHERI Alliance:</strong> an industry initiative dedicated to CHERI adoption, bringing together Google, Microsoft, Arm, Wind River, Siemens, Codasip, VeriSilicon, the universities of Cambridge and Edinburgh, SRI International, and UK government agencies (NCSC, DSTL) (<a href=\"https://cheri-alliance.org/\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">cheri-alliance.org</a>).",
+                art_p18: "This alliance blends public defense research funding (DARPA), sovereign industrial investment (UKRI), and adoption by top-tier commercial players (Arm, Microsoft, Google). It is this triptych, rare in the world of hardware architecture, that explains why CHERI has moved beyond the stage of an academic paper.",
+                art_h2_8: "09 - Setting up the test environment",
+                art_h3_8: "Reproducing the PoCs without Morello hardware",
+                art_p19: "No physical Morello board is needed to experiment: the <code>cheribuild</code> project automates building a complete CheriBSD riscv64-purecap environment, run under QEMU with CHERI support. This is the environment used as the basis for the PoCs in the following sections.",
+                art_env_label: "// THIS ARTICLE'S REAL ENVIRONMENT",
+                art_env_intro: "The PoCs in this article (the three compilation variants of PoC #1, and PoC #2) are not illustrative: they were actually compiled and run for this publication, on the following environment, built entirely from source.",
+                art_env_1: "llvm-project (CHERI-Clang toolchain): commit <code>7e122876ee</code>",
+                art_env_2: "CheriBSD: FreeBSD 15.0-CURRENT, build <code>main-88f39900c329-dirty</code>, kernel <code>CHERI-PURECAP-QEMU</code>",
+                art_env_3: "QEMU CHERI (CHERI-Alliance/qemu fork): version 7.1.0, commit <code>fed6e523</code>",
+                art_env_4: "Target: riscv64-purecap, capability revocation (CHERI_CAPREVOKE) compiled into the kernel but not triggered automatically by the default allocator",
+                art_h2_9: "10 - PoC #1: Spatial safety in action",
+                art_h3_9: "A trivial buffer overflow, two radically different outcomes",
+                art_p20: "The following code contains a classic stack overflow: no length check before copying into a fixed buffer. Let's compile it for three targets: a standard RISC-V architecture without CHERI, a CHERI architecture in hybrid ABI (the hardware is available but pointers stay classic by default), and purecap mode, then compare the three real runs.",
+                art_p21: "The raw output alone already illustrates the difference. Here is the kernel-side confirmation, captured via <code>dmesg</code> on a CheriBSD 15.0-CURRENT actually compiled and booted under QEMU CHERI for this article (see the environment box above for exact versions):",
+                art_p22: "The key point isn't just an assertion: disassembled with <code>llvm-objdump</code>, the real prologue of <code>vuln()</code> in purecap contains the instruction <code>csetbounds ca0, ca0, 16</code> (address <code>0x1952</code> in our binary), which restricts the stack capability to exactly the real size of <code>buf</code> (16 bytes, not one more). The 17th byte written by <code>strcpy</code> therefore targets an address <em>outside the authority</em> of that capability, hence the immediate SIGPROT. More surprising, and more instructive: the <em>hybrid</em> binary (CHERI hardware present, classic-pointer ABI) crashes exactly like the non-CHERI one, signal 11 in both cases. In this specific PoC, the buffer is handled through classic pointers and hybrid-ABI compilation provides no protection against this particular overflow; that does not mean all hybrid code lacks every CHERI mechanism, only that nothing automatically protects code that doesn't explicitly use capabilities. Unlike a canary, which at least detects the corruption at <code>ret</code> time, the faulting write here isn't blocked by any bounds check at the moment it happens.",
+                art_h2_10: "11 - PoC #2: Pointer forgery",
+                art_h3_10: "When a perfect address leak is no longer enough",
+                art_p23: "The entire mechanics of JOP and COOP, which we detailed in previous articles, rests on the same premise: an information leak (format string, heap leak, side-channel) delivers an exact numeric address, which the attacker then reinjects as a pointer to redirect control flow. Let's test that premise on CHERI purecap.",
+                art_p24: "The numeric address is correct, perfectly exact, identical to the one that would have been enough on a classic architecture. Yet it is useless: the tag bit, absent from conventional addressable memory, can only be set by a legitimate CHERI instruction operating on an already-valid parent capability. This is exactly the <strong>provenance validity</strong> guarantee at work. An important nuance for the next section: this result holds for code compiled in <em>purecap</em> mode. <em>Hybrid</em> code, which deliberately mixes classic pointers and capabilities to ease gradual migration, can reintroduce a window of ambient authority if the port is not audited rigorously. More broadly, CHERI complicates or blocks certain steps of JOP/COOP chains when they require forging or widening a capability, but real-world exploitability still depends on the capabilities already legitimately accessible, hybrid transitions, and other available primitives: this is not a total, automatic shutdown of the mechanism.",
+                art_h2_11: "12 - Real limits and blind spots",
+                art_h3_11: "What CHERI does not solve",
+                art_p25: "Presenting CHERI without its limits would be dishonest. Here are the documented blind spots, acknowledged by the field's own researchers.",
+                art_li_gap_temporal: "<strong>The temporal safety gap:</strong> without an active revocation mechanism (Cornucopia on CheriBSD, CHERIoT's cost-reduced revocation strategy via a load barrier), a capability pointing to a freed object remains usable. We verified this directly: on our purecap CheriBSD, with revocation compiled into the kernel but not triggered by the default allocator, a capability's tag stays at 1 after <code>free()</code>. Large-scale revocation remains an active research burden, with a non-negligible runtime cost depending on the implementation.",
+                art_li_logic: "<strong>Application logic bugs:</strong> CHERI protects memory objects, not business logic. A missing access control check, a race condition / TOCTOU, or an integer overflow that skews a business calculation all remain perfectly invisible to CHERI, as long as the underlying memory accesses stay within the bounds and permissions granted.",
+                art_li_hybrid: "<strong>Legacy code in hybrid mode:</strong> CHERI offers a hybrid ABI allowing classic pointers and capabilities to be mixed for incremental migration. Any code that stays in legacy non-purecap mode is unprotected, and the purecap/hybrid boundaries can become points of confusion if not audited.",
+                art_li_sidechannel: "<strong>Side channels:</strong> CHERI does not mitigate Spectre-class speculative execution attacks, nor timing or cache channels. A failing capability check can itself have exploitable microarchitectural side effects.",
+                art_li_tcb: "<strong>Trusted computing base (TCB):</strong> the guarantees rely on a correct capability-aware compiler and on the kernel that distributes root capabilities at boot and during system calls. A bug in this trusted base compromises the entire structure built on top of it.",
+                art_li_dma: "<strong>Non-CPU actors:</strong> DMA-capable peripherals, accelerators, or a core operating in non-CHERI mode can still write to raw memory without going through a capability check, unless the entire SoC (IOMMU included) is itself designed to be CHERI-aware, which remains rare outside dedicated prototypes.",
+                art_li_cost: "<strong>Adoption cost:</strong> doubled pointer size, tagged memory requiring an adapted controller, recompilation of the entire software stack. This cost is what explains why CHERI remains, to this day, at the prototype stage (Morello) and niche embedded silicon (CHERIoT) rather than mainstream CPUs.",
+                art_p26: "CHERI is not the end of memory safety, it is a change of starting line. It shuts down entire classes of spatial vulnerabilities at the hardware level, but shifts the difficulty toward temporal safety, ecosystem adoption, and trust in the software base that still sits above the hardware.",
+                art_h2_q: "13 - Open questions and debates",
+                art_h3_q: "What the research debate hasn't settled yet",
+                art_p_q_intro: "Beyond the limits already documented in section 12, some questions remain actively debated within the research community and industry, without a definitive answer to date.",
+                art_h3_q1: "Unresolved technical questions",
+                art_li_q_temporal: "<strong>What runtime cost for generalized revocation?</strong> Cornucopia on CheriBSD and CHERIoT's load barrier prove that temporal safety is feasible, but their cost at the scale of real workloads (not just academic benchmarks) remains an open question.",
+                art_li_q_sidechannel: "<strong>Does CHERI introduce new speculative gadgets?</strong> The extension never claimed to cover Spectre-class attacks, but whether the capability-check mechanism itself creates new microarchitectural side channels is the subject of ongoing research.",
+                art_li_q_hybrid_window: "<strong>How long can the hybrid transition period last?</strong> Hybrid mode eases incremental migration, but the longer it persists in a codebase, the more the purecap/hybrid boundaries become potential points of confusion. No one has a definitive answer on how long this phase can safely last.",
+                art_h3_q2: "Adoption and economic questions",
+                art_li_q_migration: "<strong>Who absorbs the migration cost?</strong> Recompiling massive C/C++ codebases (kernels, browsers) in purecap is a non-trivial effort, as is the doubled pointer size and the need for compatible tagged memory.",
+                art_li_q_silicon: "<strong>Will CHERI ever reach mainstream silicon?</strong> Morello officially remains a research vehicle: no commitment to commercial production has been announced by Arm to date.",
+                art_li_q_standard: "<strong>When will RISC-V standardization land?</strong> The CHERI-RISC-V working group is progressing within RISC-V International, but final ratification and its compatibility with competing extensions are not yet settled.",
+                art_h3_q3: "Deeper critiques",
+                art_li_q_falsesense: "<strong>The risk of a false sense of security:</strong> some researchers point out that hardware-enforced spatial safety could divert attention from other vulnerability classes (application logic, side-channels) that remain fully exploitable.",
+                art_li_q_tcb_debate: "<strong>Trust shifted rather than eliminated:</strong> CHERI's guarantees ultimately rest on a correct compiler and kernel. The debate centers on how hard it actually is to audit this reduced trusted base, compared to the old model where everything was suspect by default.",
+                art_li_q_rust: "<strong>CHERI versus memory-safe languages:</strong> is the engineering effort behind CHERI (new silicon, new toolchain, massive migration) better invested than progressively rewriting in Rust for new code? The dominant view is that the two approaches are complementary rather than competing, CHERI for irreducible legacy C, Rust for new code, but this is not a universal consensus.",
+                art_h2_12: "14 - The future",
+                art_h3_12: "Standardization, production silicon, and open questions",
+                art_p27: "Two parallel trajectories shape CHERI's future. On the hardware side, a working group within <strong>RISC-V International</strong> is progressing on standardizing an official CHERI extension for the RISC-V ISA (<a href=\"https://riscv-europe.org/summit/2025/media/proceedings/2025-05-14-RISC-V-Summit-Europe-P3.2.03-KURD-abstract.pdf\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">RISC-V Summit Europe, 2025</a>): an active working group, not yet a ratified specification. Commercial development boards already exist, such as SONATA (lowRISC), and silicon has been announced around the ICENI family based on CHERIoT, which would open the door to adoption by multiple silicon vendors rather than a single one. On the Arm side, Morello remains officially designated as a research vehicle: no commitment to commercial production has been announced, but the lessons learned from the program continue to feed discussions within Arm about the future of its architecture (statuses verified as of September 2026, subject to change).",
+                art_p28: "Several questions remain actively studied by the research community: scaling temporal revocation without noticeable performance degradation, the maturity of compilers and the purecap toolchain for massive codebases (browsers, kernels), managing ABI fragmentation between hybrid and purecap code during a potentially long transition period, and finally aligning economic incentives, namely who absorbs the cost of migrating an existing codebase to CHERI. This last point is increasingly being pushed by regulatory pressure: the memory-safety roadmaps published by several US government agencies, as well as the European Cyber Resilience Act, are gradually shifting this question from purely technical ground toward compliance.",
+                art_h2_13: "15 - References"
+            }
+        };
+    </script>
+    <script src="../static/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Guide technique : construire CheriBSD et QEMU CHERI depuis les sources, corriger les erreurs de compilation réelles, démarrer un système purecap et exécuter 5 PoCs capability-aware.">
+    <meta name="keywords" content="CheriBSD, QEMU CHERI, cheribuild, CHERI-Clang, LLVM, RISC-V, purecap, capability, build from source, hardware security">
+    <meta property="og:title" content="CheriBSD & QEMU CHERI : Guide Technique Complet | BUG|PWN">
+    <meta property="og:description" content="Guide technique : construire CheriBSD et QEMU CHERI depuis les sources, corriger les erreurs de compilation réelles, démarrer un système purecap et exécuter 5 PoCs capability-aware.">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://bugpwn.com/blog/cheribsd-qemu.html">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CheriBSD & QEMU CHERI : Guide Technique Complet | BUG|PWN">
+    <meta name="twitter:description" content="Guide technique : construire CheriBSD et QEMU CHERI depuis les sources, corriger les erreurs de compilation réelles, démarrer un système purecap et exécuter 5 PoCs capability-aware.">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/blog/cheribsd-qemu.html">
+    <title>CheriBSD & QEMU CHERI : Guide Technique Complet | BUG|PWN</title>
+    <link rel="icon" type="image/png" href="../static/bugpwn.png">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "CheriBSD & QEMU CHERI : Guide Technique Complet",
+        "description": "Guide technique : construire CheriBSD et QEMU CHERI depuis les sources, corriger les erreurs de compilation réelles, démarrer un système purecap et exécuter 5 PoCs capability-aware.",
+        "image": "https://bugpwn.com/static/bugpwn@1x.png",
+        "author": { "@type": "Organization", "name": "BUG|PWN", "url": "https://bugpwn.com/" },
+        "publisher": { "@type": "Organization", "name": "BUG|PWN", "logo": { "@type": "ImageObject", "url": "https://bugpwn.com/static/bugpwn.png" } },
+        "mainEntityOfPage": { "@type": "WebPage", "@id": "https://bugpwn.com/blog/cheribsd-qemu.html" }
+    }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+
+        .article-body h2 { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.05em; margin-top: 5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #000; }
+        .article-body h3 { font-size: 1.125rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.02em; margin-top: 3rem; margin-bottom: 1.5rem; }
+        .article-body p { color: #4b5563; font-weight: 300; line-height: 1.8; margin-bottom: 1.5rem; font-size: 1.125rem; }
+        .article-body strong { color: #000; font-weight: 700; }
+        .article-body ul { margin-bottom: 2rem; color: #4b5563; font-weight: 300; font-size: 1.125rem; }
+        .article-body li { margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        .article-body li::before { content: '>'; position: absolute; left: 0; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 0.8rem; color: #000; top: 0.2rem; }
+
+        .article-body code { font-family: 'JetBrains Mono', monospace; background-color: #f3f4f6; color: #000; padding: 0.1rem 0.4rem; font-size: 0.85em; font-weight: 600; border: 1px solid #e5e7eb; }
+
+        .tbl { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 2rem 0; }
+        .tbl th { text-align: left; padding: 0.6rem 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; border-bottom: 2px solid #000; font-weight: 700; }
+        .tbl td { padding: 0.6rem 1rem; border-bottom: 1px solid #e5e7eb; color: #374151; line-height: 1.5; }
+        .tbl tr:last-child td { border-bottom: none; }
+        .bdg { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 3px; display: inline-block; }
+        .bdg.r { background: #fef2f2; color: #b91c1c; }
+        .bdg.g { background: #f0fdf4; color: #15803d; }
+        .bdg.b { background: #eff6ff; color: #1d4ed8; }
+        .bdg.a { background: #fffbeb; color: #b45309; }
+
+        .no-scrollbar::-webkit-scrollbar { height: 6px; }
+        .no-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .no-scrollbar::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="../index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="../index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+            <div class="hidden md:flex items-center gap-4">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">EN</button>
+                <a href="../contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">Nous contacter</a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="../index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="../research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="../blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="../events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="../contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">
+                    EN
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl mx-auto">
+            <a href="../blog.html" class="inline-flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-black transition-colors mb-12 group" data-i18n="art_back">
+                <i class="fas fa-arrow-left group-hover:-translate-x-2 transition-transform"></i> Retour_Archives
+            </a>
+            <div class="flex flex-wrap gap-4 mb-8">
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-gray-50 text-black">Hardware Security</span>
+                <span class="border border-black px-3 py-1 text-[9px] font-black uppercase tracking-widest mono bg-black text-white">LAB</span>
+                <span class="border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-widest mono text-gray-500">25.SEP.2026</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[1.05] mb-8" data-i18n="art_title">
+                CheriBSD &amp;<br>
+                <span class="text-gray-300">QEMU CHERI</span><br>
+                Guide Technique.
+            </h1>
+            <p class="text-xl text-gray-500 max-w-2xl leading-relaxed font-light border-l-2 border-black pl-8 mb-16" data-i18n="art_subtitle">
+                Du code source au shell root. Construire la toolchain, CheriBSD, QEMU CHERI et le firmware, corriger les vraies erreurs de compilation rencontrées, démarrer un système purecap et exécuter cinq PoCs capability-aware, en complément de notre article sur l'architecture CHERI.
+            </p>
+            <div class="flex items-center gap-6 border-t border-gray-200 pt-8">
+                <div class="w-16 h-16 bg-black text-white flex items-center justify-center font-black text-2xl">R</div>
+                <div>
+                    <div class="text-sm font-black uppercase tracking-widest">Sadoc ADONON</div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-[0.2em] mono mt-1" data-i18n="art_author_role">Lead Vulnerability Researcher</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- TABLE DES MATIÈRES -->
+    <section class="max-w-4xl mx-auto px-6 py-16">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-8">
+            <h2 style="font-size:1.125rem;font-weight:700;text-transform:uppercase;letter-spacing:-0.02em;margin-bottom:1.5rem;border:none;padding:0;margin-top:0;" data-i18n="toc_title">Table des matières</h2>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;font-size:0.95rem;">
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_1"><strong>01.</strong> Pourquoi cet article</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_2"><strong>02.</strong> Vue d'ensemble de cheribuild</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_3"><strong>03.</strong> Construire la toolchain CHERI-Clang</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_4"><strong>04.</strong> Construire CheriBSD</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_5"><strong>05.</strong> Pièges de compilation réels et correctifs</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_6"><strong>06.</strong> Générer l'image disque</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_7"><strong>07.</strong> QEMU CHERI et son firmware</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_8"><strong>08.</strong> Démarrer CheriBSD sous QEMU</div>
+                </div>
+                <div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_9"><strong>09.</strong> Environnement de travail (SSH)</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_10"><strong>10.</strong> PoC #1 : dérivation et inspection</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_11"><strong>11.</strong> PoC #2 : réduction de permissions</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_12"><strong>12.</strong> PoC #3 : bornes étroites vs larges</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_13"><strong>13.</strong> PoC #4 : la frontière hybride</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_14"><strong>14.</strong> PoC #5 : use-after-free sans révocation</div>
+                    <div style="margin-bottom:0.75rem;" data-i18n="toc_15"><strong>15.</strong> Limites, coût réel et références</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="max-w-3xl mx-auto px-6 pb-32 article-body">
+
+        <h2 data-i18n="art_h2_1">01 - Pourquoi cet article</h2>
+        <h3 data-i18n="art_h3_1">Le versant outillage de CHERI, documenté pas à pas</h3>
+
+        <p data-i18n="art_p1">
+            Notre article <a href="cheri.html" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">"Sécurité Matérielle : CHERI Capabilities en Profondeur"</a> couvre l'architecture, le modèle de sécurité et deux PoCs, exécutés réellement sur un système purecap. Ce second article couvre l'autre moitié du travail, rarement documentée en détail ailleurs : comment on construit réellement, depuis les sources, tout ce qui est nécessaire pour faire tourner CHERI sur sa propre machine, sans matériel Morello ni carte de développement physique.
+        </p>
+        <p data-i18n="art_p2">
+            Chaque commande, chaque erreur de compilation rencontrée et chaque correctif présenté ici ont été réellement exécutés pour produire ce document, sur une machine Kali Linux ordinaire (4 cœurs, aucun matériel CHERI), sans accès à du silicium CHERI physique. Rien n'est reconstitué après coup.
+        </p>
+
+        <div class="bg-gray-50 border-l-4 border-black p-8 my-12">
+            <p class="text-xl !text-black italic font-medium !mb-0" data-i18n="art_quote1">
+                "Construire son propre CHERI depuis zéro n'est pas qu'un exercice académique. C'est le seul moyen de vérifier, ligne de commande par ligne de commande, que les garanties annoncées se comportent vraiment comme documenté, et de découvrir les angles morts que la documentation officielle ne mentionne pas."
+            </p>
+        </div>
+
+        <p data-i18n="art_p3">
+            Ce guide suit l'ordre réel des opérations : la toolchain, le système cible, l'émulateur, le firmware, le démarrage, puis cinq PoCs supplémentaires qui approfondissent les mécanismes déjà présentés dans le premier article (dérivation, permissions, bornes, frontière hybride, révocation).
+        </p>
+
+        <h2 data-i18n="art_h2_2">02 - Vue d'ensemble de cheribuild</h2>
+        <h3 data-i18n="art_h3_2">L'outil qui orchestre tout</h3>
+
+        <p data-i18n="art_p4">
+            <code>cheribuild</code> est le projet officiel de build du groupe CTSRD-CHERI (Cambridge / SRI International). Écrit en Python, il orchestre des dizaines de cibles interdépendantes (toolchain, système cible, émulateur, bibliothèques, firmware) identifiées par un nom explicite, par exemple <code>llvm-native</code>, <code>cheribsd-riscv64-purecap</code>, <code>qemu</code> ou <code>disk-image-riscv64-purecap</code>. Chaque cible connaît ses propres dépendances et sait, en théorie, les construire automatiquement.
+        </p>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_flag_d"><strong><code>-d</code> :</strong> construit également toutes les dépendances manquantes de la cible demandée, pas seulement la cible elle-même.</li>
+            <li data-i18n="art_li_flag_skip"><strong><code>--skip-update</code> :</strong> n'essaie pas de mettre à jour (git fetch) les dépôts déjà clonés avant de builder. Utile quand le réseau est instable, ce qui a été notre cas à plusieurs reprises.</li>
+            <li data-i18n="art_li_flag_list"><strong><code>--list-targets</code> :</strong> liste toutes les cibles disponibles, plusieurs centaines une fois les variantes d'architecture comptées.</li>
+            <li data-i18n="art_li_flag_src"><strong>Emplacements par défaut :</strong> sources dans <code>~/cheri/&lt;projet&gt;</code>, artefacts de build intermédiaires dans <code>~/cheri/build/&lt;cible&gt;-build</code>, résultat installé dans <code>~/cheri/output/</code> (toolchain dans <code>output/sdk</code>, système de fichiers cible dans <code>output/rootfs-*</code>).</li>
+        </ul>
+
+        <h2 data-i18n="art_h2_3">03 - Construire la toolchain CHERI-Clang</h2>
+        <h3 data-i18n="art_h3_3">LLVM/Clang recompilé pour comprendre les capabilities</h3>
+
+        <p data-i18n="art_p5">
+            La première brique est un LLVM/Clang patché par le projet CTSRD-CHERI, capable de comprendre l'extension CHERI-RISC-V (les instructions <code>csetbounds</code>, <code>cincoffset</code>, etc.) et de produire des binaires en ABI hybride ou purecap. C'est une compilation complète de LLVM depuis les sources, pas un simple téléchargement de paquet.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">build_llvm.sh</span>
+        </div>
+        <button onclick="copyToClipboard('code-llvm', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-llvm">
+$ git clone https://github.com/CTSRD-CHERI/cheribuild
+$ <span class="text-blue-400">cd</span> cheribuild
+$ ./cheribuild.py --skip-update llvm-native
+
+<span class="text-gray-500"># Compilation ninja réelle : 3912 unités, ~11 minutes si le cache</span>
+<span class="text-gray-500"># intermédiaire existe déjà, ~75 minutes pour une reconstruction</span>
+<span class="text-gray-500"># complète depuis zéro (voir section 06 sur ce piège précis).</span>
+<span class="text-purple-400">Built for target 'llvm-native' in 4467.46 seconds</span>  <span class="text-gray-500"># ~74.5 min, reconstruction complète</span></pre>
+</div>
+
+        <h2 data-i18n="art_h2_4">04 - Construire CheriBSD</h2>
+        <h3 data-i18n="art_h3_4">buildworld, buildkernel, installworld : le vrai système d'exploitation</h3>
+
+        <p data-i18n="art_p6">
+            La cible <code>cheribsd-riscv64-purecap</code> compile un noyau et un userland FreeBSD complets en mode purecap, avec la toolchain fraîchement construite. C'est l'étape la plus lourde : compilation de tout <code>buildworld</code> (bibliothèques, utilitaires), puis <code>buildkernel</code> (le noyau, avec la configuration <code>CHERI-PURECAP-QEMU</code>), puis installation des deux dans un rootfs de sortie.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">build_cheribsd.sh</span>
+        </div>
+        <button onclick="copyToClipboard('code-cheribsd', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-cheribsd">
+$ ./cheribuild.py --skip-update -d cheribsd-riscv64-purecap
+
+<span class="text-gray-500"># Une fois les correctifs de la section 05 appliqués :</span>
+<span class="text-purple-400">Built for target 'cheribsd-riscv64-purecap' in 4018.36 seconds</span>  <span class="text-gray-500"># ~67 min</span>
+
+<span class="text-gray-500"># Résultat : noyau + userland installés dans</span>
+<span class="text-gray-500">~/cheri/output/rootfs-riscv64-purecap/</span></pre>
+</div>
+
+        <p data-i18n="art_p7">
+            Sur cette VM (4 cœurs, réseau parfois instable), la première tentative <em>réussie</em> a pris environ 67 minutes. Avant d'y arriver, plusieurs échecs de compilation bien réels ont dû être corrigés, ce qui fait l'objet de la section suivante.
+        </p>
+
+        <h2 data-i18n="art_h2_5">05 - Pièges de compilation réels et correctifs</h2>
+        <h3 data-i18n="art_h3_5">Ce que la documentation officielle ne dit pas toujours</h3>
+
+        <p data-i18n="art_p8">
+            Construire CheriBSD et QEMU CHERI depuis les sources, sur un système Kali à jour avec un Clang système récent (19.1.7), a déclenché plusieurs échecs de compilation réels que nous détaillons ici, avec leur correctif exact, pour faire gagner du temps à quiconque reproduit ce travail.
+        </p>
+
+        <h3 data-i18n="art_h3_5_1">Le compilateur hôte trop strict pour du vieux code vendored</h3>
+        <p data-i18n="art_p9">
+            Plusieurs outils de bootstrap FreeBSD (<code>getopt.c</code>, <code>getopt_long.c</code>, le <code>mandoc</code> vendored, plusieurs fichiers de <code>rpcgen</code>) échouaient tous avec la même erreur : une assignation d'un <code>const char *</code> vers un <code>char *</code>, promue en erreur par un flag ajouté explicitement pour ces cibles hôte, indépendamment du flag général <code>NO_WERROR</code>.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-bug text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">erreur_reelle.log</span>
+        </div>
+        <button onclick="copyToClipboard('code-err1', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-err1">
+lib/libc/stdlib/getopt_long.c:494:15: <span class="text-purple-400">error: assigning to 'char *' from 'const char *'</span>
+    <span class="text-purple-400">discards qualifiers [-Werror,-Wincompatible-pointer-types-discards-qualifiers]</span>
+            (oli = strchr(options, optchar)) == NULL) {
+
+<span class="text-gray-500"># Trouvé dans getopt.c, getopt_long.c, contrib/mandoc/mdoc.c,</span>
+<span class="text-gray-500"># usr.bin/rpcgen/rpc_main.c et rpc_svcout.c -- 6 occurrences distinctes.</span>
+<span class="text-gray-500"># Source du flag, unique dans tout l'arbre :</span>
+$ grep -rl <span class="text-green-400">'incompatible-pointer-types-discards-qualifiers'</span> tools/ share/mk/
+tools/build/mk/Makefile.boot</pre>
+</div>
+
+        <p data-i18n="art_p10">
+            Patcher chaque site d'appel un par un (cast explicite en <code>(char *)</code>) fonctionne mais ne passe pas à l'échelle : plus on avance dans le build, plus de nouveaux fichiers vendored déclenchent la même erreur. Le correctif efficace est centralisé, dans <code>tools/build/mk/Makefile.boot</code>, le seul endroit de tout l'arbre source où ce flag est ajouté pour les outils de bootstrap :
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-wrench text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">correctif_centralise.diff</span>
+        </div>
+        <button onclick="copyToClipboard('code-fix1', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-fix1">
+<span class="text-gray-500"># tools/build/mk/Makefile.boot, juste apres la ligne qui pose problème :</span>
+ CWARNFLAGS.clang+=-Werror=incompatible-pointer-types-discards-qualifiers
+<span class="text-green-400">+CWARNFLAGS.clang+=-Wno-error=incompatible-pointer-types-discards-qualifiers</span>
+
+<span class="text-gray-500"># Clang applique les drapeaux -W de gauche à droite : le dernier</span>
+<span class="text-gray-500"># l'emporte sur le même diagnostic. Une seule ligne, tout l'arbre</span>
+<span class="text-gray-500"># bootstrap-tools recompile sans erreur.</span></pre>
+</div>
+
+        <p data-i18n="art_p11">
+            Ce même flag, ajouté séparément par <code>cheribuild</code> lui-même pour la compilation de QEMU (dans <code>pycheribuild/projects/build_qemu.py</code>), a causé une erreur identique dans <code>block/curl.c</code> plus tard, avec un flag encore plus large (<code>-Werror=incompatible-pointer-types</code>, sans le suffixe) qui réactivait le problème même après un premier correctif. Les deux occurrences ont dû être retirées du code Python de <code>cheribuild</code> lui-même.
+        </p>
+
+        <h3 data-i18n="art_h3_5_2">Dépendances hôte manquantes</h3>
+        <p data-i18n="art_p12">
+            Une checklist de paquets Kali/Debian à installer avant de commencer, découverte au fil des échecs réels :
+        </p>
+        <ul class="space-y-4">
+            <li data-i18n="art_li_dep_libtool"><strong><code>libtool</code></strong> (fournit <code>libtoolize</code>) : requis par la configuration de QEMU, absent par défaut.</li>
+            <li data-i18n="art_li_dep_pixman"><strong><code>libpixman-1-dev</code></strong>, <code>libglib2.0-dev</code>, <code>libslirp-dev</code>, <code>libcap-ng-dev</code>, <code>libattr1-dev</code> : dépendances de build de QEMU, détectées une par une par <code>pkg-config</code> lors de la configuration.</li>
+            <li data-i18n="art_li_dep_ninja"><strong><code>ninja-build</code></strong> : requis par la fois LLVM et QEMU (Meson).</li>
+        </ul>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// LECON_APPRISE</div>
+            <p class="!text-gray-300 !text-sm !mb-0 leading-relaxed" data-i18n="art_p13">
+                Aucune de ces erreurs n'est un bug dans CHERI lui-même. Ce sont des frictions banales entre du code vendored ancien et un compilateur hôte plus strict que ce que les mainteneurs upstream utilisent pour leurs propres tests de non-régression. Elles disparaissent une fois identifiées, mais sans ce travail de diagnostic, un builder frais échoue silencieusement plusieurs fois avant d'aboutir.
+            </p>
+        </div>
+
+        <h2 data-i18n="art_h2_6">06 - Générer l'image disque</h2>
+        <h3 data-i18n="art_h3_6">makefs, mkimg, et une vraie crise d'espace disque</h3>
+
+        <p data-i18n="art_p14">
+            Une fois <code>installworld</code>/<code>installkernel</code> terminés, la cible <code>disk-image-riscv64-purecap</code> assemble le rootfs installé en une image disque bootable : une partition EFI (via <code>makefs -t msdos</code>), une partition racine UFS (<code>makefs -t ffs</code>), puis une image GPT combinant les deux plus un swap (<code>mkimg</code>).
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">disk_image.log</span>
+        </div>
+        <button onclick="copyToClipboard('code-img', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-img">
+$ ./cheribuild.py --skip-update disk-image-riscv64-purecap
+
+Calculated size of root.img: 7251951616 bytes, 228580 inodes
+Image root.img complete
+mkimg -s gpt -p efi:=efi.img -p freebsd-ufs:=root.img -p freebsd-swap/swap::2G
+
+<span class="text-purple-400">Built for target 'disk-image-riscv64-purecap' in 56.47 seconds</span>
+
+$ qemu-img info cheribsd-riscv64-purecap.img
+virtual size: 8.76 GiB (9401566720 bytes)
+disk size: 3.92 GiB    <span class="text-gray-500"># fichier sparse, espace réel occupé</span></pre>
+</div>
+
+        <p data-i18n="art_p15">
+            Un vrai piège rencontré ici : l'espace disque de la VM est tombé à <strong>98 Mo libres (100% utilisé)</strong> juste avant la génération de l'image, faisant échouer <code>mkimg</code> avec <code>No space left on device</code>. Notre première tentative de libérer de l'espace a supprimé tout le dossier de build intermédiaire de CheriBSD, y compris le sous-dossier <code>tmp/legacy/bin/</code> qui contient <code>makefs</code> lui-même, un outil de bootstrap compilé pendant <code>buildworld</code>, jamais copié dans <code>output/</code>. Résultat : relancer <code>-d</code> a redéclenché une reconstruction complète de CheriBSD.
+        </p>
+        <p data-i18n="art_p16">
+            Le bon réflexe : ne supprimer que les sous-arbres d'objets compilés (<code>sys/</code>, <code>lib/</code>, <code>obj-lib64/</code>, etc.), jamais le dossier <code>tmp/</code> qui contient les outils de bootstrap déjà installés. Cette suppression sélective a libéré 18 Go sans rien casser.
+        </p>
+
+        <h2 data-i18n="art_h2_7">07 - QEMU CHERI et son firmware</h2>
+        <h3 data-i18n="art_h3_7">Un fork dédié, pas le QEMU système</h3>
+
+        <p data-i18n="art_p17">
+            Le <code>qemu-system-riscv64</code> standard, déjà présent sur Kali, ne comprend rien à CHERI : pas de mémoire taguée, pas de registres capability, pas d'instructions CHERI, pas d'exceptions matérielles associées. Un binaire purecap y plante silencieusement ou s'exécute sans aucune des protections qu'on cherche justement à observer.
+        </p>
+        <p data-i18n="art_p18">
+            <code>cheribuild</code> construit donc son propre fork, <a href="https://github.com/CHERI-Alliance/qemu" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">CHERI-Alliance/qemu</a>, qui ajoute un modèle de CPU complet pour l'extension : mémoire taguée, registres capability, toutes les instructions CHERI, et les exceptions matérielles (SIGPROT, etc.) documentées dans notre premier article.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">build_qemu.log</span>
+        </div>
+        <button onclick="copyToClipboard('code-qemu', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-qemu">
+$ ./cheribuild.py --skip-update run-riscv64-purecap
+Would you like to install the dependency (qemu) using cheribuild? y/[N] y
+
+<span class="text-gray-500"># Cibles compilées : arm, aarch64, morello, mips64, mips64cheri128,</span>
+<span class="text-gray-500"># riscv64, riscv64xcheri, riscv64cheristd, riscv32(...), x86_64</span>
+<span class="text-purple-400">Built for target 'qemu' in 668.44 seconds</span>  <span class="text-gray-500"># ~11 min, après le correctif -Werror</span>
+
+$ ~/cheri/output/sdk/bin/qemu-system-riscv64xcheri --version
+QEMU emulator version 7.1.0
+Built with instruction logging enabled</pre>
+</div>
+
+        <h3 data-i18n="art_h3_7_2">Le firmware RISC-V (bbl)</h3>
+        <p data-i18n="art_p19">
+            QEMU CHERI a encore besoin d'un firmware de démarrage RISC-V compatible capabilities pour charger le noyau : <code>bbl-baremetal-riscv64-purecap</code> (Berkeley Boot Loader). Absent lui aussi au premier lancement, mais rapide à construire, 9,45 secondes dans notre cas, une fois la toolchain déjà prête.
+        </p>
+
+        <h2 data-i18n="art_h2_8">08 - Démarrer CheriBSD sous QEMU</h2>
+        <h3 data-i18n="art_h3_8">Du premier message noyau au prompt root</h3>
+
+        <p data-i18n="art_p20">
+            Lancée dans une session <code>tmux</code> détachée pour garder un accès interactif à la console série malgré la déconnexion SSH, la machine démarre avec de vrais messages de noyau CheriBSD.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-microchip text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">console_boot.log</span>
+        </div>
+        <button onclick="copyToClipboard('code-boot', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-boot">
+sbi0: &lt;RISC-V Supervisor Binary Interface&gt;
+intc0: &lt;RISC-V Local Interrupt Controller&gt; on ofwbus0
+plic0: &lt;RISC-V PLIC&gt; mem 0xc000000-0xc5fffff irq 10,11 on simplebus1
+Trying to mount root from ufs:/dev/ufs/root []...
+vtnet0: link state changed to UP
+Starting Network: lo0 vtnet0.
+Starting sshd.
+
+CheriBSD/riscv (cheribsd-riscv64-purecap) (ttyu0)
+
+<span class="text-purple-400">login:</span> root
+WARNING: INVARIANTS kernel option defined, expect reduced performance
+WARNING: WITNESS kernel option defined, expect reduced performance
+<span class="text-yellow-400">WARNING: capability revocation enabled by default, this may affect performance</span>
+root@cheribsd-riscv64-purecap:~ # sysctl hw.machine_arch
+hw.machine_arch: <span class="text-purple-400">riscv64c</span>   <span class="text-gray-500"># le "c" final signale le support CHERI</span></pre>
+</div>
+
+        <p data-i18n="art_p21">
+            Note pour la section 14 : le message d'accueil signale explicitement que la révocation de capabilities est compilée dans ce noyau (<code>CHERI_CAPREVOKE</code>), ce qui pourrait laisser penser que le fossé de sécurité temporelle est comblé par défaut. Le PoC #5 vérifie directement si c'est le cas.
+        </p>
+
+        <h2 data-i18n="art_h2_9">09 - Environnement de travail (SSH)</h2>
+        <h3 data-i18n="art_h3_9">Accès SSH fiable plutôt que console série</h3>
+
+        <p data-i18n="art_p22">
+            <code>cheribuild</code> configure par défaut un redirecteur de port (<code>hostfwd=tcp:127.0.0.1:9999-:22</code>) : le port 9999 de l'hôte Kali redirige vers le port 22 de l'invité CheriBSD. Après avoir fixé un mot de passe root via la console série, on installe une clé publique pour un accès SSH fiable, bien plus pratique que d'envoyer des touches une à une dans une session série.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">ssh_setup.sh</span>
+        </div>
+        <button onclick="copyToClipboard('code-ssh', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-ssh">
+<span class="text-gray-500"># Sur l'hote Kali, depuis la console serie (tmux) :</span>
+root@cheribsd-riscv64-purecap:~ # mkdir -p /root/.ssh
+root@cheribsd-riscv64-purecap:~ # echo ssh-ed25519 AAAA... kali@kali &gt;&gt; /root/.ssh/authorized_keys
+
+<span class="text-gray-500"># Depuis le shell Kali (le port 9999 est local a la VM) :</span>
+$ ssh -p 9999 root@localhost <span class="text-green-400">'uname -a'</span>
+FreeBSD cheribsd-riscv64-purecap 15.0-CURRENT FreeBSD 15.0-CURRENT #0 main-88f39900c329-dirty riscv
+
+$ scp -P 9999 poc.c root@localhost:/root/poc/   <span class="text-gray-500"># transfert de fichiers trivial</span></pre>
+</div>
+
+        <p data-i18n="art_p23">
+            À partir d'ici, le flux de travail pour chaque PoC est identique : compiler sur l'hôte Kali avec le cross-compiler purecap (<code>~/cheri/output/sdk/bin/clang -target riscv64-unknown-freebsd -march=rv64gcxcheri -mabi=l64pc128d --sysroot=~/cheri/output/rootfs-riscv64-purecap</code>), transférer le binaire via <code>scp</code>, puis l'exécuter réellement dans l'invité via SSH.
+        </p>
+
+        <h2 data-i18n="art_h2_10">10 - PoC #1 : dérivation et inspection de capability</h2>
+        <h3 data-i18n="art_h3_10">Voir les champs d'une capability, pas seulement les deviner</h3>
+
+        <p data-i18n="art_p24">
+            Premier des cinq PoCs supplémentaires : dériver une capability plus étroite depuis une capability large, et inspecter concrètement ses champs via les intrinsics CHERI (<code>cheriintrin.h</code>), plutôt que de les décrire abstraitement.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">01_derive_inspect.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc1', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc1">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdlib.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;cheriintrin.h&gt;</span>
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">void</span>) {
+    <span class="text-blue-400">char</span> *buf = <span class="text-white font-bold">malloc</span>(<span class="text-purple-400">64</span>);
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> cap = (<span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span>)buf;
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"capability initiale (malloc, 64 octets) :\n"</span>);
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  base   = 0x%lx\n"</span>, (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_base_get</span>(cap));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  length = %lu\n"</span>, (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_length_get</span>(cap));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  perms  = 0x%x\n"</span>, (<span class="text-blue-400">unsigned</span>)<span class="text-white font-bold">cheri_perms_get</span>(cap));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  tag    = %d\n"</span>, <span class="text-white font-bold">cheri_tag_get</span>(cap));
+
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> narrowed = <span class="text-white font-bold">cheri_bounds_set</span>(cap, <span class="text-purple-400">16</span>);
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"\napres cheri_bounds_set(cap, 16) :\n"</span>);
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  base   = 0x%lx\n"</span>, (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_base_get</span>(narrowed));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  length = %lu\n"</span>, (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_length_get</span>(narrowed));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"  tag    = %d\n"</span>, <span class="text-white font-bold">cheri_tag_get</span>(narrowed));
+
+    <span class="text-white font-bold">free</span>(buf);
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">./derive_inspect</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc1out', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc1out">
+root@cheribsd-riscv64-purecap:~ # ./derive_inspect
+capability initiale (malloc, 64 octets) :
+  base   = <span class="text-purple-400">0x40a0f000</span>
+  length = <span class="text-purple-400">64</span>
+  perms  = <span class="text-purple-400">0x6017d</span>
+  tag    = <span class="text-purple-400">1</span>
+
+apres cheri_bounds_set(cap, 16) :
+  base   = <span class="text-purple-400">0x40a0f000</span>   <span class="text-gray-500"># adresse inchangee</span>
+  length = <span class="text-purple-400">16</span>           <span class="text-gray-500"># bornes reellement retrecies</span>
+  tag    = <span class="text-purple-400">1</span>            <span class="text-gray-500"># toujours valide : derivation legitime</span></pre>
+</div>
+
+        <h2 data-i18n="art_h2_11">11 - PoC #2 : réduction de permissions</h2>
+        <h3 data-i18n="art_h3_11">La monotonicité en pratique</h3>
+
+        <p data-i18n="art_p25">
+            <code>CAndPerm</code> ne peut que retirer des permissions, jamais en ajouter. Ce PoC dérive une capability read-only depuis une capability read-write, puis tente une écriture à travers la version restreinte.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">02_perm_narrowing.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc2', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc2">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdlib.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;cheriintrin.h&gt;</span>
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">void</span>) {
+    setvbuf(stdout, <span class="text-purple-400">NULL</span>, _IONBF, <span class="text-purple-400">0</span>);
+    <span class="text-blue-400">char</span> *buf = <span class="text-white font-bold">malloc</span>(<span class="text-purple-400">32</span>);
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> cap = (<span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span>)buf;
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"permissions initiales : 0x%x\n"</span>, (<span class="text-blue-400">unsigned</span>)<span class="text-white font-bold">cheri_perms_get</span>(cap));
+
+    <span class="text-gray-500">/* Retrait legitime : capability restreinte a la lecture seule */</span>
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> readonly = <span class="text-white font-bold">cheri_perms_and</span>(cap, CHERI_PERM_LOAD);
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"apres CAndPerm (LOAD uniquement) : 0x%x\n"</span>, (<span class="text-blue-400">unsigned</span>)<span class="text-white font-bold">cheri_perms_get</span>(readonly));
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"tentative d'ecriture via la capability read-only...\n"</span>);
+    *(<span class="text-blue-400">volatile char</span> * <span class="text-yellow-400">__capability</span>)readonly = <span class="text-green-400">'A'</span>;   <span class="text-gray-500">/* CHERI fault attendu ici */</span>
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"jamais atteint\n"</span>);
+
+    <span class="text-white font-bold">free</span>(buf);
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">./perm_narrowing</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc2out', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc2out">
+root@cheribsd-riscv64-purecap:~ # ./perm_narrowing
+permissions initiales : <span class="text-purple-400">0x6017d</span>
+apres CAndPerm (LOAD uniquement) : <span class="text-purple-400">0x4</span>
+tentative d'ecriture via la capability read-only...
+<span class="text-purple-400">In-address space security exception (core dumped)</span>
+
+root@cheribsd-riscv64-purecap:~ # dmesg | tail -1
+pid 1586 (perm_narrowing), jid 0, uid 0: <span class="text-purple-400">exited on signal 34</span> (core dumped)</pre>
+</div>
+
+        <h2 data-i18n="art_h2_12">12 - PoC #3 : bornes étroites vs larges</h2>
+        <h3 data-i18n="art_h3_12">Deux capabilities, un seul objet mémoire</h3>
+
+        <p data-i18n="art_p26">
+            Une capability large couvrant les 64 octets alloués, et une capability dérivée restreinte à seulement 8 octets sur le même bloc mémoire : le même accès à l'offset 16 réussit via l'une et échoue via l'autre.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">03_bounds_narrow_vs_wide.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc3', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc3">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdlib.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;cheriintrin.h&gt;</span>
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">void</span>) {
+    setvbuf(stdout, <span class="text-purple-400">NULL</span>, _IONBF, <span class="text-purple-400">0</span>);
+    <span class="text-blue-400">char</span> *buf = <span class="text-white font-bold">malloc</span>(<span class="text-purple-400">64</span>);
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> wide = (<span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span>)buf;
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> narrow = <span class="text-white font-bold">cheri_bounds_set</span>(wide, <span class="text-purple-400">8</span>);
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"wide   : base=0x%lx length=%lu\n"</span>, (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_base_get</span>(wide), (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_length_get</span>(wide));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"narrow : base=0x%lx length=%lu\n"</span>, (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_base_get</span>(narrow), (<span class="text-blue-400">unsigned long</span>)<span class="text-white font-bold">cheri_length_get</span>(narrow));
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"acces a l'offset 16 via 'wide'... "</span>);
+    ((<span class="text-blue-400">volatile char</span> * <span class="text-yellow-400">__capability</span>)wide)[<span class="text-purple-400">16</span>] = <span class="text-green-400">'A'</span>;
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"OK\n"</span>);
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"acces a l'offset 16 via 'narrow' (hors de ses 8 octets d'autorite)...\n"</span>);
+    ((<span class="text-blue-400">volatile char</span> * <span class="text-yellow-400">__capability</span>)narrow)[<span class="text-purple-400">16</span>] = <span class="text-green-400">'A'</span>;   <span class="text-gray-500">/* CHERI fault attendu ici */</span>
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"jamais atteint\n"</span>);
+
+    <span class="text-white font-bold">free</span>(buf);
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">./bounds_narrow_vs_wide</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc3out', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc3out">
+root@cheribsd-riscv64-purecap:~ # ./bounds_narrow_vs_wide
+wide   : base=<span class="text-purple-400">0x40a0f000</span> length=<span class="text-purple-400">64</span>
+narrow : base=<span class="text-purple-400">0x40a0f000</span> length=<span class="text-purple-400">8</span>
+acces a l'offset 16 via 'wide'... <span class="text-purple-400">OK</span>
+acces a l'offset 16 via 'narrow' (hors de ses 8 octets d'autorite)...
+<span class="text-purple-400">In-address space security exception (core dumped)</span></pre>
+</div>
+
+        <h2 data-i18n="art_h2_13">13 - PoC #4 : la frontière hybride</h2>
+        <h3 data-i18n="art_h3_13">Un pointeur classique ne devient jamais une capability tout seul</h3>
+
+        <p data-i18n="art_p27">
+            Compilé en ABI hybride (<code>-mabi=lp64d</code>, pas purecap), ce code passe un pointeur classique à une fonction qui déborde sans aucune vérification de bornes. Cela recoupe directement une découverte faite dans notre premier article : le matériel CHERI disponible ne protège rien sans compilation purecap explicite.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">04_hybrid_boundary.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc4', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc4">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+
+<span class="text-gray-500">/* Fonction ordinaire qui recoit un pointeur hybride classique */</span>
+<span class="text-blue-400">void</span> <span class="text-white font-bold">legacy_write</span>(<span class="text-blue-400">char</span> *p, <span class="text-blue-400">int</span> len) {
+    <span class="text-blue-400">for</span> (<span class="text-blue-400">int</span> i = <span class="text-purple-400">0</span>; i < len; i++) p[i] = <span class="text-green-400">'A'</span>;   <span class="text-gray-500">/* pointeur brut : aucune verification de bornes ici */</span>
+}
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">void</span>) {
+    setvbuf(stdout, <span class="text-purple-400">NULL</span>, _IONBF, <span class="text-purple-400">0</span>);
+    <span class="text-blue-400">char</span> buf[<span class="text-purple-400">16</span>];
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"Ecriture via un pointeur hybride classique (pas une capability) :\n"</span>);
+    <span class="text-white font-bold">legacy_write</span>(buf, <span class="text-purple-400">40</span>);    <span class="text-gray-500">/* deborde silencieusement */</span>
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"Ecriture terminee sans exception materielle -- 'p' n'a jamais ete une capability bornee.\n"</span>);
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">./hybrid_boundary</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc4out', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc4out">
+root@cheribsd-riscv64-purecap:~ # ./hybrid_boundary
+Ecriture via un pointeur hybride classique (pas une capability) :
+Ecriture terminee sans exception materielle -- 'p' n'a jamais ete une capability bornee.
+<span class="text-purple-400">Segmentation fault (core dumped)</span>   <span class="text-gray-500"># crash tardif, au retour de main(), signal 11</span></pre>
+</div>
+
+        <h2 data-i18n="art_h2_14">14 - PoC #5 : use-after-free sans révocation</h2>
+        <h3 data-i18n="art_h3_14">Le tag reste valide même après free()</h3>
+
+        <p data-i18n="art_p28">
+            Retour sur l'avertissement du message d'accueil (section 08) : <code>CHERI_CAPREVOKE</code> est bien compilé dans ce noyau, mais sans allocateur qui déclenche activement une révocation, une capability vers un objet libéré garde un tag valide.
+        </p>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-file-code text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">05_uaf_no_revocation.c</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc5', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc5">
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdio.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;stdlib.h&gt;</span>
+<span class="text-purple-400">#include</span> <span class="text-green-400">&lt;cheriintrin.h&gt;</span>
+
+<span class="text-blue-400">int</span> <span class="text-white font-bold">main</span>(<span class="text-blue-400">void</span>) {
+    setvbuf(stdout, <span class="text-purple-400">NULL</span>, _IONBF, <span class="text-purple-400">0</span>);
+    <span class="text-blue-400">char</span> *buf = <span class="text-white font-bold">malloc</span>(<span class="text-purple-400">32</span>);
+    <span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span> cap = (<span class="text-blue-400">void</span> * <span class="text-yellow-400">__capability</span>)buf;
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"avant free() : tag=%d\n"</span>, <span class="text-white font-bold">cheri_tag_get</span>(cap));
+
+    <span class="text-white font-bold">free</span>(buf);   <span class="text-gray-500">/* sans revocation active, la capability garde un tag valide */</span>
+
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"apres free() : tag=%d (toujours valide, aucune revocation active)\n"</span>, <span class="text-white font-bold">cheri_tag_get</span>(cap));
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"tentative de reutilisation de la capability sur memoire liberee...\n"</span>);
+    ((<span class="text-blue-400">volatile char</span> * <span class="text-yellow-400">__capability</span>)cap)[<span class="text-purple-400">0</span>] = <span class="text-green-400">'X'</span>;
+    <span class="text-white font-bold">printf</span>(<span class="text-green-400">"ecriture reussie -- c'est precisement le fosse de la securite temporelle.\n"</span>);
+
+    <span class="text-blue-400">return</span> <span class="text-purple-400">0</span>;
+}</pre>
+</div>
+
+<div class="border border-gray-700 mb-12 rounded-sm overflow-hidden">
+    <div class="bg-gray-950 px-4 py-3 border-b border-gray-700 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+            </div>
+            <span class="w-px h-4 bg-gray-700"></span>
+            <i class="fas fa-terminal text-gray-500 text-xs"></i>
+            <span class="mono text-[10px] font-bold text-gray-400 tracking-widest">./uaf_no_revocation</span>
+        </div>
+        <button onclick="copyToClipboard('code-poc5out', this)"
+            class="mono text-[10px] font-bold text-gray-500 hover:text-white transition-colors flex items-center gap-1.5" data-i18n="btn_copy">
+            <i class="far fa-copy"></i> COPIER
+        </button>
+    </div>
+    <pre class="bg-gray-950 text-gray-300 p-6 overflow-x-auto text-[12px] leading-relaxed mono no-scrollbar" id="code-poc5out">
+root@cheribsd-riscv64-purecap:~ # ./uaf_no_revocation
+avant free() : tag=<span class="text-purple-400">1</span>
+apres free() : tag=<span class="text-purple-400">1</span> (toujours valide, aucune revocation active)
+tentative de reutilisation de la capability sur memoire liberee...
+ecriture reussie -- c'est precisement le fosse de la securite temporelle.
+<span class="text-gray-500"># exit 0 : aucune exception materielle declenchee</span></pre>
+</div>
+
+        <p data-i18n="art_p29">
+            <code>CHERI_CAPREVOKE</code> compilé dans le noyau fournit le mécanisme (balayage de la mémoire, marquage des régions en quarantaine), mais il faut un allocateur qui l'invoque explicitement lors d'un <code>free()</code> pour qu'une révocation ait réellement lieu. L'allocateur système par défaut de ce build ne le fait pas automatiquement, exactement comme documenté dans le premier article.
+        </p>
+
+        <h2 data-i18n="art_h2_15">15 - Limites, coût réel et références</h2>
+        <h3 data-i18n="art_h3_15">Ce que ça coûte vraiment de reproduire ce travail</h3>
+
+        <ul class="space-y-4">
+            <li data-i18n="art_li_cost_time"><strong>Temps :</strong> plusieurs heures au total (toolchain, CheriBSD, QEMU), avec au moins deux reconstructions complètes évitables rencontrées en cours de route (suppression prématurée d'un dossier de build).</li>
+            <li data-i18n="art_li_cost_disk"><strong>Disque :</strong> pic autour de 60 à 70 Go utilisés pendant la construction, avant nettoyage des dossiers d'objets intermédiaires.</li>
+            <li data-i18n="art_li_cost_net"><strong>Réseau :</strong> plusieurs clones git (CheriBSD, QEMU CHERI, llvm-project) ont subi des coupures et ralentissements, nécessitant des scripts de retry avec <code>http.postBuffer</code> et <code>http.lowSpeedLimit</code> ajustés.</li>
+            <li data-i18n="art_li_cost_ram"><strong>Mémoire :</strong> confortable sur 4 cœurs / 8 Go de RAM pour ce travail, mais la compilation LLVM en parallèle (<code>-j4</code>) sature les cœurs disponibles pendant de longues périodes.</li>
+        </ul>
+
+        <div class="bg-black text-white p-8 my-12">
+            <div class="mono text-[10px] font-bold text-gray-400 mb-4 tracking-widest">// BILAN_HONNETE</div>
+            <p class="!text-gray-300 !text-sm !mb-0 leading-relaxed" data-i18n="art_p30">
+                Rien de ce qui est décrit ici n'exige de matériel spécialisé, seulement du temps, de l'espace disque et de la patience face à des erreurs de compilation qui n'ont rien de mystérieux une fois identifiées. C'est précisément ce qui rend CHERI accessible à qui veut vérifier ses garanties par soi-même plutôt que de les prendre pour acquises.
+            </p>
+        </div>
+
+        <h2 data-i18n="art_h2_16">Références</h2>
+        <ul class="space-y-4">
+            <li data-i18n="art_ref_1"><a href="https://github.com/CTSRD-CHERI/cheribuild" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">cheribuild</a>, l'outil de build officiel du projet CTSRD-CHERI</li>
+            <li data-i18n="art_ref_2"><a href="https://github.com/CTSRD-CHERI/cheribsd" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">CheriBSD</a>, le portage FreeBSD purecap</li>
+            <li data-i18n="art_ref_3"><a href="https://github.com/CHERI-Alliance/qemu" target="_blank" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">CHERI-Alliance/qemu</a>, le fork QEMU avec support CHERI</li>
+            <li data-i18n="art_ref_4">Notre premier article, <a href="cheri.html" class="underline underline-offset-4 decoration-1 hover:text-black transition-colors">"Sécurité Matérielle : CHERI Capabilities en Profondeur"</a>, pour l'architecture et le modèle de sécurité</li>
+        </ul>
+
+    </main>
+
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="news_title">Recevoir nos recherches (0-Spam)</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="news_desc">
+                Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.
+            </p>
+            <form class="flex flex-col md:flex-row gap-4 justify-center" id="newsletter-form">
+                <input type="email" id="news-input" required placeholder="email@domain.com" class="bg-transparent border border-gray-600 px-6 py-3 text-sm focus:outline-none focus:border-white w-full md:w-96 font-mono text-center md:text-left">
+                <button type="submit" id="news-btn" class="bg-white text-black px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all" data-i18n="news_btn">
+                    S'abonner_
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.
+                </p>
+                <div class="flex gap-4">
+                    <a href="https://x.com/bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://github.com/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="https://www.linkedin.com/company/0xbugpwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://www.youtube.com/@bug_pwn" target="_blank" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="https://bugpwn.com/battlectf/archive/" target="_blank" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="../contact.html#pgp-section" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x0E42807D
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const translations = {
+            fr: {
+                nav_services: "Services", nav_research: "Recherche", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Nous contacter",
+                news_title: "Recevoir nos recherches (0-Spam)",
+                news_desc: "Inscrivez-vous à notre flux de transmission sécurisé. Uniquement des writeups techniques, des annonces de CTF et des rapports d'audit publics.",
+                news_btn: "S'abonner_",
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source", f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPIER",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Retour_Archives",
+                art_title: "CheriBSD &amp;<br>\n                <span class=\"text-gray-300\">QEMU CHERI</span><br>\n                Guide Technique.",
+                art_subtitle: "Du code source au shell root. Construire la toolchain, CheriBSD, QEMU CHERI et le firmware, corriger les vraies erreurs de compilation rencontrées, démarrer un système purecap et exécuter cinq PoCs capability-aware, en complément de notre article sur l'architecture CHERI.",
+                art_author_role: "Lead Vulnerability Researcher",
+                toc_title: "Table des matières",
+                toc_1: "<strong>01.</strong> Pourquoi cet article",
+                toc_2: "<strong>02.</strong> Vue d'ensemble de cheribuild",
+                toc_3: "<strong>03.</strong> Construire la toolchain CHERI-Clang",
+                toc_4: "<strong>04.</strong> Construire CheriBSD",
+                toc_5: "<strong>05.</strong> Pièges de compilation réels et correctifs",
+                toc_6: "<strong>06.</strong> Générer l'image disque",
+                toc_7: "<strong>07.</strong> QEMU CHERI et son firmware",
+                toc_8: "<strong>08.</strong> Démarrer CheriBSD sous QEMU",
+                toc_9: "<strong>09.</strong> Environnement de travail (SSH)",
+                toc_10: "<strong>10.</strong> PoC #1 : dérivation et inspection",
+                toc_11: "<strong>11.</strong> PoC #2 : réduction de permissions",
+                toc_12: "<strong>12.</strong> PoC #3 : bornes étroites vs larges",
+                toc_13: "<strong>13.</strong> PoC #4 : la frontière hybride",
+                toc_14: "<strong>14.</strong> PoC #5 : use-after-free sans révocation",
+                toc_15: "<strong>15.</strong> Limites, coût réel et références",
+                art_h2_1: "01 - Pourquoi cet article",
+                art_h3_1: "Le versant outillage de CHERI, documenté pas à pas",
+                art_p1: "Notre article <a href=\"cheri.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">\"Sécurité Matérielle : CHERI Capabilities en Profondeur\"</a> couvre l'architecture, le modèle de sécurité et deux PoCs, exécutés réellement sur un système purecap. Ce second article couvre l'autre moitié du travail, rarement documentée en détail ailleurs : comment on construit réellement, depuis les sources, tout ce qui est nécessaire pour faire tourner CHERI sur sa propre machine, sans matériel Morello ni carte de développement physique.",
+                art_p2: "Chaque commande, chaque erreur de compilation rencontrée et chaque correctif présenté ici ont été réellement exécutés pour produire ce document, sur une machine Kali Linux ordinaire (4 cœurs, aucun matériel CHERI), sans accès à du silicium CHERI physique. Rien n'est reconstitué après coup.",
+                art_quote1: "\"Construire son propre CHERI depuis zéro n'est pas qu'un exercice académique. C'est le seul moyen de vérifier, ligne de commande par ligne de commande, que les garanties annoncées se comportent vraiment comme documenté, et de découvrir les angles morts que la documentation officielle ne mentionne pas.\"",
+                art_p3: "Ce guide suit l'ordre réel des opérations : la toolchain, le système cible, l'émulateur, le firmware, le démarrage, puis cinq PoCs supplémentaires qui approfondissent les mécanismes déjà présentés dans le premier article (dérivation, permissions, bornes, frontière hybride, révocation).",
+                art_h2_2: "02 - Vue d'ensemble de cheribuild",
+                art_h3_2: "L'outil qui orchestre tout",
+                art_p4: "<code>cheribuild</code> est le projet officiel de build du groupe CTSRD-CHERI (Cambridge / SRI International). Écrit en Python, il orchestre des dizaines de cibles interdépendantes (toolchain, système cible, émulateur, bibliothèques, firmware) identifiées par un nom explicite, par exemple <code>llvm-native</code>, <code>cheribsd-riscv64-purecap</code>, <code>qemu</code> ou <code>disk-image-riscv64-purecap</code>. Chaque cible connaît ses propres dépendances et sait, en théorie, les construire automatiquement.",
+                art_li_flag_d: "<strong><code>-d</code> :</strong> construit également toutes les dépendances manquantes de la cible demandée, pas seulement la cible elle-même.",
+                art_li_flag_skip: "<strong><code>--skip-update</code> :</strong> n'essaie pas de mettre à jour (git fetch) les dépôts déjà clonés avant de builder. Utile quand le réseau est instable, ce qui a été notre cas à plusieurs reprises.",
+                art_li_flag_list: "<strong><code>--list-targets</code> :</strong> liste toutes les cibles disponibles, plusieurs centaines une fois les variantes d'architecture comptées.",
+                art_li_flag_src: "<strong>Emplacements par défaut :</strong> sources dans <code>~/cheri/&lt;projet&gt;</code>, artefacts de build intermédiaires dans <code>~/cheri/build/&lt;cible&gt;-build</code>, résultat installé dans <code>~/cheri/output/</code> (toolchain dans <code>output/sdk</code>, système de fichiers cible dans <code>output/rootfs-*</code>).",
+                art_h2_3: "03 - Construire la toolchain CHERI-Clang",
+                art_h3_3: "LLVM/Clang recompilé pour comprendre les capabilities",
+                art_p5: "La première brique est un LLVM/Clang patché par le projet CTSRD-CHERI, capable de comprendre l'extension CHERI-RISC-V (les instructions <code>csetbounds</code>, <code>cincoffset</code>, etc.) et de produire des binaires en ABI hybride ou purecap. C'est une compilation complète de LLVM depuis les sources, pas un simple téléchargement de paquet.",
+                art_h2_4: "04 - Construire CheriBSD",
+                art_h3_4: "buildworld, buildkernel, installworld : le vrai système d'exploitation",
+                art_p6: "La cible <code>cheribsd-riscv64-purecap</code> compile un noyau et un userland FreeBSD complets en mode purecap, avec la toolchain fraîchement construite. C'est l'étape la plus lourde : compilation de tout <code>buildworld</code> (bibliothèques, utilitaires), puis <code>buildkernel</code> (le noyau, avec la configuration <code>CHERI-PURECAP-QEMU</code>), puis installation des deux dans un rootfs de sortie.",
+                art_p7: "Sur cette VM (4 cœurs, réseau parfois instable), la première tentative <em>réussie</em> a pris environ 67 minutes. Avant d'y arriver, plusieurs échecs de compilation bien réels ont dû être corrigés, ce qui fait l'objet de la section suivante.",
+                art_h2_5: "05 - Pièges de compilation réels et correctifs",
+                art_h3_5: "Ce que la documentation officielle ne dit pas toujours",
+                art_p8: "Construire CheriBSD et QEMU CHERI depuis les sources, sur un système Kali à jour avec un Clang système récent (19.1.7), a déclenché plusieurs échecs de compilation réels que nous détaillons ici, avec leur correctif exact, pour faire gagner du temps à quiconque reproduit ce travail.",
+                art_h3_5_1: "Le compilateur hôte trop strict pour du vieux code vendored",
+                art_p9: "Plusieurs outils de bootstrap FreeBSD (<code>getopt.c</code>, <code>getopt_long.c</code>, le <code>mandoc</code> vendored, plusieurs fichiers de <code>rpcgen</code>) échouaient tous avec la même erreur : une assignation d'un <code>const char *</code> vers un <code>char *</code>, promue en erreur par un flag ajouté explicitement pour ces cibles hôte, indépendamment du flag général <code>NO_WERROR</code>.",
+                art_p10: "Patcher chaque site d'appel un par un (cast explicite en <code>(char *)</code>) fonctionne mais ne passe pas à l'échelle : plus on avance dans le build, plus de nouveaux fichiers vendored déclenchent la même erreur. Le correctif efficace est centralisé, dans <code>tools/build/mk/Makefile.boot</code>, le seul endroit de tout l'arbre source où ce flag est ajouté pour les outils de bootstrap :",
+                art_p11: "Ce même flag, ajouté séparément par <code>cheribuild</code> lui-même pour la compilation de QEMU (dans <code>pycheribuild/projects/build_qemu.py</code>), a causé une erreur identique dans <code>block/curl.c</code> plus tard, avec un flag encore plus large (<code>-Werror=incompatible-pointer-types</code>, sans le suffixe) qui réactivait le problème même après un premier correctif. Les deux occurrences ont dû être retirées du code Python de <code>cheribuild</code> lui-même.",
+                art_h3_5_2: "Dépendances hôte manquantes",
+                art_p12: "Une checklist de paquets Kali/Debian à installer avant de commencer, découverte au fil des échecs réels :",
+                art_li_dep_libtool: "<strong><code>libtool</code></strong> (fournit <code>libtoolize</code>) : requis par la configuration de QEMU, absent par défaut.",
+                art_li_dep_pixman: "<strong><code>libpixman-1-dev</code></strong>, <code>libglib2.0-dev</code>, <code>libslirp-dev</code>, <code>libcap-ng-dev</code>, <code>libattr1-dev</code> : dépendances de build de QEMU, détectées une par une par <code>pkg-config</code> lors de la configuration.",
+                art_li_dep_ninja: "<strong><code>ninja-build</code></strong> : requis par la fois LLVM et QEMU (Meson).",
+                art_p13: "Aucune de ces erreurs n'est un bug dans CHERI lui-même. Ce sont des frictions banales entre du code vendored ancien et un compilateur hôte plus strict que ce que les mainteneurs upstream utilisent pour leurs propres tests de non-régression. Elles disparaissent une fois identifiées, mais sans ce travail de diagnostic, un builder frais échoue silencieusement plusieurs fois avant d'aboutir.",
+                art_h2_6: "06 - Générer l'image disque",
+                art_h3_6: "makefs, mkimg, et une vraie crise d'espace disque",
+                art_p14: "Une fois <code>installworld</code>/<code>installkernel</code> terminés, la cible <code>disk-image-riscv64-purecap</code> assemble le rootfs installé en une image disque bootable : une partition EFI (via <code>makefs -t msdos</code>), une partition racine UFS (<code>makefs -t ffs</code>), puis une image GPT combinant les deux plus un swap (<code>mkimg</code>).",
+                art_p15: "Un vrai piège rencontré ici : l'espace disque de la VM est tombé à <strong>98 Mo libres (100% utilisé)</strong> juste avant la génération de l'image, faisant échouer <code>mkimg</code> avec <code>No space left on device</code>. Notre première tentative de libérer de l'espace a supprimé tout le dossier de build intermédiaire de CheriBSD, y compris le sous-dossier <code>tmp/legacy/bin/</code> qui contient <code>makefs</code> lui-même, un outil de bootstrap compilé pendant <code>buildworld</code>, jamais copié dans <code>output/</code>. Résultat : relancer <code>-d</code> a redéclenché une reconstruction complète de CheriBSD.",
+                art_p16: "Le bon réflexe : ne supprimer que les sous-arbres d'objets compilés (<code>sys/</code>, <code>lib/</code>, <code>obj-lib64/</code>, etc.), jamais le dossier <code>tmp/</code> qui contient les outils de bootstrap déjà installés. Cette suppression sélective a libéré 18 Go sans rien casser.",
+                art_h2_7: "07 - QEMU CHERI et son firmware",
+                art_h3_7: "Un fork dédié, pas le QEMU système",
+                art_p17: "Le <code>qemu-system-riscv64</code> standard, déjà présent sur Kali, ne comprend rien à CHERI : pas de mémoire taguée, pas de registres capability, pas d'instructions CHERI, pas d'exceptions matérielles associées. Un binaire purecap y plante silencieusement ou s'exécute sans aucune des protections qu'on cherche justement à observer.",
+                art_p18: "<code>cheribuild</code> construit donc son propre fork, <a href=\"https://github.com/CHERI-Alliance/qemu\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">CHERI-Alliance/qemu</a>, qui ajoute un modèle de CPU complet pour l'extension : mémoire taguée, registres capability, toutes les instructions CHERI, et les exceptions matérielles (SIGPROT, etc.) documentées dans notre premier article.",
+                art_h3_7_2: "Le firmware RISC-V (bbl)",
+                art_p19: "QEMU CHERI a encore besoin d'un firmware de démarrage RISC-V compatible capabilities pour charger le noyau : <code>bbl-baremetal-riscv64-purecap</code> (Berkeley Boot Loader). Absent lui aussi au premier lancement, mais rapide à construire, 9,45 secondes dans notre cas, une fois la toolchain déjà prête.",
+                art_h2_8: "08 - Démarrer CheriBSD sous QEMU",
+                art_h3_8: "Du premier message noyau au prompt root",
+                art_p20: "Lancée dans une session <code>tmux</code> détachée pour garder un accès interactif à la console série malgré la déconnexion SSH, la machine démarre avec de vrais messages de noyau CheriBSD.",
+                art_p21: "Note pour la section 14 : le message d'accueil signale explicitement que la révocation de capabilities est compilée dans ce noyau (<code>CHERI_CAPREVOKE</code>), ce qui pourrait laisser penser que le fossé de sécurité temporelle est comblé par défaut. Le PoC #5 vérifie directement si c'est le cas.",
+                art_h2_9: "09 - Environnement de travail (SSH)",
+                art_h3_9: "Accès SSH fiable plutôt que console série",
+                art_p22: "<code>cheribuild</code> configure par défaut un redirecteur de port (<code>hostfwd=tcp:127.0.0.1:9999-:22</code>) : le port 9999 de l'hôte Kali redirige vers le port 22 de l'invité CheriBSD. Après avoir fixé un mot de passe root via la console série, on installe une clé publique pour un accès SSH fiable, bien plus pratique que d'envoyer des touches une à une dans une session série.",
+                art_p23: "À partir d'ici, le flux de travail pour chaque PoC est identique : compiler sur l'hôte Kali avec le cross-compiler purecap (<code>~/cheri/output/sdk/bin/clang -target riscv64-unknown-freebsd -march=rv64gcxcheri -mabi=l64pc128d --sysroot=~/cheri/output/rootfs-riscv64-purecap</code>), transférer le binaire via <code>scp</code>, puis l'exécuter réellement dans l'invité via SSH.",
+                art_h2_10: "10 - PoC #1 : dérivation et inspection de capability",
+                art_h3_10: "Voir les champs d'une capability, pas seulement les deviner",
+                art_p24: "Premier des cinq PoCs supplémentaires : dériver une capability plus étroite depuis une capability large, et inspecter concrètement ses champs via les intrinsics CHERI (<code>cheriintrin.h</code>), plutôt que de les décrire abstraitement.",
+                art_h2_11: "11 - PoC #2 : réduction de permissions",
+                art_h3_11: "La monotonicité en pratique",
+                art_p25: "<code>CAndPerm</code> ne peut que retirer des permissions, jamais en ajouter. Ce PoC dérive une capability read-only depuis une capability read-write, puis tente une écriture à travers la version restreinte.",
+                art_h2_12: "12 - PoC #3 : bornes étroites vs larges",
+                art_h3_12: "Deux capabilities, un seul objet mémoire",
+                art_p26: "Une capability large couvrant les 64 octets alloués, et une capability dérivée restreinte à seulement 8 octets sur le même bloc mémoire : le même accès à l'offset 16 réussit via l'une et échoue via l'autre.",
+                art_h2_13: "13 - PoC #4 : la frontière hybride",
+                art_h3_13: "Un pointeur classique ne devient jamais une capability tout seul",
+                art_p27: "Compilé en ABI hybride (<code>-mabi=lp64d</code>, pas purecap), ce code passe un pointeur classique à une fonction qui déborde sans aucune vérification de bornes. Cela recoupe directement une découverte faite dans notre premier article : le matériel CHERI disponible ne protège rien sans compilation purecap explicite.",
+                art_h2_14: "14 - PoC #5 : use-after-free sans révocation",
+                art_h3_14: "Le tag reste valide même après free()",
+                art_p28: "Retour sur l'avertissement du message d'accueil (section 08) : <code>CHERI_CAPREVOKE</code> est bien compilé dans ce noyau, mais sans allocateur qui déclenche activement une révocation, une capability vers un objet libéré garde un tag valide.",
+                art_p29: "<code>CHERI_CAPREVOKE</code> compilé dans le noyau fournit le mécanisme (balayage de la mémoire, marquage des régions en quarantaine), mais il faut un allocateur qui l'invoque explicitement lors d'un <code>free()</code> pour qu'une révocation ait réellement lieu. L'allocateur système par défaut de ce build ne le fait pas automatiquement, exactement comme documenté dans le premier article.",
+                art_h2_15: "15 - Limites, coût réel et références",
+                art_h3_15: "Ce que ça coûte vraiment de reproduire ce travail",
+                art_li_cost_time: "<strong>Temps :</strong> plusieurs heures au total (toolchain, CheriBSD, QEMU), avec au moins deux reconstructions complètes évitables rencontrées en cours de route (suppression prématurée d'un dossier de build).",
+                art_li_cost_disk: "<strong>Disque :</strong> pic autour de 60 à 70 Go utilisés pendant la construction, avant nettoyage des dossiers d'objets intermédiaires.",
+                art_li_cost_net: "<strong>Réseau :</strong> plusieurs clones git (CheriBSD, QEMU CHERI, llvm-project) ont subi des coupures et ralentissements, nécessitant des scripts de retry avec <code>http.postBuffer</code> et <code>http.lowSpeedLimit</code> ajustés.",
+                art_li_cost_ram: "<strong>Mémoire :</strong> confortable sur 4 cœurs / 8 Go de RAM pour ce travail, mais la compilation LLVM en parallèle (<code>-j4</code>) sature les cœurs disponibles pendant de longues périodes.",
+                art_p30: "Rien de ce qui est décrit ici n'exige de matériel spécialisé, seulement du temps, de l'espace disque et de la patience face à des erreurs de compilation qui n'ont rien de mystérieux une fois identifiées. C'est précisément ce qui rend CHERI accessible à qui veut vérifier ses garanties par soi-même plutôt que de les prendre pour acquises.",
+                art_h2_16: "Références",
+                art_ref_1: "<a href=\"https://github.com/CTSRD-CHERI/cheribuild\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">cheribuild</a>, l'outil de build officiel du projet CTSRD-CHERI",
+                art_ref_2: "<a href=\"https://github.com/CTSRD-CHERI/cheribsd\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">CheriBSD</a>, le portage FreeBSD purecap",
+                art_ref_3: "<a href=\"https://github.com/CHERI-Alliance/qemu\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">CHERI-Alliance/qemu</a>, le fork QEMU avec support CHERI",
+                art_ref_4: "Notre premier article, <a href=\"cheri.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">\"Sécurité Matérielle : CHERI Capabilities en Profondeur\"</a>, pour l'architecture et le modèle de sécurité",
+            },
+            en: {
+                nav_services: "Services", nav_research: "Research", nav_blog: "Blog",
+                nav_events: "Events", nav_contact: "Contact Us",
+                news_title: "Receive our research (0-Spam)",
+                news_desc: "Subscribe to our secure transmission feed. Strictly technical writeups, CTF announcements, and public audit reports.",
+                news_btn: "Subscribe_",
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit", f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption.",
+                btn_copy: "<i class=\"far fa-copy\"></i> COPY",
+                art_back: "<i class=\"fas fa-arrow-left group-hover:-translate-x-2 transition-transform\"></i> Back_Archives",
+                art_title: "CheriBSD &amp;<br>\n                <span class=\"text-gray-300\">QEMU CHERI</span><br>\n                Technical Guide.",
+                art_subtitle: "From source code to root shell. Building the toolchain, CheriBSD, QEMU CHERI and the firmware, fixing the real compile errors encountered, booting a purecap system, and running five capability-aware PoCs, as a companion to our article on the CHERI architecture.",
+                art_author_role: "Lead Vulnerability Researcher",
+                toc_title: "Table of contents",
+                toc_1: "<strong>01.</strong> Why this article",
+                toc_2: "<strong>02.</strong> cheribuild overview",
+                toc_3: "<strong>03.</strong> Building the CHERI-Clang toolchain",
+                toc_4: "<strong>04.</strong> Building CheriBSD",
+                toc_5: "<strong>05.</strong> Real build pitfalls and fixes",
+                toc_6: "<strong>06.</strong> Generating the disk image",
+                toc_7: "<strong>07.</strong> QEMU CHERI and its firmware",
+                toc_8: "<strong>08.</strong> Booting CheriBSD under QEMU",
+                toc_9: "<strong>09.</strong> Setting up a workflow (SSH)",
+                toc_10: "<strong>10.</strong> PoC #1: derivation and inspection",
+                toc_11: "<strong>11.</strong> PoC #2: permission narrowing",
+                toc_12: "<strong>12.</strong> PoC #3: narrow vs wide bounds",
+                toc_13: "<strong>13.</strong> PoC #4: the hybrid boundary",
+                toc_14: "<strong>14.</strong> PoC #5: use-after-free without revocation",
+                toc_15: "<strong>15.</strong> Limits, real cost and references",
+                art_h2_1: "01 - Why This Article",
+                art_h3_1: "The tooling side of CHERI, documented step by step",
+                art_p1: "Our article <a href=\"cheri.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">\"Hardware Security: CHERI Capabilities In Depth\"</a> covers the architecture, the security model, and two PoCs, actually run on a purecap system. This second article covers the other half of the work, rarely documented in detail elsewhere: how you actually build, from source, everything needed to run CHERI on your own machine, without Morello hardware or a physical development board.",
+                art_p2: "Every command, every compile error encountered, and every fix presented here were actually run to produce this document, on an ordinary Kali Linux machine (4 cores, no CHERI hardware), with no access to physical CHERI silicon. Nothing is reconstructed after the fact.",
+                art_quote1: "\"Building your own CHERI from scratch isn't just an academic exercise. It's the only way to verify, command by command, that the advertised guarantees actually behave as documented, and to discover the blind spots the official documentation doesn't mention.\"",
+                art_p3: "This guide follows the real order of operations: the toolchain, the target system, the emulator, the firmware, booting, then five additional PoCs that go deeper into mechanisms already introduced in the first article (derivation, permissions, bounds, the hybrid boundary, revocation).",
+                art_h2_2: "02 - cheribuild Overview",
+                art_h3_2: "The tool that orchestrates everything",
+                art_p4: "<code>cheribuild</code> is the official build tool of the CTSRD-CHERI group (Cambridge / SRI International). Written in Python, it orchestrates dozens of interdependent targets (toolchain, target system, emulator, libraries, firmware) each identified by an explicit name, for example <code>llvm-native</code>, <code>cheribsd-riscv64-purecap</code>, <code>qemu</code>, or <code>disk-image-riscv64-purecap</code>. Each target knows its own dependencies and, in theory, can build them automatically.",
+                art_li_flag_d: "<strong><code>-d</code>:</strong> also builds every missing dependency of the requested target, not just the target itself.",
+                art_li_flag_skip: "<strong><code>--skip-update</code>:</strong> doesn't try to update (git fetch) already-cloned repositories before building. Useful when the network is unstable, which happened to us more than once.",
+                art_li_flag_list: "<strong><code>--list-targets</code>:</strong> lists every available target, several hundred once architecture variants are counted.",
+                art_li_flag_src: "<strong>Default locations:</strong> sources under <code>~/cheri/&lt;project&gt;</code>, intermediate build artifacts under <code>~/cheri/build/&lt;target&gt;-build</code>, installed output under <code>~/cheri/output/</code> (toolchain in <code>output/sdk</code>, target filesystem in <code>output/rootfs-*</code>).",
+                art_h2_3: "03 - Building the CHERI-Clang Toolchain",
+                art_h3_3: "LLVM/Clang recompiled to understand capabilities",
+                art_p5: "The first building block is an LLVM/Clang patched by the CTSRD-CHERI project, able to understand the CHERI-RISC-V extension (instructions like <code>csetbounds</code>, <code>cincoffset</code>) and to produce binaries in hybrid or purecap ABI. This is a full LLVM build from source, not a package download.",
+                art_h2_4: "04 - Building CheriBSD",
+                art_h3_4: "buildworld, buildkernel, installworld: the actual operating system",
+                art_p6: "The <code>cheribsd-riscv64-purecap</code> target compiles a full FreeBSD kernel and userland in purecap mode, with the freshly-built toolchain. This is the heaviest step: compiling all of <code>buildworld</code> (libraries, utilities), then <code>buildkernel</code> (the kernel, with the <code>CHERI-PURECAP-QEMU</code> config), then installing both into an output rootfs.",
+                art_p7: "On this VM (4 cores, sometimes-unstable network), the first <em>successful</em> attempt took about 67 minutes. Before getting there, several genuine compile failures had to be fixed, which is the subject of the next section.",
+                art_h2_5: "05 - Real Build Pitfalls and Fixes",
+                art_h3_5: "What the official documentation doesn't always say",
+                art_p8: "Building CheriBSD and QEMU CHERI from source, on an up-to-date Kali system with a recent system Clang (19.1.7), triggered several real compile failures, detailed here with their exact fix, to save time for anyone reproducing this work.",
+                art_h3_5_1: "The host compiler being stricter than expected for old vendored code",
+                art_p9: "Several FreeBSD bootstrap tools (<code>getopt.c</code>, <code>getopt_long.c</code>, the vendored <code>mandoc</code>, several <code>rpcgen</code> files) all failed with the same error: assigning a <code>const char *</code> to a <code>char *</code>, promoted to an error by a flag added explicitly for these host targets, independent of the general <code>NO_WERROR</code> knob.",
+                art_p10: "Patching each call site one by one (an explicit cast to <code>(char *)</code>) works but doesn't scale: the further the build progresses, the more new vendored files trigger the same error. The effective fix is centralized, in <code>tools/build/mk/Makefile.boot</code>, the single place in the whole source tree where this flag is added for bootstrap tools:",
+                art_p11: "The same flag, added separately by <code>cheribuild</code> itself for building QEMU (in <code>pycheribuild/projects/build_qemu.py</code>), caused an identical error in <code>block/curl.c</code> later, with an even broader flag (<code>-Werror=incompatible-pointer-types</code>, without the suffix) that re-enabled the issue even after a first fix. Both occurrences had to be removed from cheribuild's own Python source.",
+                art_h3_5_2: "Missing host dependencies",
+                art_p12: "A checklist of Kali/Debian packages to install before starting, discovered along the way through real failures:",
+                art_li_dep_libtool: "<strong><code>libtool</code></strong> (provides <code>libtoolize</code>): required by QEMU's configure step, missing by default.",
+                art_li_dep_pixman: "<strong><code>libpixman-1-dev</code></strong>, <code>libglib2.0-dev</code>, <code>libslirp-dev</code>, <code>libcap-ng-dev</code>, <code>libattr1-dev</code>: QEMU build dependencies, detected one at a time by <code>pkg-config</code> during configuration.",
+                art_li_dep_ninja: "<strong><code>ninja-build</code></strong>: required by both LLVM and QEMU (Meson).",
+                art_p13: "None of these errors are a bug in CHERI itself. They're ordinary friction between old vendored code and a host compiler stricter than what upstream maintainers use for their own regression tests. They vanish once identified, but without this diagnostic work, a fresh builder fails silently several times before succeeding.",
+                art_h2_6: "06 - Generating the Disk Image",
+                art_h3_6: "makefs, mkimg, and a real disk-space crisis",
+                art_p14: "Once <code>installworld</code>/<code>installkernel</code> are done, the <code>disk-image-riscv64-purecap</code> target assembles the installed rootfs into a bootable disk image: an EFI partition (via <code>makefs -t msdos</code>), a UFS root partition (<code>makefs -t ffs</code>), then a GPT image combining both plus swap (<code>mkimg</code>).",
+                art_p15: "A real pitfall hit here: the VM's disk space dropped to <strong>98 MB free (100% used)</strong> right before generating the image, causing <code>mkimg</code> to fail with <code>No space left on device</code>. Our first attempt to free space deleted the entire CheriBSD intermediate build directory, including the <code>tmp/legacy/bin/</code> subdirectory that holds <code>makefs</code> itself, a bootstrap tool compiled during <code>buildworld</code>, never copied into <code>output/</code>. Result: relaunching with <code>-d</code> triggered a full CheriBSD rebuild all over again.",
+                art_p16: "The right move: only delete the compiled-object subtrees (<code>sys/</code>, <code>lib/</code>, <code>obj-lib64/</code>, etc.), never the <code>tmp/</code> directory holding already-installed bootstrap tools. This selective deletion freed 18 GB without breaking anything.",
+                art_h2_7: "07 - QEMU CHERI and Its Firmware",
+                art_h3_7: "A dedicated fork, not the system QEMU",
+                art_p17: "The standard <code>qemu-system-riscv64</code>, already present on Kali, understands nothing about CHERI: no tagged memory, no capability registers, no CHERI instructions, no associated hardware exceptions. A purecap binary either crashes silently on it or runs with none of the protections we're actually trying to observe.",
+                art_p18: "<code>cheribuild</code> therefore builds its own fork, <a href=\"https://github.com/CHERI-Alliance/qemu\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">CHERI-Alliance/qemu</a>, which adds a full CPU model for the extension: tagged memory, capability registers, every CHERI instruction, and the hardware exceptions (SIGPROT, etc.) documented in our first article.",
+                art_h3_7_2: "The RISC-V firmware (bbl)",
+                art_p19: "QEMU CHERI still needs a capability-aware RISC-V boot firmware to load the kernel: <code>bbl-baremetal-riscv64-purecap</code> (Berkeley Boot Loader). Also missing on first launch, but quick to build, 9.45 seconds in our case, once the toolchain is already in place.",
+                art_h2_8: "08 - Booting CheriBSD Under QEMU",
+                art_h3_8: "From the first kernel message to the root prompt",
+                art_p20: "Launched inside a detached <code>tmux</code> session to keep interactive access to the serial console despite SSH disconnections, the machine boots with real CheriBSD kernel messages.",
+                art_p21: "Note for section 14: the welcome banner explicitly states that capability revocation is compiled into this kernel (<code>CHERI_CAPREVOKE</code>), which could suggest the temporal-safety gap is closed by default. PoC #5 checks directly whether that's the case.",
+                art_h2_9: "09 - Setting Up a Workflow (SSH)",
+                art_h3_9: "Reliable SSH access instead of the serial console",
+                art_p22: "<code>cheribuild</code> sets up a port forward by default (<code>hostfwd=tcp:127.0.0.1:9999-:22</code>): port 9999 on the Kali host forwards to port 22 on the CheriBSD guest. After setting a root password via the serial console, we install a public key for reliable SSH access, far more practical than sending keystrokes one at a time into a serial session.",
+                art_p23: "From here on, the workflow for each PoC is the same: compile on the Kali host with the purecap cross-compiler (<code>~/cheri/output/sdk/bin/clang -target riscv64-unknown-freebsd -march=rv64gcxcheri -mabi=l64pc128d --sysroot=~/cheri/output/rootfs-riscv64-purecap</code>), transfer the binary via <code>scp</code>, then actually run it in the guest over SSH.",
+                art_h2_10: "10 - PoC #1: Capability Derivation and Inspection",
+                art_h3_10: "Seeing a capability's fields, not just describing them",
+                art_p24: "First of five additional PoCs: derive a narrower capability from a wide one, and actually inspect its fields via the CHERI intrinsics (<code>cheriintrin.h</code>), rather than describing them abstractly.",
+                art_h2_11: "11 - PoC #2: Permission Narrowing",
+                art_h3_11: "Monotonicity in practice",
+                art_p25: "<code>CAndPerm</code> can only remove permissions, never add them. This PoC derives a read-only capability from a read-write one, then attempts a write through the restricted version.",
+                art_h2_12: "12 - PoC #3: Narrow vs Wide Bounds",
+                art_h3_12: "Two capabilities, one memory object",
+                art_p26: "A wide capability covering all 64 allocated bytes, and a derived capability restricted to just 8 bytes over the same memory block: the same access at offset 16 succeeds through one and fails through the other.",
+                art_h2_13: "13 - PoC #4: The Hybrid Boundary",
+                art_h3_13: "A classic pointer never becomes a capability on its own",
+                art_p27: "Compiled in hybrid ABI (<code>-mabi=lp64d</code>, not purecap), this code passes a classic pointer to a function that overflows with no bounds check whatsoever. This directly echoes a finding from our first article: available CHERI hardware protects nothing without explicit purecap compilation.",
+                art_h2_14: "14 - PoC #5: Use-After-Free Without Revocation",
+                art_h3_14: "The tag stays valid even after free()",
+                art_p28: "Back to the welcome banner's note (section 08): <code>CHERI_CAPREVOKE</code> is indeed compiled into this kernel, but without an allocator that actively triggers revocation, a capability pointing to a freed object keeps a valid tag.",
+                art_p29: "<code>CHERI_CAPREVOKE</code> compiled into the kernel provides the mechanism (memory sweeping, quarantining regions), but it takes an allocator that explicitly invokes it on <code>free()</code> for revocation to actually happen. This build's default system allocator doesn't do that automatically, exactly as documented in the first article.",
+                art_h2_15: "15 - Limits, Real Cost, and References",
+                art_h3_15: "What it actually costs to reproduce this work",
+                art_li_cost_time: "<strong>Time:</strong> several hours total (toolchain, CheriBSD, QEMU), including at least two avoidable full rebuilds hit along the way (a build directory deleted prematurely).",
+                art_li_cost_disk: "<strong>Disk:</strong> peaked around 60-70 GB used during the build, before cleaning up intermediate object directories.",
+                art_li_cost_net: "<strong>Network:</strong> several git clones (CheriBSD, QEMU CHERI, llvm-project) hit disconnects and slowdowns, requiring retry scripts with tuned <code>http.postBuffer</code> and <code>http.lowSpeedLimit</code>.",
+                art_li_cost_ram: "<strong>Memory:</strong> comfortable on 4 cores / 8 GB RAM for this work, but parallel LLVM compilation (<code>-j4</code>) saturates the available cores for long stretches.",
+                art_p30: "None of what's described here requires specialized hardware, just time, disk space, and patience with compile errors that are nothing mysterious once identified. That's exactly what makes CHERI accessible to anyone who wants to verify its guarantees themselves rather than take them on faith.",
+                art_h2_16: "References",
+                art_ref_1: "<a href=\"https://github.com/CTSRD-CHERI/cheribuild\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">cheribuild</a>, the official build tool of the CTSRD-CHERI project",
+                art_ref_2: "<a href=\"https://github.com/CTSRD-CHERI/cheribsd\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">CheriBSD</a>, the purecap FreeBSD port",
+                art_ref_3: "<a href=\"https://github.com/CHERI-Alliance/qemu\" target=\"_blank\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">CHERI-Alliance/qemu</a>, the QEMU fork with CHERI support",
+                art_ref_4: "Our first article, <a href=\"cheri.html\" class=\"underline underline-offset-4 decoration-1 hover:text-black transition-colors\">\"Hardware Security: CHERI Capabilities In Depth\"</a>, for the architecture and security model"
+            }
+        };
+    </script>
+    <script src="../static/main.js"></script>
+</body>
+</html>
