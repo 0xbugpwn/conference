@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,7 +45,7 @@
 
             <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
                 <a href="index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
-                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="research.html" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
                 <a href="blog.html" class="text-black font-bold transition-colors" data-i18n="nav_blog">Blog</a>
                 <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
             </div>
@@ -113,7 +113,29 @@
 
     <section class="max-w-7xl mx-auto px-6 mb-32">
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-black" id="articles-container">
-            
+
+            <a href="blog/open62541-cve-2026-116014.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="writeup">
+                <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
+                    <img src="https://placehold.co/800x480/1E293B/FFFFFF/png?text=open62541%3A+Integer+Overflow+%3D+RCE&font=Montserrat" alt="open62541 CVE-2026-116014 Integer Overflow RCE" class="w-full h-full object-cover">
+                    <div class="absolute top-0 right-0 bg-white text-black border-l border-b border-black px-3 py-1 text-[9px] font-black tracking-widest uppercase">
+                        WRITEUP
+                    </div>
+                </div>
+                <div class="mono text-[9px] font-bold text-gray-400 mb-3 tracking-widest flex justify-between">
+                    <span>// MEMORY_CORRUPTION</span>
+                    <span>24.OCT.2026</span>
+                </div>
+                <h3 class="text-xl font-black mb-4 uppercase tracking-tight group-hover:underline decoration-2 underline-offset-4" data-i18n="art_open_title">
+                    open62541 : Integer Overflow = RCE (CVE-2026-116014).
+                </h3>
+                <p class="text-sm text-gray-600 font-medium leading-relaxed mb-8 flex-grow" data-i18n="art_open_desc">
+                    Comment un unique champ de taille sur 16 bits, non protégé, dans la machinerie des DataTypes personnalisés d'open62541 permet à un serveur OPC UA malveillant de corrompre le tas d'un client qui lit ses types, jusqu'à l'exécution de code à distance. Cause racine, PoC en réseau et correctif officiel.
+                </p>
+                <div class="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-2">
+                    <span data-i18n="btn_read">Lire le rapport</span> <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
             <a href="blog/cheribsd-qemu.html" class="article-card group relative p-8 border-r border-b border-black hover:bg-gray-50 transition-all duration-500 flex flex-col h-full cursor-pointer" data-category="article">
                 <div class="mb-6 overflow-hidden h-48 border border-black relative grayscale group-hover:grayscale-0 transition-all duration-500">
                     <img src="https://placehold.co/800x480/1E293B/FFFFFF/png?text=CheriBSD+%26+QEMU+CHERI%3A+%0ATechnical+Guide&font=Montserrat" alt="CheriBSD QEMU CHERI Technical Guide" class="w-full h-full object-cover">
@@ -711,6 +733,8 @@
 
                 art_cheri_title: "CHERI : Capabilities Matérielles pour la Sécurité Mémoire",
                 art_cheri_desc: "Quand le processeur refuse lui-même la corruption mémoire. Définition, anatomie des capabilities, domaines d'application, implémentations concrètes (Morello, CHERIoT), alliances industrielles et PoCs pratiques sur CheriBSD.",
+                art_open_title: "open62541 : Integer Overflow = RCE (CVE-2026-116014).",
+                art_open_desc: "Comment un unique champ de taille sur 16 bits, non protégé, dans la machinerie des DataTypes personnalisés d'open62541 permet à un serveur OPC UA malveillant de corrompre le tas d'un client qui lit ses types, jusqu'à l'exécution de code à distance. Cause racine, PoC en réseau et correctif officiel.",
                 art_cheribsd_title: "CheriBSD & QEMU CHERI : Guide Technique Complet",
                 art_cheribsd_desc: "Construire la toolchain, CheriBSD et QEMU CHERI depuis les sources, corriger les vraies erreurs de compilation, démarrer un système purecap et exécuter cinq PoCs capability-aware. Le complément pratique de notre article sur l'architecture CHERI.",
 
@@ -777,6 +801,8 @@
 
                 art_cheri_title: "CHERI: Hardware Capabilities for Memory Safety",
                 art_cheri_desc: "When the processor itself refuses memory corruption. Definition, anatomy of capabilities, application domains, concrete implementations (Morello, CHERIoT), industry alliances, and practical PoCs on CheriBSD.",
+                art_open_title: "open62541: Integer Overflow = RCE (CVE-2026-116014).",
+                art_open_desc: "How a single unguarded 16 bit size field in open62541's custom DataType machinery lets a malicious OPC UA server corrupt the heap of a client that reads its types, up to remote code execution. Root cause, networked PoC, and the official fix.",
                 art_cheribsd_title: "CheriBSD & QEMU CHERI: Complete Technical Guide",
                 art_cheribsd_desc: "Building the toolchain, CheriBSD, and QEMU CHERI from source, fixing the real compile errors, booting a purecap system, and running five capability-aware PoCs. The hands-on companion to our article on the CHERI architecture.",
 

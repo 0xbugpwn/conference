@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Public registry of BUG|PWN discoveries: critical vulnerabilities, 0-day exploits, CVE tracking, and official technical publications (Whitepapers).">
+    <meta name="keywords" content="zero-day, CVE, vulnerability research, exploit, coordinated disclosure, security, whitepapers, threat intelligence, bug bounty, cybersecurity">
+    <meta property="og:title" content="Research & CVEs | BUG|PWN - Vulnerability Researcher Team">
+    <meta property="og:description" content="Public registry of BUG|PWN discoveries: critical vulnerabilities, 0-day exploits, CVE tracking, and official technical publications (Whitepapers).">
+    <meta property="og:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bugpwn.com/research.html">
+    <meta property="og:site_name" content="BUG|PWN">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="fr_FR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Research & CVEs | BUG|PWN - Vulnerability Researcher Team">
+    <meta name="twitter:description" content="Public registry of BUG|PWN discoveries: critical vulnerabilities, 0-day exploits, CVE tracking, and official technical publications (Whitepapers).">
+    <meta name="twitter:image" content="https://bugpwn.com/static/bugpwn@1x.png">
+    <link rel="canonical" href="https://bugpwn.com/research.html">
+    <title>Research & CVEs | BUG|PWN - Vulnerability Researcher Team</title>
+    <link rel="icon" type="image/png" href="static/bugpwn.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #000000; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .btn-black { background-color: #000; color: #fff; transition: all 0.2s ease; }
+        .btn-black:hover { background-color: #333; transform: translateY(-1px); }
+        
+        /* Styles spécifiques pour le registre CVE */
+        .cve-row { border-bottom: 1px solid #e5e7eb; transition: all 0.2s ease; }
+        .cve-row:hover { background-color: #f9fafb; border-left: 4px solid #000; padding-left: 12px; }
+        .cvss-critical { background-color: #000; color: #fff; }
+        .cvss-high { border: 1px solid #000; color: #000; font-weight: bold; }
+        .cvss-medium { border: 1px dashed #9ca3af; color: #6b7280; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <nav class="w-full py-6 px-6 md:px-12 bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="index.html" class="text-xl font-extrabold tracking-tighter flex items-center gap-1">
+                <span class="bg-black text-white px-1.5 py-0.5 rounded-sm">BUG</span>
+                <span>|PWN</span>
+            </a>
+
+            <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
+                <a href="index.html#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
+                <a href="research.html" class="text-black font-bold transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="blog.html" class="hover:text-black transition-colors" data-i18n="nav_blog">Blog</a>
+                <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
+            </div>
+
+            <div class="hidden md:flex items-center gap-4">
+                <button id="lang-toggle" class="text-[13px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
+                    EN
+                </button>
+                <a href="contact.html" class="btn-black px-6 py-2.5 rounded text-[13px] font-bold uppercase tracking-wider" data-i18n="nav_contact">
+                    Nous contacter
+                </a>
+            </div>
+
+            <!-- Mobile menu button -->
+            <div class="md:hidden flex items-center">
+                <button id="mobile-menu-button" class="text-gray-800 text-2xl focus:outline-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden">
+            <div class="pt-4 pb-3 space-y-1">
+                <a href="index.html#services" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_services">Services</a>
+                <a href="research.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_research">Recherche</a>
+                <a href="blog.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_blog">Blog</a>
+                <a href="events.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_events">Events</a>
+                <a href="contact.html" class="block py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50" data-i18n="nav_contact">Nous contacter</a>
+                <button id="lang-toggle-mobile" class="block w-full text-left py-2 px-4 text-base font-medium text-gray-700 hover:text-black hover:bg-gray-50">
+                    EN
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="max-w-7xl mx-auto px-6 py-24 md:py-32">
+        <div class="max-w-4xl">
+            <div class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mb-6">> ./THREAT_INTELLIGENCE_LAB</div>
+            <h1 class="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-8" data-i18n="res_title">
+                Zero-Days <br> & CVEs.
+            </h1>
+            <p class="text-lg text-gray-500 font-light max-w-xl leading-relaxed border-l-2 border-black pl-8" data-i18n="res_desc">
+                Le registre public de nos découvertes. Vulnérabilités critiques, exploits non publiés et processus de divulgation coordonnée (Coordinated Disclosure).
+            </p>
+        </div>
+    </header>
+
+    <section class="max-w-7xl mx-auto px-6 mb-32">
+        <div class="flex justify-between items-end mb-12 border-b border-black pb-4">
+            <h2 class="text-2xl font-black uppercase tracking-widest" data-i18n="cve_tracker_title">Security Advisories</h2>
+            <div class="mono text-[10px] text-gray-400 uppercase tracking-widest hidden md:block">
+                STATUS: <span class="text-black font-bold">ACTIVE</span> // YEAR: 2026
+            </div>
+        </div>
+
+        <div class="hidden md:grid grid-cols-12 gap-4 mono text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4 px-4">
+            <div class="col-span-2" data-i18n="col_date">DATE</div>
+            <div class="col-span-3" data-i18n="col_id">ID / RÉFÉRENCE</div>
+            <div class="col-span-4" data-i18n="col_target">CIBLE & IMPACT</div>
+            <div class="col-span-1" data-i18n="col_cvss">CVSS</div>
+            <div class="col-span-2 text-right" data-i18n="col_status">STATUT</div>
+        </div>
+
+        <div class="flex flex-col">
+
+            <a href="blog/open62541-cve-2026-116014.html" class="cve-row block py-6 px-4 group">
+                <div class="grid md:grid-cols-12 gap-4 items-center">
+                    <div class="col-span-2 mono text-[11px] text-gray-500">24.OCT.2026</div>
+                    <div class="col-span-3">
+                        <span class="mono text-sm font-black bg-gray-100 px-2 py-1 group-hover:bg-black group-hover:text-white transition-colors">CVE-2026-116014</span>
+                    </div>
+                    <div class="col-span-4">
+                        <h4 class="font-bold text-sm tracking-tight mb-1" data-i18n="cve_open_target">open62541 / OPC UA Client</h4>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-widest" data-i18n="cve_open_type">Integer Overflow &rarr; Heap Overflow &rarr; RCE</p>
+                    </div>
+                    <div class="col-span-1 mt-2 md:mt-0">
+                        <span class="mono text-[10px] font-black px-2 py-1 cvss-critical">9.2</span>
+                    </div>
+                    <div class="col-span-2 text-left md:text-right mt-2 md:mt-0">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 border border-gray-300 px-2 py-1" data-i18n="status_patched">PATCHÉ</span>
+                    </div>
+                </div>
+            </a>
+
+            <a href="blog/civetweb-ssi-rce.html" class="cve-row block py-6 px-4 group">
+                <div class="grid md:grid-cols-12 gap-4 items-center">
+                    <div class="col-span-2 mono text-[11px] text-gray-500">01.JUL.2026</div>
+                    <div class="col-span-3">
+                        <span class="mono text-[11px] font-black text-gray-500 border border-gray-300 px-2 py-1 group-hover:border-black group-hover:text-black transition-colors">BUG-PWN-ADV-CIVETWEB</span>
+                    </div>
+                    <div class="col-span-4">
+                        <h4 class="font-bold text-sm tracking-tight mb-1" data-i18n="cve_civet_target">CivetWeb 1.17</h4>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-widest" data-i18n="cve_civet_type">PUT + SSI Exec &rarr; RCE (CWE-434)</p>
+                    </div>
+                    <div class="col-span-1 mt-2 md:mt-0">
+                        <span class="mono text-[10px] px-2 py-1 cvss-medium">6.8</span>
+                    </div>
+                    <div class="col-span-2 text-left md:text-right mt-2 md:mt-0">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 border border-gray-300 px-2 py-1" data-i18n="status_documented">DOCUMENTÉ</span>
+                    </div>
+                </div>
+            </a>
+
+        </div>
+
+        <div class="mt-12 text-center">
+            <button class="mono text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 hover:text-black transition-colors" data-i18n="btn_load_more">
+                [ + CHARGER LES ARCHIVES ]
+            </button>
+        </div>
+    </section>
+
+    <section class="py-24 bg-black text-white border-t border-black">
+        <div class="max-w-4xl mx-auto px-6 text-center">
+            <h5 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-12">DISCLOSURE_PROTOCOL</h5>
+            <h2 class="text-3xl font-black uppercase tracking-tighter mb-6" data-i18n="cta_title">Vous avez été notifié par notre équipe ?</h2>
+            <p class="text-gray-400 font-light mb-10 text-sm" data-i18n="cta_desc">
+                Si vous avez reçu un rapport de vulnérabilité de la part de l'unité BUG|PWN, veuillez utiliser notre canal chiffré PGP pour entamer le processus de remédiation coordonnée.
+            </p>
+            <a href="contact.html" class="inline-block bg-white text-black px-12 py-5 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-colors" data-i18n="cta_btn">
+                Ouvrir un canal sécurisé
+            </a>
+        </div>
+    </section>
+
+    <footer class="bg-gray-100 py-16 border-t border-gray-300">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div class="space-y-6">
+                <div class="text-xl font-black tracking-tighter mb-4">BUG|PWN</div>
+                <p class="text-[11px] leading-relaxed text-gray-500 uppercase tracking-wider max-w-xs font-medium" data-i18n="footer_bio">
+                    Unité de recherche en vulnérabilités avancées et audit de systèmes critiques. <br>
+                </p>
+                <div class="flex gap-4">
+                    <a href="#" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-x-twitter"></i></a>
+                    <a href="#" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-github"></i></a>
+                    <a href="#" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-700"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Capabilities_Index</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Reverse Engineering</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Exploit Development</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_audit">Audit de Code Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_ics">Systèmes Industriels</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Knowledge_Base</h5>
+                <ul class="space-y-4 text-[11px] font-bold uppercase tracking-widest text-black">
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Repository Writeups</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">Whitepapers</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all" data-i18n="f_link_tools">Outils Open Source</a></li>
+                    <li><a href="#" class="hover:underline underline-offset-8 decoration-1 transition-all">CTF Archives</a></li>
+                </ul>
+            </div>
+            <div class="space-y-6">
+                <h5 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-10">Secure_Channel</h5>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium italic" data-i18n="footer_pgp">
+                    Pour toute communication sensible, privilégiez le chiffrement PGP.
+                </p>
+                <a href="#" class="inline-block border border-black px-3 py-1 text-xs font-mono font-bold hover:bg-black hover:text-white transition">
+                    <i class="fas fa-key mr-2"></i> 0x98A2...F12
+                </a>
+                <p class="text-xs text-gray-400 mt-4">© 2026 BUG|PWN RESEARCH UNIT. <br>ALL RIGHTS RESERVED.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // --- GESTION DES TRADUCTIONS ---
+        const translations = {
+            fr: {
+                nav_services: "Services",
+                nav_research: "Recherche",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Nous contacter",
+
+                res_title: "Zero-Days <br> & CVEs.",
+                res_desc: "Le registre public de nos découvertes. Vulnérabilités critiques, exploits non publiés et processus de divulgation coordonnée (Coordinated Disclosure).",
+                
+                cve_tracker_title: "Security Advisories",
+                col_date: "DATE",
+                col_id: "ID / RÉFÉRENCE",
+                col_target: "CIBLE & IMPACT",
+                col_cvss: "CVSS",
+                col_status: "STATUT",
+
+                cve_open_target: "open62541 / Client OPC UA",
+                cve_open_type: "Integer Overflow &rarr; Heap Overflow &rarr; RCE",
+                cve_civet_target: "CivetWeb 1.17",
+                cve_civet_type: "PUT + SSI Exec &rarr; RCE (CWE-434)",
+
+                status_patched: "PATCHÉ",
+                status_documented: "DOCUMENTÉ",
+
+                btn_load_more: "[ + CHARGER LES ARCHIVES ]",
+
+                cta_title: "Vous avez été notifié par notre équipe ?",
+                cta_desc: "Si vous avez reçu un rapport de vulnérabilité de la part de l'unité BUG|PWN, veuillez utiliser notre canal chiffré PGP pour entamer le processus de remédiation coordonnée.",
+                cta_btn: "Ouvrir un canal sécurisé",
+
+                footer_bio: "Unité de recherche en vulnérabilités avancées et audit de systèmes critiques.",
+                f_link_audit: "Audit de Code Source",
+                f_link_ics: "Systèmes Industriels",
+                f_link_tools: "Outils Open Source",
+                footer_pgp: "Pour toute communication sensible, privilégiez le chiffrement PGP."
+            },
+            en: {
+                nav_services: "Services",
+                nav_research: "Research",
+                nav_blog: "Blog",
+                nav_events: "Events",
+                nav_contact: "Contact Us",
+
+                res_title: "Zero-Days <br> & CVEs.",
+                res_desc: "The public registry of our discoveries. Critical vulnerabilities, unpublished exploits, and Coordinated Disclosure processes.",
+
+                cve_tracker_title: "Security Advisories",
+                col_date: "DATE",
+                col_id: "ID / REFERENCE",
+                col_target: "TARGET & IMPACT",
+                col_cvss: "CVSS",
+                col_status: "STATUS",
+
+                cve_open_target: "open62541 / OPC UA Client",
+                cve_open_type: "Integer Overflow &rarr; Heap Overflow &rarr; RCE",
+                cve_civet_target: "CivetWeb 1.17",
+                cve_civet_type: "PUT + SSI Exec &rarr; RCE (CWE-434)",
+
+                status_patched: "PATCHED",
+                status_documented: "DOCUMENTED",
+
+                btn_load_more: "[ + LOAD ARCHIVES ]",
+
+                cta_title: "Have you been notified by our team?",
+                cta_desc: "If you received a vulnerability report from the BUG|PWN unit, please use our PGP encrypted channel to begin the coordinated remediation process.",
+                cta_btn: "Open secure channel",
+
+                footer_bio: "Advanced vulnerability research unit and critical systems auditing.",
+                f_link_audit: "Source Code Audit",
+                f_link_ics: "Industrial Systems",
+                f_link_tools: "Open Source Tools",
+                footer_pgp: "For all sensitive communication, please use PGP encryption."
+            }
+        };
+    </script>
+    <script src="static/main.js"></script>
+</body>
+</html>

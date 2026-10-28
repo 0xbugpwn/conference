@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -95,7 +95,7 @@
 
             <div class="hidden md:flex gap-10 text-[13px] font-medium uppercase tracking-[0.15em] text-gray-500">
                 <a href="#services" class="hover:text-black transition-colors" data-i18n="nav_services">Services</a>
-                <a href="#" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
+                <a href="research.html" class="hover:text-black transition-colors" data-i18n="nav_research">Recherche</a>
                 <a href="blog.html" class="hover:text-black transition-colors" data-i18n="nav_blog">Blog</a>
                 <a href="events.html" class="hover:text-black transition-colors" data-i18n="nav_events">Events</a>
             </div>
@@ -459,6 +459,20 @@
                     <h3 class="text-xs font-black uppercase tracking-[0.4em] mb-16 text-gray-500">LATEST_WRITEUPS</h3>
                     
                     <div class="space-y-12">
+                        <a href="blog/open62541-cve-2026-116014.html" class="block cursor-pointer group/item">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_open_title">
+                                    open62541 : Integer Overflow = RCE
+                                </h4>
+                                <span class="mono text-[9px] border border-white/20 px-2 py-1 text-gray-500 group-hover/item:text-white transition-colors">MEM_CORRUPT</span>
+                            </div>
+                            <p class="text-sm text-gray-400 font-medium leading-relaxed italic" data-i18n="w_open_desc">
+                                Un champ de taille sur 16 bits non protégé dans open62541 permet à un serveur OPC UA malveillant de corrompre le tas d'un client, jusqu'à l'exécution de code à distance. Cause racine, PoC en réseau et correctif officiel.
+                            </p>
+                        </a>
+
+                        <div class="h-px bg-white/10"></div>
+
                         <a href="blog/civetweb-ssi-rce.html" class="block cursor-pointer group/item">
                             <div class="flex justify-between items-start mb-4">
                                 <h4 class="text-lg font-black uppercase tracking-tighter group-hover/item:underline decoration-1 underline-offset-8 transition-all" data-i18n="w_civet_title">
@@ -608,6 +622,8 @@
                 ev3_title: "BUG|PWN CON 2026",
                 ev3_desc: "Conférence virtuelle & Call for Speakers. Soumissions ouvertes jusqu'au 31 octobre 2026.",
                 ev3_btn: "Voir_La_Conference",
+                w_open_title: "open62541 : Integer Overflow = RCE",
+                w_open_desc: "Un champ de taille sur 16 bits non protégé dans open62541 permet à un serveur OPC UA malveillant de corrompre le tas d'un client, jusqu'à l'exécution de code à distance. Cause racine, PoC en réseau et correctif officiel.",
                 w_civet_title: "CivetWeb : PUT + SSI = RCE",
                 w_civet_desc: "Comment deux fonctionnalités entièrement légitimes de CivetWeb se combinent pour produire une exécution de commande arbitraire à distance. Analyse du code source, PoC live et recommandations de hardening.",
                 w_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
@@ -683,6 +699,8 @@
                 ev3_title: "BUG|PWN CON 2026",
                 ev3_desc: "Virtual conference & Call for Speakers. Submissions open until October 31, 2026.",
                 ev3_btn: "View_The_Conference",
+                w_open_title: "open62541: Integer Overflow = RCE",
+                w_open_desc: "An unguarded 16 bit size field in open62541 lets a malicious OPC UA server corrupt a client's heap, up to remote code execution. Root cause, networked PoC, and the official fix.",
                 w_civet_title: "CivetWeb: PUT + SSI = RCE",
                 w_civet_desc: "How two fully legitimate CivetWeb features silently combine to produce arbitrary remote code execution. Source code analysis, live PoC, and hardening recommendations.",
                 w_coop_title: "Counterfeit Object-Oriented Programming (COOP)",
